@@ -1,0 +1,18 @@
+language: java
+jdk:
+- oraclejdk8
+install: true
+script:
+- "./gradlew -b ice-adapter/build.gradle shadowJar"
+- mv ./ice-adapter/build/libs/ice-adapter-1.0-SNAPSHOT-all.jar ./faf-ice-adapter.jar
+deploy:
+  provider: releases
+  api_key:
+    secure: ei2hgCkWSUdUXHTRyzyz66A9zjKMmz+Cr8lR3lJfQjBNQPynaoJyuUzUCvshgDoqMdB5RqUXf86O3LctMVRphKMBR4toiyusvHXvYZTElXhQIv8yoXPrLFCYPnVEtNTssPlqemTuIugAB41iZU1CKWY2zcqP2DsmoARtIVGiBqwjmC4dCgEWSx6rqzvXqbKYTJUaxenqcbrowhfbFCl9gYEESXRRGEYebYb1sHpoWICK+fQHEgWWUAvcPT9/JO1dMD5L+fPXz+X91RZkXkIAYn/wnsSDBmYXTORjI9IGKgPqLNRhl0/kQc4ajGd889Fs9T8nKaegllDXsGDTJ2Mxg21AMi1KvzseBK/VC2y2I5qmj8xkUGKTkbQ59yaebfaNWB/LrkvfmfezygNwm9cWq0OaiM2MSXjYN2SWASH8Cb6UOXKtvMbtC966utpKSDpU3RMRbiVT8ongmK1iTT/ZkcJHrhV00zH51DW/KYBX5D1Z9vph6y6HDoXC5NuXr7zs7bGH9V2xfafu0Bazp1zLsFPHRfdTd95NYT1gV6ak1lpay3t9wax2vdtdKXrcVWDDn0cHYQq2D6PY9EUwATOOTMbebPW9JyfGItvBCxL2oN0J4v7p62Y+QQkWbWENm8P3mpyyBuH2mrKEYA1miKXjsqFg2GrLBYVmrPRiDiuRExI=
+  file: faf-ice-adapter.jar
+  skip_cleanup: true
+  on:
+    repo: FAForever/java-ice-adapter
+    tags: true
+  prerelease: true
+all_branches: true
