@@ -78,6 +78,7 @@ faf-ice-adapter usage:
 --gpgnet-port arg (=0)               set the port of internal GPGNet server
 --lobby-port arg (=0)                set the port the game lobby should use for incoming UDP packets from the PeerRelay
 --log-directory arg                  set a log directory to write ice_adapter_0 log files
+--debug-window                       activate the debug window if JavaFX is available
 ```
 
 ## Example usage sequence
@@ -101,13 +102,3 @@ faf-ice-adapter usage:
 | 9 | The client receives multiple `onIceMsg(1, 2, someIceMsg)`notifications and must now transfer these messages string ordered to the peer. | The client receives multiple `onIceMsg(1, 2, someIceMsg)`notifications and must now transfer these messages string ordered to the peer. |
 | 10 | The client must set the transferred ICE messages for the peer using `iceMsg(2, someIceMsg)`. | The client must set the transferred ICE messages for the peer using `iceMsg(1, someIceMsg)`. |
 | 11 | The client received multiple `iceConnectionStateChanged(...)` notifications which would finally show the `'Connected'` or `'Complete'` state, which should also let the game connect to the peer. Another indicator for a connection is the `onDatachannelOpen` notification.| The client received multiple `iceConnectionStateChanged(...)` notifications which would finally show the `'Connected'` or `'Complete'` state, which should also let the game connect to the peer. |
-
-## Building `faf-ice-adapter`
-###  Linux
-Webrtc is build using clang and linked against clangs libc++, so you need to use these for building the ice-adapter.
-1. Build [libwebrtc](https://github.com/FAForever/libwebrtc) with `cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DWEBRTC_BRANCH_HEAD=refs/branch-heads/62 -DBUILD_TESTS=ON`
-2. Build the ice-adapter with `cmake -DCMAKE_CXX_COMPILER="/usr/bin/clang++" -DCMAKE_CXX_FLAGS="-stdlib=libc++" -DWEBRTC_INCLUDE_DIRS="path/to/webrtc/include" -DWEBRTC_LIBRARIES="path/to/webrtc/lib/libwebrtc.a" -DCMAKE_BUILD_TYPE=Release` and `make`
-###  Windows
-1. Download and extract [latest libwebrtc win32 release zip file](https://github.com/FAForever/libwebrtc/releases/latest).
-2. Install Visual Studio 2015 compilers and open x86 shell.
-3. Build the ice-adapter using `cmake -DWEBRTC_INCLUDE_DIRS="path/to/webrtc/include" -DWEBRTC_LIBRARIES="path/to/webrtc/lib/libwebrtc.lib" -DCMAKE_BUILD_TYPE=Release`
