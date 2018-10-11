@@ -10,7 +10,12 @@ import java.util.concurrent.ExecutionException;
 public class Debug {
 	static CompletableFuture<Debugger> debug = new CompletableFuture<>();
 
-	static {
+	public static void init(boolean debugWindow) {
+		if(!debugWindow) {
+			debug.complete(new NoDebugger());
+			return;
+		}
+
 		if(isJavaFxSupported()) {
 			new Thread(() -> {
 				try {

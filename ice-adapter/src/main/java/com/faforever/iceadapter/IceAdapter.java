@@ -1,6 +1,7 @@
 package com.faforever.iceadapter;
 
 import ch.qos.logback.core.rolling.RollingFileAppender;
+import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.GameSession;
@@ -25,7 +26,7 @@ public class IceAdapter {
 
     public static volatile boolean running = true;
 
-    public static final String VERSION = "j0.1.0-beta";
+    public static final String VERSION = "j0.2.0-beta";
     public static String COMMAND_LINE_ARGUMENTS;
 
     public static int id = -1;
@@ -157,7 +158,8 @@ public class IceAdapter {
                     "--rpc-port arg (=7236)               set the port of internal JSON-RPC server\n" +
                     "--gpgnet-port arg (=0)               set the port of internal GPGNet server\n" +
                     "--lobby-port arg (=0)                set the port the game lobby should use for incoming UDP packets from the PeerRelay\n" +
-                    "--log-directory arg                  set a log directory to write ice_adapter_0 log files\n");
+                    "--log-directory arg                  set a log directory to write ice_adapter_0 log files\n" +
+                    "--debug-window                       activate the debug window if JavaFX is available\n");
             System.exit(0);
         }
 
@@ -180,5 +182,7 @@ public class IceAdapter {
         if(arguments.containsKey("log-directory")) {
             logDirectory = arguments.get("log-directory");
         }
+
+        Debug.init(arguments.containsKey("debug-window"));
     }
 }
