@@ -3,8 +3,8 @@ jdk:
 - oraclejdk8
 install: true
 script:
-- "./gradlew -b ice-adapter/build.gradle shadowJar"
-- mv ./ice-adapter/build/libs/ice-adapter-1.0-SNAPSHOT-all.jar ./faf-ice-adapter.jar
+- gradle -b ice-adapter/build.gradle shadowJar -PtagVersion=`git describe --tags --abbrev=0`
+- mv ./ice-adapter/build/libs/ice-adapter-*-all.jar ./faf-ice-adapter.jar
 deploy:
   provider: releases
   api_key:

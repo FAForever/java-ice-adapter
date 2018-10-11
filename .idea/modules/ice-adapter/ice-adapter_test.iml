@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module version="4">
-  <component name="ExternalSystem" externalSystem="GRADLE" externalSystemModuleGroup="Geosearchef" externalSystemModuleType="sourceSet" externalSystemModuleVersion="SNAPSHOT" linkedProjectId=":ice-adapter:test" linkedProjectPath="$MODULE_DIR$/../../../ice-adapter" rootProjectPath="$MODULE_DIR$/../../.." />
+  <component name="ExternalSystem" externalSystem="GRADLE" externalSystemModuleGroup="Geosearchef" externalSystemModuleType="sourceSet" externalSystemModuleVersion="unspecified" linkedProjectId=":ice-adapter:test" linkedProjectPath="$MODULE_DIR$/../../../ice-adapter" rootProjectPath="$MODULE_DIR$/../../.." />
   <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
     <output-test url="file://$MODULE_DIR$/../../../ice-adapter/out/test/classes" />
     <exclude-output />
