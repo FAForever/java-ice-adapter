@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module version="4">
+  <component name="ExternalSystem" externalSystem="GRADLE" externalSystemModuleGroup="Geosearchef" externalSystemModuleType="sourceSet" externalSystemModuleVersion="1.0-SNAPSHOT" linkedProjectId=":shared:test" linkedProjectPath="$MODULE_DIR$/../../../shared" rootProjectPath="$MODULE_DIR$/../../.." />
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+    <output-test url="file://$MODULE_DIR$/../../../shared/out/test/classes" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../../../shared/src/test" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" scope="PROVIDED" name="Gradle: org.projectlombok:lombok:1.16.20" level="project" />
+    <orderEntry type="module" module-name="shared_main" />
+  </component>
+  <component name="TestModuleProperties" production-module="shared_main" />
+</module>

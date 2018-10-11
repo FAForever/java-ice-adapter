@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module version="4">
+  <component name="ExternalSystem" externalSystem="GRADLE" externalSystemModuleGroup="Geosearchef" externalSystemModuleVersion="1.0-SNAPSHOT" linkedProjectId=":client" linkedProjectPath="$MODULE_DIR$/../../../client" rootProjectPath="$MODULE_DIR$/../../.." />
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../../../client">
+      <excludeFolder url="file://$MODULE_DIR$/../../../client/.gradle" />
+      <excludeFolder url="file://$MODULE_DIR$/../../../client/build" />
+      <excludeFolder url="file://$MODULE_DIR$/../../../client/out" />
+    </content>
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
