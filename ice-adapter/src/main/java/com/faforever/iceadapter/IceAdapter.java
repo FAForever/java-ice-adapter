@@ -26,7 +26,7 @@ public class IceAdapter {
 
     public static volatile boolean running = true;
 
-    public static final String VERSION = "j0.2.0-beta";
+    public static String VERSION = "snapshot";
     public static String COMMAND_LINE_ARGUMENTS;
 
     public static int id = -1;
@@ -39,6 +39,8 @@ public class IceAdapter {
     public static volatile GameSession gameSession;
 
     public static void main(String args[]) {
+        determineVersion();
+
         COMMAND_LINE_ARGUMENTS = Arrays.stream(args).collect(Collectors.joining(" "));
         interpretArguments(ArgumentParser.parse(args));
 
@@ -184,5 +186,12 @@ public class IceAdapter {
         }
 
         Debug.init(arguments.containsKey("debug-window"));
+    }
+
+    private static void determineVersion() {
+        String versionFromGradle = IceAdapter.class.getPackage().getImplementationVersion();
+        if(versionFromGradle != null) {
+            VERSION = versionFromGradle;
+        }
     }
 }

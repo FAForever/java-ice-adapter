@@ -1,8 +1,7 @@
-plugins {
-    id 'java'
-    id 'io.franzbecker.gradle-lombok'
-    id 'com.github.johnrengelman.plugin-shadow'
-}
+
+apply plugin: 'java'
+apply plugin: 'io.franzbecker.gradle-lombok'
+apply plugin: 'com.github.johnrengelman.plugin-shadow'
 
 group 'Geosearchef'
 version '1.0-SNAPSHOT'

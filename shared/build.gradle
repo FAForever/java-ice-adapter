@@ -1,7 +1,6 @@
-plugins {
-    id 'java'
-    id 'io.franzbecker.gradle-lombok'
-}
+
+apply plugin: 'java'
+apply plugin: 'io.franzbecker.gradle-lombok'
 
 group 'Geosearchef'
 version '1.0-SNAPSHOT'

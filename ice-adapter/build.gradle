@@ -17,7 +17,7 @@ apply plugin: 'javafx-gradle-plugin'
 apply plugin: 'com.github.johnrengelman.plugin-shadow'
 
 group 'Geosearchef'
-version '1.0-SNAPSHOT'
+version 'SNAPSHOT'
 
 sourceCompatibility = 1.8
 
