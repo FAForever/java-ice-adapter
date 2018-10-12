@@ -34,7 +34,17 @@ public class CandidateUtil {
                 candidatePacket.setRelPort(localCandidate.getRelatedAddress().getPort());
             }
 
-            localCandidatesMessage.getCandidates().add(candidatePacket);
+            //Candidate type LOCAL and STUN can never occur as they are deprecated and not
+            if (IceAdapter.DEBUG_ALLOW_HOST && localCandidate.getType().equals(CandidateType.HOST_CANDIDATE)) {
+                localCandidatesMessage.getCandidates().add(candidatePacket);
+            }
+            if (IceAdapter.DEBUG_ALLOW_REFLEXIVE &&
+                    (localCandidate.getType().equals(CandidateType.SERVER_REFLEXIVE_CANDIDATE) || localCandidate.getType().equals(CandidateType.PEER_REFLEXIVE_CANDIDATE))) {
+                localCandidatesMessage.getCandidates().add(candidatePacket);
+            }
+            if (IceAdapter.DEBUG_ALLOW_RELAY && localCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE)) {
+                localCandidatesMessage.getCandidates().add(candidatePacket);
+            }
         }
 
         return localCandidatesMessage;

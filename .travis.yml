@@ -3,7 +3,7 @@ jdk:
 - oraclejdk8
 install: true
 script:
-- gradle -b ice-adapter/build.gradle shadowJar -PtagVersion=`git describe --tags --abbrev=0`
+- gradle -b ice-adapter/build.gradle shadowJar -Pversion=${TRAVIS_TAG}
 - mv ./ice-adapter/build/libs/ice-adapter-*-all.jar ./faf-ice-adapter.jar
 deploy:
   provider: releases

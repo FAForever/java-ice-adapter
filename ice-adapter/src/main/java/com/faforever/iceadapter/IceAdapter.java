@@ -26,7 +26,7 @@ public class IceAdapter {
 
     public static volatile boolean running = true;
 
-    public static String VERSION = "snapshot";
+    public static String VERSION = "SNAPSHOT";
     public static String COMMAND_LINE_ARGUMENTS;
 
     public static int id = -1;
