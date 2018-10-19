@@ -14,7 +14,7 @@ apply plugin: 'java'
 apply plugin: 'java-library'
 apply plugin: 'io.franzbecker.gradle-lombok'
 apply plugin: 'javafx-gradle-plugin'
-apply plugin: 'com.github.johnrengelman.plugin-shadow'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 group 'Geosearchef'
 version = 'SNAPSHOT'
