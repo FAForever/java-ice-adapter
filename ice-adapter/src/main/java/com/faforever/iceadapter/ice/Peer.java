@@ -90,10 +90,18 @@ public class Peer {
 
     public volatile boolean closing = false;
     public void close() {
-        closing = true;
-        faSocket.close();
+        if(closing) {
+            return;
+        }
 
-        ice.close();
+        closing = true;
+        if(faSocket != null) {
+            faSocket.close();
+        }
+
+        if(ice != null) {
+            ice.close();
+        }
     }
 
     /**

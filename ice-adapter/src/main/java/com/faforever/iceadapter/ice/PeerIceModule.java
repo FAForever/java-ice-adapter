@@ -85,7 +85,8 @@ public class PeerIceModule {
         log.info(getLogPrefix() + "Gathering ice candidates");
         GameSession.getIceServers().stream().flatMap(s -> s.getStunAddresses().stream()).map(StunCandidateHarvester::new).forEach(agent::addCandidateHarvester);
         GameSession.getIceServers().forEach(iceServer ->
-                iceServer.getTurnAddresses().stream().map(a -> new TurnCandidateHarvester(a, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential()))).forEach(agent::addCandidateHarvester)
+                iceServer.getTurnAddresses().stream().map(a -> new TurnCandidateHarvester(a, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential())))
+                        .forEach(agent::addCandidateHarvester)
         );
 
         try {
@@ -343,9 +344,15 @@ public class PeerIceModule {
     }
 
     void close() {
-        turnRefreshModule.close();
-        connectivityChecker.stop();
-        agent.free();
+        if(turnRefreshModule != null) {
+            turnRefreshModule.close();
+        }
+        if(connectivityChecker != null) {
+            connectivityChecker.stop();
+        }
+        if(agent != null) {
+            agent.free();
+        }
     }
 
     public String getLogPrefix() {
