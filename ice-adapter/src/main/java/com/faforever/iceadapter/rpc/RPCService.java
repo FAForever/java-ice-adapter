@@ -32,6 +32,12 @@ public class RPCService {
         tcpServer.start();
 
         debug().rpcStarted(tcpServer.getFirstPeer());
+        tcpServer.getFirstPeer().thenAccept(firstPeer -> {
+            firstPeer.onConnectionLost(() -> {
+                log.info("Lost connection to first RPC Peer. Stopping adapter...");
+                IceAdapter.close();
+            });
+        });
     }
 
     public static void onConnectionStateChanged(String newState) {
