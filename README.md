@@ -78,6 +78,7 @@ faf-ice-adapter usage:
 --gpgnet-port arg (=0)               set the port of internal GPGNet server
 --lobby-port arg (=0)                set the port the game lobby should use for incoming UDP packets from the PeerRelay
 --log-directory arg                  set a log directory to write ice_adapter_0 log files
+--force-relay                        force the usage of relay candidates only
 --debug-window                       activate the debug window if JavaFX is available
 ```
 

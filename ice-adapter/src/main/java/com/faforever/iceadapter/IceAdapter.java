@@ -161,6 +161,7 @@ public class IceAdapter {
                     "--gpgnet-port arg (=0)               set the port of internal GPGNet server\n" +
                     "--lobby-port arg (=0)                set the port the game lobby should use for incoming UDP packets from the PeerRelay\n" +
                     "--log-directory arg                  set a log directory to write ice_adapter_0 log files\n" +
+                    "--force-relay                        force the usage of relay candidates only\n" +
                     "--debug-window                       activate the debug window if JavaFX is available\n");
             System.exit(0);
         }
@@ -183,6 +184,11 @@ public class IceAdapter {
         }
         if(arguments.containsKey("log-directory")) {
             logDirectory = arguments.get("log-directory");
+        }
+        if(arguments.containsKey("force-relay")) {
+            DEBUG_ALLOW_HOST = false;
+            DEBUG_ALLOW_REFLEXIVE = false;
+            DEBUG_ALLOW_RELAY = true;
         }
 
         Debug.init(arguments.containsKey("debug-window"));
