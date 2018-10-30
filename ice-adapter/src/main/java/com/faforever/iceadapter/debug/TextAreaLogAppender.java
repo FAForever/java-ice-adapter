@@ -1,6 +1,7 @@
 package com.faforever.iceadapter.debug;
 
 import ch.qos.logback.core.OutputStreamAppender;
+import javafx.application.Platform;
 
 import java.io.FilterOutputStream;
 import java.io.OutputStream;
@@ -43,7 +44,6 @@ public class TextAreaLogAppender<E> extends OutputStreamAppender<E> {
 				if(! buffer.isEmpty()) {
 					buffer.clear();
 				}
-				return;
 			}
 
 			if(textArea != null) {
@@ -57,12 +57,14 @@ public class TextAreaLogAppender<E> extends OutputStreamAppender<E> {
 		}
 
 		private void appendText(String text) {
-			try {
-				textAreaAppendMethod.invoke(textArea, text);
-			} catch (IllegalAccessException | InvocationTargetException e) {
-				e.printStackTrace();
-				throw new RuntimeException("Could not append log to textArea");
-			}
+			Platform.runLater(() -> {
+				try {
+					textAreaAppendMethod.invoke(textArea, text);
+				} catch (IllegalAccessException | InvocationTargetException e) {
+					e.printStackTrace();
+					throw new RuntimeException("Could not append log to textArea");
+				}
+			});
 		}
 
 		public void setTextArea(Object textArea) {
