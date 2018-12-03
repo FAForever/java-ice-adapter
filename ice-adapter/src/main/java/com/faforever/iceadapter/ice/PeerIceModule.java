@@ -14,6 +14,9 @@ import org.ice4j.security.LongTermCredential;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
 import static com.faforever.iceadapter.ice.IceState.*;
@@ -89,13 +92,38 @@ public class PeerIceModule {
                         .forEach(agent::addCandidateHarvester)
         );
 
+        CompletableFuture gatheringFuture = CompletableFuture.runAsync(() -> {
+            try {
+                component = agent.createComponent(mediaStream, Transport.UDP, MINIMUM_PORT + (int) (Math.random() * 999.0), MINIMUM_PORT, MINIMUM_PORT + 1000);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        Executor.executeDelayed(5000, () -> {
+            if(! gatheringFuture.isDone()) {
+                gatheringFuture.cancel(true);
+            }
+        });
+
         try {
-            component = agent.createComponent(mediaStream, Transport.UDP, MINIMUM_PORT + (int) (Math.random() * 999.0), MINIMUM_PORT, MINIMUM_PORT + 1000);
-        } catch (IOException e) {
-            log.error(getLogPrefix() + "Error while creating stream component", e);
-            new Thread(this::reinitIce).start();
+            gatheringFuture.join();
+        } catch(CompletionException e) {
+            //Completed exceptionally
+            log.error(getLogPrefix() + "Error while creating stream component/gathering candidates", e);
+            if(this.peer.isLocalOffer()) {
+                new Thread(this::reinitIce).start();
+            }
+            return;
+        } catch(CancellationException e) {
+            //was cancelled due to timeout
+            log.error(getLogPrefix() + "Gathering candidates timed out", e);
+            if(this.peer.isLocalOffer()) {
+                new Thread(this::reinitIce).start();
+            }
             return;
         }
+
 
         CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(IceAdapter.id, peer.getRemoteId(), agent, component);
         log.debug(getLogPrefix() + "Sending own candidates to {}", peer.getRemoteId());
