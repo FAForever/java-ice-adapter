@@ -111,16 +111,12 @@ public class PeerIceModule {
         } catch(CompletionException e) {
             //Completed exceptionally
             log.error(getLogPrefix() + "Error while creating stream component/gathering candidates", e);
-            if(this.peer.isLocalOffer()) {
-                new Thread(this::reinitIce).start();
-            }
+            new Thread(this::onConnectionLost).start();
             return;
         } catch(CancellationException e) {
             //was cancelled due to timeout
             log.error(getLogPrefix() + "Gathering candidates timed out", e);
-            if(this.peer.isLocalOffer()) {
-                new Thread(this::reinitIce).start();
-            }
+            new Thread(this::onConnectionLost).start();
             return;
         }
 
