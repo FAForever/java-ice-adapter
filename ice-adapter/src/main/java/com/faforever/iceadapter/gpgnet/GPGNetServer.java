@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -121,6 +122,7 @@ public class GPGNetServer {
         public synchronized void sendGpgnetMessage(String command, Object... args) {
             try {
                 gpgnetOut.writeMessage(command, args);
+                log.info("Sent GPGNet message: {} {}", command, Arrays.stream(args).map(Object::toString).collect(Collectors.joining(" ")));
             } catch (IOException e) {
                 log.error("Error while communicating with FA (output), assuming shutdown", e);
                 GPGNetServer.onGpgnetConnectionLost();
