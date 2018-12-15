@@ -260,19 +260,19 @@ public class PeerIceModule {
 
         connectivityChecker.stop();
 
+        if (connected) {
+            connected = false;
+            log.warn(getLogPrefix() + "ICE connection has been lost for peer");
+            RPCService.onConnected(IceAdapter.id, peer.getRemoteId(), false);
+        }
+
+        setState(DISCONNECTED);
+
         if (agent != null) {
             agent.free();
             agent = null;
             mediaStream = null;
             component = null;
-        }
-
-        setState(DISCONNECTED);
-
-        if (connected) {
-            connected = false;
-            log.warn(getLogPrefix() + "ICE connection has been lost for peer");
-            RPCService.onConnected(IceAdapter.id, peer.getRemoteId(), false);
         }
 
         debug().peerStateChanged(this.peer);
@@ -314,12 +314,14 @@ public class PeerIceModule {
      * @param length
      */
     void sendViaIce(byte[] data, int offset, int length) {
-        if (connected) {
+        if (connected && component != null) {
             try {
                 component.getSelectedPair().getIceSocketWrapper().send(new DatagramPacket(data, offset, length, component.getSelectedPair().getRemoteCandidate().getTransportAddress().getAddress(), component.getSelectedPair().getRemoteCandidate().getTransportAddress().getPort()));
             } catch (IOException e) {
                 log.warn(getLogPrefix() + "Failed to send data via ICE", e);
                 onConnectionLost();
+            } catch (NullPointerException e) {
+                log.error("Component is null", e);
             }
         }
     }
