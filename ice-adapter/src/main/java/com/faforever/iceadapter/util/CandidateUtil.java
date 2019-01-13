@@ -1,6 +1,5 @@
 package com.faforever.iceadapter.util;
 
-import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.ice.CandidatePacket;
 import com.faforever.iceadapter.ice.CandidatesMessage;
 import org.ice4j.Transport;
@@ -13,7 +12,7 @@ public class CandidateUtil {
 
     public static int candidateIDFactory = 0;
 
-    public static CandidatesMessage packCandidates(int srcId, int destId, Agent agent, Component component) {
+    public static CandidatesMessage packCandidates(int srcId, int destId, Agent agent, Component component, boolean allowHost, boolean allowReflexive, boolean allowRelay) {
         CandidatesMessage localCandidatesMessage = new CandidatesMessage(srcId, destId, agent.getLocalPassword(), agent.getLocalUfrag());
 
         for (LocalCandidate localCandidate : component.getLocalCandidates()) {
@@ -35,14 +34,14 @@ public class CandidateUtil {
             }
 
             //Candidate type LOCAL and STUN can never occur as they are deprecated and not
-            if (IceAdapter.DEBUG_ALLOW_HOST && localCandidate.getType().equals(CandidateType.HOST_CANDIDATE)) {
+            if (allowHost && localCandidate.getType().equals(CandidateType.HOST_CANDIDATE)) {
                 localCandidatesMessage.getCandidates().add(candidatePacket);
             }
-            if (IceAdapter.DEBUG_ALLOW_REFLEXIVE &&
+            if (allowReflexive &&
                     (localCandidate.getType().equals(CandidateType.SERVER_REFLEXIVE_CANDIDATE) || localCandidate.getType().equals(CandidateType.PEER_REFLEXIVE_CANDIDATE))) {
                 localCandidatesMessage.getCandidates().add(candidatePacket);
             }
-            if (IceAdapter.DEBUG_ALLOW_RELAY && localCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE)) {
+            if (allowRelay && localCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE)) {
                 localCandidatesMessage.getCandidates().add(candidatePacket);
             }
         }
@@ -50,7 +49,7 @@ public class CandidateUtil {
         return localCandidatesMessage;
     }
 
-    public static void unpackCandidates(CandidatesMessage remoteCandidatesMessage, Agent agent, Component component, IceMediaStream mediaStream) {
+    public static void unpackCandidates(CandidatesMessage remoteCandidatesMessage, Agent agent, Component component, IceMediaStream mediaStream, boolean allowHost, boolean allowReflexive, boolean allowRelay) {
         Collections.sort(remoteCandidatesMessage.getCandidates());
 
         //Set candidates
@@ -79,14 +78,14 @@ public class CandidateUtil {
                 );
 
                 //Candidate type LOCAL and STUN can never occur as they are deprecated and not
-                if (IceAdapter.DEBUG_ALLOW_HOST && remoteCandidate.getType().equals(CandidateType.HOST_CANDIDATE)) {
+                if (allowHost && remoteCandidate.getType().equals(CandidateType.HOST_CANDIDATE)) {
                     component.addRemoteCandidate(remoteCandidate);
                 }
-                if (IceAdapter.DEBUG_ALLOW_REFLEXIVE &&
+                if (allowReflexive &&
                         (remoteCandidate.getType().equals(CandidateType.SERVER_REFLEXIVE_CANDIDATE) || remoteCandidate.getType().equals(CandidateType.PEER_REFLEXIVE_CANDIDATE))) {
                     component.addRemoteCandidate(remoteCandidate);
                 }
-                if (IceAdapter.DEBUG_ALLOW_RELAY && remoteCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE)) {
+                if (allowRelay && remoteCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE)) {
                     component.addRemoteCandidate(remoteCandidate);
                 }
             }

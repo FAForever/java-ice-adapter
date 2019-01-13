@@ -14,6 +14,8 @@ import org.ice4j.security.LongTermCredential;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -24,7 +26,10 @@ import static com.faforever.iceadapter.ice.IceState.*;
 @Getter
 @Slf4j
 public class PeerIceModule {
-    private static final int MINIMUM_PORT = 6112;//PORT (range +1000) to be used by ICE for communicating, each peer needs a seperate port
+    private static final int MINIMUM_PORT = 6112; // PORT (range +1000) to be used by ICE for communicating, each peer needs a seperate port
+    private static final long FORCE_SRFLX_RELAY_INTERVAL = 2 * 60 * 1000; // 2 mins, the interval in which multiple connects have to happen to force srflx/relay
+    private static final int FORCE_SRFLX_COUNT = 1;
+    private static final int FORCE_RELAY_COUNT = 2;
 
     private Peer peer;
 
@@ -40,6 +45,9 @@ public class PeerIceModule {
 
     //Checks the connection by sending echo requests and initiates a reconnect if needed
     private final PeerConnectivityCheckerModule connectivityChecker = new PeerConnectivityCheckerModule(this);
+
+    //A list of the timestamps of initiated connectivity attemps, used to detect if relay/srflx should be forced
+    private final List<Long> connectivityAttemptTimes = new ArrayList<>();
 
     public PeerIceModule(Peer peer) {
         this.peer = peer;
@@ -121,7 +129,8 @@ public class PeerIceModule {
         }
 
 
-        CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(IceAdapter.id, peer.getRemoteId(), agent, component);
+        int previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
+        CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(IceAdapter.id, peer.getRemoteId(), agent, component, previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.DEBUG_ALLOW_HOST, previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.DEBUG_ALLOW_REFLEXIVE, IceAdapter.DEBUG_ALLOW_RELAY);
         log.debug(getLogPrefix() + "Sending own candidates to {}", peer.getRemoteId());
         setState(AWAITING_CANDIDATES);
         RPCService.onIceMsg(localCandidatesMessage);
@@ -175,7 +184,9 @@ public class PeerIceModule {
             }
 
             setState(CHECKING);
-            CandidateUtil.unpackCandidates(remoteCandidatesMessage, agent, component, mediaStream);
+
+            int previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
+            CandidateUtil.unpackCandidates(remoteCandidatesMessage, agent, component, mediaStream, previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.DEBUG_ALLOW_HOST, previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.DEBUG_ALLOW_REFLEXIVE, IceAdapter.DEBUG_ALLOW_RELAY);
 
             startIce();
 
@@ -186,6 +197,8 @@ public class PeerIceModule {
      * Runs the actual connectivity establishment, candidates have been exchanged and need to be checked
      */
     private void startIce() {
+        connectivityAttemptTimes.add(0, System.currentTimeMillis());
+
         log.debug(getLogPrefix() + "Starting ICE for peer {}", peer.getRemoteId());
         agent.startConnectivityEstablishment();
 
@@ -379,6 +392,13 @@ public class PeerIceModule {
         if(agent != null) {
             agent.free();
         }
+    }
+
+    public int getConnectivityAttempsInThePast(final long millis) {
+        //copy list to avoid concurrency issues
+        return (int) new ArrayList<Long>(connectivityAttemptTimes).stream()
+                .filter(time -> time > (System.currentTimeMillis() - millis))
+                .count();
     }
 
     public String getLogPrefix() {
