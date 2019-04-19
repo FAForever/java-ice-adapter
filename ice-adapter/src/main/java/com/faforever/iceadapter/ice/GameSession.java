@@ -1,6 +1,7 @@
 package com.faforever.iceadapter.ice;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -23,6 +24,8 @@ public class GameSession {
 
     @Getter
     private Map<Integer, Peer> peers = new HashMap<>();
+    @Getter @Setter
+    private volatile boolean gameEnded = false;
 
     public GameSession() {
 

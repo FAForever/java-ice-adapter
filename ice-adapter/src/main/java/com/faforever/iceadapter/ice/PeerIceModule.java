@@ -254,6 +254,11 @@ public class PeerIceModule {
             return;
         }
 
+        if(peer.getGameSession().isGameEnded()) {
+            log.warn("GAME ENDED, ABORTING onConnectionLost of ICE for peer " + getLogPrefix());
+            return;
+        }
+
         if (iceState == DISCONNECTED) {
             return;//TODO: will this kill the life cycle?
         }

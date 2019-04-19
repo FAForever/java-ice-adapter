@@ -1,6 +1,5 @@
 package com.faforever.iceadapter;
 
-import ch.qos.logback.core.rolling.RollingFileAppender;
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
@@ -8,10 +7,8 @@ import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.ArgumentParser;
 import com.faforever.iceadapter.util.Executor;
-import com.faforever.iceadapter.util.Util;
 import lombok.extern.slf4j.Slf4j;
 
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -34,7 +31,6 @@ public class IceAdapter {
     public static int RPC_PORT;
     public static int GPGNET_PORT = 0;
     public static int LOBBY_PORT = 0;
-    private static String logDirectory = null;
 
     public static volatile GameSession gameSession;
 
@@ -45,13 +41,13 @@ public class IceAdapter {
         interpretArguments(ArgumentParser.parse(args));
 
         //Configure file appender
-		RollingFileAppender fileAppender = (ch.qos.logback.core.rolling.RollingFileAppender)((ch.qos.logback.classic.Logger)log).getAppender("FILE");
-        if (logDirectory != null) {
-            Util.mkdir(Paths.get(logDirectory).toFile());
-			//TODO: set log dir
-        } else {
-//			fileAppender.stop();
-		}
+//		RollingFileAppender fileAppender = (ch.qos.logback.core.rolling.RollingFileAppender)((ch.qos.logback.classic.Logger)log).getAppender("FILE");
+//        if (logDirectory != null) {
+//            Util.mkdir(Paths.get(logDirectory).toFile());
+//			//TODO: set log dir
+//        } else {
+////			fileAppender.stop();
+//		}
 
         log.info("Version: {}", VERSION);
 
@@ -160,7 +156,7 @@ public class IceAdapter {
                     "--rpc-port arg (=7236)               set the port of internal JSON-RPC server\n" +
                     "--gpgnet-port arg (=0)               set the port of internal GPGNet server\n" +
                     "--lobby-port arg (=0)                set the port the game lobby should use for incoming UDP packets from the PeerRelay\n" +
-                    "--log-directory arg                  set a log directory to write ice_adapter_0 log files\n" +
+                    "--log-directory arg                  NOT SUPPORTED, use env variable LOG_DIR instead\n" +
                     "--force-relay                        force the usage of relay candidates only\n" +
                     "--debug-window                       activate the debug window if JavaFX is available\n");
             System.exit(0);
@@ -183,7 +179,7 @@ public class IceAdapter {
             LOBBY_PORT = Integer.parseInt(arguments.get("lobby-port"));
         }
         if(arguments.containsKey("log-directory")) {
-            logDirectory = arguments.get("log-directory");
+            log.warn("--log-directory is not supported, set the desired log directory using the LOG_DIR env variable");
         }
         if(arguments.containsKey("force-relay")) {
             DEBUG_ALLOW_HOST = false;

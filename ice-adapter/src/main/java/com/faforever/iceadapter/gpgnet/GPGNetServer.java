@@ -106,6 +106,13 @@ public class GPGNetServer {
                     break;
                 }
 
+                case "GameEnded": {
+                    if(IceAdapter.gameSession != null) {
+                        IceAdapter.gameSession.setGameEnded(true);
+                    }
+                    break;
+                }
+
 
                 default: {
                     //No need to log, as we are not processing all messages but just forward them via RPC
