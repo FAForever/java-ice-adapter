@@ -1,10 +1,8 @@
 package com.faforever.iceadapter.debug;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
@@ -39,8 +37,14 @@ public class DebugWindowController {
 	public TableColumn localCandColumn;
 	public TableColumn remoteCandColumn;
 
+	public Button killAdapterButton;
+
 	public DebugWindowController() {
 
+	}
+
+	public void onKillAdapterClicked(ActionEvent actionEvent) {
+		System.exit(337);
 	}
 
 	@FXML
@@ -58,5 +62,7 @@ public class DebugWindowController {
 		lastColumn.setCellValueFactory(new PropertyValueFactory<>("lastReceived"));
 		localCandColumn.setCellValueFactory(new PropertyValueFactory<>("localCandidate"));
 		remoteCandColumn.setCellValueFactory(new PropertyValueFactory<>("remoteCandidate"));
+
+		killAdapterButton.setOnAction(this::onKillAdapterClicked);
 	}
 }
