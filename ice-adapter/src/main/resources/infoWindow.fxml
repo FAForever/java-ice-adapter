@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import java.net.URL?>
+<AnchorPane prefHeight="533.0" prefWidth="330.0" xmlns="http://javafx.com/javafx/8.0.121"
+            xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.faforever.iceadapter.debug.InfoWindowController">
+    <children>
+
+        <VBox prefHeight="330.0" prefWidth="533.0" alignment="CENTER" spacing="5">
+            <padding>
+                <Insets bottom="5" left="5" right="5" top="5"/>
+            </padding>
+
+            <ImageView fitHeight="70.0" fitWidth="70.0">
+                <image>
+                    <Image url="https://faforever.com/images/faf-logo.png"/>
+                </image>
+            </ImageView>
+
+            <HBox>
+                <padding>
+                    <Insets bottom="2" left="5" right="5" top="2"/>
+                </padding>
+            </HBox>
+
+            <Label text="FAForever is currently testing a new connectivity solution to reduce&#10;disconnects while in game."
+                   wrapText="true" textAlignment="CENTER"></Label>
+
+
+            <HBox>
+                <padding>
+                    <Insets bottom="5" left="5" right="5" top="5"/>
+                </padding>
+            </HBox>
+
+            <Label text="Please keep this window open while the game is in progress." styleClass="bold-text" textAlignment="CENTER"/>
+            <Label text="To manually stop the ice adapter click here:" textAlignment="CENTER"/>
+
+            <HBox>
+                <padding>
+                    <Insets bottom="5" left="5" right="5" top="5"/>
+                </padding>
+
+            </HBox>
+
+            <Button fx:id="killAdapterButton"
+                    text="Clicking here will close the adapter&#10;This will disconnect you from the game!"
+                    focusTraversable="false" wrapText="true" textAlignment="CENTER">
+            </Button>
+
+            <HBox>
+                <padding>
+                    <Insets bottom="5" left="5" right="5" top="5"/>
+                </padding>
+
+            </HBox>
+
+            <Button fx:id="showDebugWindowButton" text="Show debug window"/>
+
+        </VBox>
+
+    </children>
+
+    <stylesheets>
+        <URL value="@infoWindowStyle.css"/>
+    </stylesheets>
+</AnchorPane>

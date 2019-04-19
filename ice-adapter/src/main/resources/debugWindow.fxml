@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.*?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import java.net.URL?>
@@ -10,26 +10,7 @@
         <VBox prefHeight="700.0" prefWidth="1200.0">
             <HBox>
                 <padding>
-                    <Insets bottom="0" left="5" right="5" top="5" />
-                </padding>
-
-                <Label text="FAForever is currently testing a new connectivity solution to reduce disconnects while in game."></Label>
-            </HBox>
-            <HBox>
-                <padding>
-                    <Insets bottom="0" left="5" right="5" top="0" />
-                </padding>
-                <Label text="Please keep this window open while the game is in progress." />
-            </HBox>
-            <HBox>
-                <padding>
-                    <Insets bottom="0" left="5" right="5" top="0" />
-                </padding>
-                <Label text="To manually stop the ice adapter click here:" />
-            </HBox>
-            <HBox>
-                <padding>
-                    <Insets bottom="50" left="5" right="5" top="5" />
+                    <Insets bottom="10" left="5" right="5" top="5" />
                 </padding>
                 <Button fx:id="killAdapterButton" text="CLOSE ADAPTER. This will disconnect you from the game!" />
             </HBox>

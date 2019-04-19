@@ -13,10 +13,10 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.Event;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -36,6 +36,7 @@ public class DebugWindow extends Application implements Debugger {
 	private Parent root;
 	private Scene scene;
 	private DebugWindowController controller;
+	private Stage stage;
 
 	private static final int WIDTH = 1200;
 	private static final int HEIGHT = 700;
@@ -45,6 +46,9 @@ public class DebugWindow extends Application implements Debugger {
 
 	@Override
 	public void start(Stage stage) {
+		this.stage = stage;
+		stage.getIcons().add(new Image("https://faforever.com/images/faf-logo.png"));
+
 		try {
 			FXMLLoader loader = new FXMLLoader(getClass().getResource("/debugWindow.fxml"));
 			root = loader.load();
@@ -62,12 +66,20 @@ public class DebugWindow extends Application implements Debugger {
 
 		stage.setScene(scene);
 		stage.setTitle(String.format("FAF ICE adapter - Debugger - Build: %s", IceAdapter.VERSION));
-		stage.setOnCloseRequest(Event::consume);
+//		stage.setOnCloseRequest(Event::consume);
 		stage.show();
+
+		stage.hide(); // wait till requested by user
 
 //		new Thread(() -> Debug.debug.complete(this)).start();
 		log.info("Created debug window.");
 		Debug.debug.complete(this);
+
+		new InfoWindow().init();
+	}
+
+	public void showWindow() {
+		runOnUIThread(() -> stage.show());
 	}
 
 	@Override
