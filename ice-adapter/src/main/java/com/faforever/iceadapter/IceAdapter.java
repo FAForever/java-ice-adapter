@@ -133,6 +133,8 @@ public class IceAdapter {
      * Stop the ICE adapter
      */
     public static void close() {
+        log.info("close() - stopping the adapter");
+        
         Executor.executeDelayed(500, () -> System.exit(0));
 
         onFAShutdown();//will close gameSession aswell

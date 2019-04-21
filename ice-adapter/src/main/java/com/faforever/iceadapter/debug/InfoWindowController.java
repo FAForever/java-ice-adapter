@@ -8,8 +8,16 @@ public class InfoWindowController {
 	public Button killAdapterButton;
 	public Button showDebugWindowButton;
 
+
+	private volatile int killRequests = 0;
 	public void onKillAdapterClicked(ActionEvent actionEvent) {
-		System.exit(337);
+		killRequests++;
+
+		if(killRequests < 3) {
+			killAdapterButton.setText("This will disconnect you from the game! Click " + (3 - killRequests) + " more times.");
+		} else {
+			System.exit(337);
+		}
 	}
 
 	public void onShowDebugWindowClicked(ActionEvent actionEvent) {

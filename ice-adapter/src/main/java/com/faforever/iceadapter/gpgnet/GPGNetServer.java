@@ -109,6 +109,7 @@ public class GPGNetServer {
                 case "GameEnded": {
                     if(IceAdapter.gameSession != null) {
                         IceAdapter.gameSession.setGameEnded(true);
+                        log.info("GameEnded received, stopping reconnects...");
                     }
                     break;
                 }
