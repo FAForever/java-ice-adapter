@@ -130,7 +130,7 @@ public class PeerIceModule {
 
 
         int previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
-        CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(IceAdapter.id, peer.getRemoteId(), agent, component, previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.DEBUG_ALLOW_HOST, previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.DEBUG_ALLOW_REFLEXIVE, IceAdapter.DEBUG_ALLOW_RELAY);
+        CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(IceAdapter.id, peer.getRemoteId(), agent, component, previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.ALLOW_HOST, previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.ALLOW_REFLEXIVE, IceAdapter.ALLOW_RELAY);
         log.debug(getLogPrefix() + "Sending own candidates to {}", peer.getRemoteId());
         setState(AWAITING_CANDIDATES);
         RPCService.onIceMsg(localCandidatesMessage);
@@ -186,7 +186,7 @@ public class PeerIceModule {
             setState(CHECKING);
 
             int previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
-            CandidateUtil.unpackCandidates(remoteCandidatesMessage, agent, component, mediaStream, previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.DEBUG_ALLOW_HOST, previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.DEBUG_ALLOW_REFLEXIVE, IceAdapter.DEBUG_ALLOW_RELAY);
+            CandidateUtil.unpackCandidates(remoteCandidatesMessage, agent, component, mediaStream, previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.ALLOW_HOST, previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.ALLOW_REFLEXIVE, IceAdapter.ALLOW_RELAY);
 
             startIce();
 

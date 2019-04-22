@@ -77,9 +77,11 @@ faf-ice-adapter usage:
 --rpc-port arg (=7236)               set the port of internal JSON-RPC server
 --gpgnet-port arg (=0)               set the port of internal GPGNet server
 --lobby-port arg (=0)                set the port the game lobby should use for incoming UDP packets from the PeerRelay
---log-directory arg                  set a log directory to write ice_adapter_0 log files
+--log-directory arg                  (DEPRECATED, use env variable LOG_DIR)set a log directory to write ice_adapter_0 log files
 --force-relay                        force the usage of relay candidates only
 --debug-window                       activate the debug window if JavaFX is available
+--info-window                        activate the info window if JavaFX is available (allows access at the debug window)
+--delay-ui arg                       delays the launch of the info and debug window by arg ms
 ```
 
 ## Example usage sequence

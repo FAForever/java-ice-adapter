@@ -5,6 +5,7 @@ import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.Peer;
 import com.faforever.iceadapter.ice.PeerConnectivityCheckerModule;
+import com.faforever.iceadapter.util.Executor;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -67,15 +68,19 @@ public class DebugWindow extends Application implements Debugger {
 		stage.setScene(scene);
 		stage.setTitle(String.format("FAF ICE adapter - Debugger - Build: %s", IceAdapter.VERSION));
 //		stage.setOnCloseRequest(Event::consume);
-		stage.show();
+//		stage.show();
 
-		stage.hide(); // wait till requested by user
+		if(Debug.ENABLE_DEBUG_WINDOW) {
+			Executor.executeDelayed(Debug.DELAY_UI_MS, () -> runOnUIThread(stage::show));
+		}
 
 //		new Thread(() -> Debug.debug.complete(this)).start();
 		log.info("Created debug window.");
 		Debug.debug.complete(this);
 
-		new InfoWindow().init();
+		if(Debug.ENABLE_INFO_WINDOW) {
+			Executor.executeDelayed(Debug.DELAY_UI_MS, () -> runOnUIThread(() -> new InfoWindow().init()));
+		}
 	}
 
 	public void showWindow() {

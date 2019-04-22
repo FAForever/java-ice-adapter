@@ -8,10 +8,15 @@ import java.util.concurrent.ExecutionException;
 
 @Slf4j
 public class Debug {
+	public static boolean ENABLE_DEBUG_WINDOW = false;
+	public static boolean ENABLE_INFO_WINDOW = false;
+	public static int DELAY_UI_MS = 0;//delays the launch of the user interface by X ms
+
 	static CompletableFuture<Debugger> debug = new CompletableFuture<>();
 
-	public static void init(boolean debugWindow) {
-		if(!debugWindow) {
+	public static void init() {
+		// Debugger window is started and set to debugFuture when either window is requested as the info window can be used to open the debug window
+		if(! ENABLE_DEBUG_WINDOW && ! ENABLE_INFO_WINDOW) {
 			debug.complete(new NoDebugger());
 			return;
 		}

@@ -17,9 +17,9 @@ import static com.faforever.iceadapter.debug.Debug.debug;
 
 @Slf4j
 public class IceAdapter {
-    public static boolean DEBUG_ALLOW_HOST = true;
-    public static boolean DEBUG_ALLOW_REFLEXIVE = true;
-    public static boolean DEBUG_ALLOW_RELAY = true;
+    public static boolean ALLOW_HOST = true;
+    public static boolean ALLOW_REFLEXIVE = true;
+    public static boolean ALLOW_RELAY = true;
 
     public static volatile boolean running = true;
 
@@ -160,7 +160,9 @@ public class IceAdapter {
                     "--lobby-port arg (=0)                set the port the game lobby should use for incoming UDP packets from the PeerRelay\n" +
                     "--log-directory arg                  NOT SUPPORTED, use env variable LOG_DIR instead\n" +
                     "--force-relay                        force the usage of relay candidates only\n" +
-                    "--debug-window                       activate the debug window if JavaFX is available\n");
+                    "--debug-window                       activate the debug window if JavaFX is available\n" +
+                    "--info-window                        activate the info window if JavaFX is available (allows access at the debug window)\n" +
+                    "--delay-ui arg                       delays the launch of the info and debug window by arg ms");
             System.exit(0);
         }
 
@@ -184,12 +186,17 @@ public class IceAdapter {
             log.warn("--log-directory is not supported, set the desired log directory using the LOG_DIR env variable");
         }
         if(arguments.containsKey("force-relay")) {
-            DEBUG_ALLOW_HOST = false;
-            DEBUG_ALLOW_REFLEXIVE = false;
-            DEBUG_ALLOW_RELAY = true;
+            ALLOW_HOST = false;
+            ALLOW_REFLEXIVE = false;
+            ALLOW_RELAY = true;
+        }
+        if(arguments.containsKey("delay-ui")) {
+            Debug.DELAY_UI_MS = Integer.parseInt(arguments.get("delay-ui"));
         }
 
-        Debug.init(arguments.containsKey("debug-window"));
+        Debug.ENABLE_DEBUG_WINDOW = arguments.containsKey("debug-window");
+        Debug.ENABLE_INFO_WINDOW = arguments.containsKey("info-window");
+        Debug.init();
     }
 
     private static void determineVersion() {
