@@ -49,7 +49,9 @@ public class DebugWindowController {
 
 	@FXML
 	private void initialize() {
-		((TextAreaLogAppender)((ch.qos.logback.classic.Logger)LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)).getAppender("TEXTAREA")).setTextArea(logTextArea);
+		if(Debug.ENABLE_DEBUG_WINDOW_LOG_TEXT_AREA) {
+			((TextAreaLogAppender)((ch.qos.logback.classic.Logger)LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)).getAppender("TEXTAREA")).setTextArea(logTextArea);
+		}
 
 		logTextArea.textProperty().addListener((observableValue, oldVal, newVal) -> logTextArea.setScrollTop(Double.MAX_VALUE));
 

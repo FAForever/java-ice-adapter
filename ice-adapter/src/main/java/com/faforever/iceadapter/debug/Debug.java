@@ -8,6 +8,9 @@ import java.util.concurrent.ExecutionException;
 
 @Slf4j
 public class Debug {
+	//TODO
+	public static boolean ENABLE_DEBUG_WINDOW_LOG_TEXT_AREA = false; // disabled as this causes high memory and cpu load, should be replaced by limiting the number of lines in the text area
+
 	public static boolean ENABLE_DEBUG_WINDOW = false;
 	public static boolean ENABLE_INFO_WINDOW = false;
 	public static int DELAY_UI_MS = 0;//delays the launch of the user interface by X ms
