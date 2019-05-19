@@ -28,8 +28,10 @@ import org.ice4j.ice.CandidateType;
 import org.ice4j.ice.Component;
 
 import java.io.IOException;
+import java.security
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.Arrays;
 
 @Slf4j
 public class DebugWindow extends Application implements Debugger {
@@ -132,15 +134,16 @@ public class DebugWindow extends Application implements Debugger {
 
 	@Override
 	public void connectToPeer(int id, String login, boolean localOffer) {
-		new Thread(() -> {
-			synchronized (peers) {
-				DebugPeer peer = new DebugPeer();
-				peer.id.set(id);
-				peer.login.set(login);
-				peer.localOffer.set(localOffer);
-				peers.add(peer);//Might callback into jfx
-			}
-		}).start();
+	    string hashedLogin = Arrays.toString(MessageDigest.getInstance("MD5").update(login).digest());
+	    new Thread(() -> {
+		synchronized (peers) {
+		    DebugPeer peer = new DebugPeer();
+		    peer.id.set(id);
+		    peer.login.set(hashedLogin);
+		    peer.localOffer.set(localOffer);
+		    peers.add(peer);//Might callback into jfx
+		}
+	    }).start();
 	}
 
 	@Override
