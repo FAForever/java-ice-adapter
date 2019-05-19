@@ -135,7 +135,7 @@ public class DebugWindow extends Application implements Debugger {
 	@Override
 	public void connectToPeer(int id, String login, boolean localOffer) {
 	    String displayedLogin = login;
-	    if(getState() == "LOBBY"){
+	    if(GPGNetServer.lobbyInitMode == LobbyInitMode.AUTO){
 		    displayedLogin = new String(MessageDigest.getInstance("MD5").update(login).digest());
 	    }
 	    new Thread(() -> {
