@@ -134,12 +134,15 @@ public class DebugWindow extends Application implements Debugger {
 
 	@Override
 	public void connectToPeer(int id, String login, boolean localOffer) {
-	    string hashedLogin = Arrays.toString(MessageDigest.getInstance("MD5").update(login).digest());
+	    String displayedLogin = login;
+	    if(getState() == "LOBBY"){
+		    displayedLogin = new String(MessageDigest.getInstance("MD5").update(login).digest());
+	    }
 	    new Thread(() -> {
 		synchronized (peers) {
 		    DebugPeer peer = new DebugPeer();
 		    peer.id.set(id);
-		    peer.login.set(hashedLogin);
+		    peer.login.set(displayedLogin);
 		    peer.localOffer.set(localOffer);
 		    peers.add(peer);//Might callback into jfx
 		}
