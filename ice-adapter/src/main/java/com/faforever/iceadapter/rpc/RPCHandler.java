@@ -69,7 +69,7 @@ public class RPCHandler {
             log.error("ICE MESSAGE IGNORED for id: {}", remotePlayerId);
         }
 
-        log.info("IceMsg received %s", msg);
+		log.info("IceMsg received {}", msg);
     }
 
     public void sendToGpgNet(String header, String... chunks) {
