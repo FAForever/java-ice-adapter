@@ -12,7 +12,8 @@
                 <padding>
                     <Insets bottom="10" left="5" right="5" top="5" />
                 </padding>
-                <Button fx:id="killAdapterButton" text="CLOSE ADAPTER. This will disconnect you from the game!" />
+                <Button fx:id="killAdapterButton" text="CLOSE ADAPTER. This will disconnect you from the game!"
+                        focusTraversable="false"/>
             </HBox>
 
             <HBox fx:id="genericInfo" spacing="25">
