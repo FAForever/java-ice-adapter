@@ -7,6 +7,7 @@ import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.ArgumentParser;
 import com.faforever.iceadapter.util.Executor;
+import com.faforever.iceadapter.util.TrayIcon;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
@@ -39,6 +40,8 @@ public class IceAdapter {
 
         COMMAND_LINE_ARGUMENTS = Arrays.stream(args).collect(Collectors.joining(" "));
         interpretArguments(ArgumentParser.parse(args));
+
+        TrayIcon.create();
 
         //Configure file appender
 //		RollingFileAppender fileAppender = (ch.qos.logback.core.rolling.RollingFileAppender)((ch.qos.logback.classic.Logger)log).getAppender("FILE");

@@ -1,5 +1,6 @@
 package com.faforever.iceadapter.debug;
 
+import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -16,6 +17,8 @@ import static javafx.application.Application.setUserAgentStylesheet;
 @Slf4j
 public class InfoWindow {
 
+	public static InfoWindow INSTANCE;
+
 	private Stage stage;
 	private Parent root;
 	private Scene scene;
@@ -25,7 +28,7 @@ public class InfoWindow {
 	private static final int HEIGHT = 330;
 
 	public InfoWindow() {
-
+		INSTANCE = this;
 	}
 
 	public void init() {
@@ -53,5 +56,13 @@ public class InfoWindow {
 
 
 		log.info("Created info window.");
+	}
+
+	public void minimize() {
+		Platform.runLater(this.stage::hide);
+	}
+
+	public void show() {
+		Platform.runLater(this.stage::show);
 	}
 }

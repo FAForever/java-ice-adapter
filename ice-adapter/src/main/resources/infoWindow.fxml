@@ -38,7 +38,6 @@
             </HBox>
 
             <Label text="Please keep this window open while the game is in progress." styleClass="bold-text" textAlignment="CENTER"/>
-            <Label text="To manually stop the ice adapter click here:" textAlignment="CENTER"/>
 
             <HBox>
                 <padding>
@@ -60,6 +59,15 @@
             </HBox>
 
             <Button fx:id="showDebugWindowButton" text="Show debug window"/>
+
+            <HBox>
+                <padding>
+                    <Insets bottom="5" left="5" right="5" top="5"/>
+                </padding>
+
+            </HBox>
+
+            <Button fx:id="minimizeToTray" text="Minimize to system tray" defaultButton="true"/>
 
         </VBox>
 

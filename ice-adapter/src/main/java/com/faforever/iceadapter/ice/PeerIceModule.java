@@ -4,6 +4,7 @@ import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.CandidateUtil;
 import com.faforever.iceadapter.util.Executor;
+import com.faforever.iceadapter.util.TrayIcon;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
@@ -294,6 +295,10 @@ public class PeerIceModule {
         }
 
         debug().peerStateChanged(this.peer);
+
+        if (previousState == CONNECTED) {
+            TrayIcon.showMessage("Reconnecting to " + this.peer.getRemoteLogin() + " (connection lost)");
+        }
 
         if (previousState == CONNECTED && peer.isLocalOffer()) {
             //We were connected before, retry immediately
