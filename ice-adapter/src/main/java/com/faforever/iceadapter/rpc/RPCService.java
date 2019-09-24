@@ -1,6 +1,8 @@
 package com.faforever.iceadapter.rpc;
 
 import com.faforever.iceadapter.IceAdapter;
+import com.faforever.iceadapter.debug.Debug;
+import com.faforever.iceadapter.debug.InfoWindow;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.CandidatesMessage;
@@ -42,6 +44,11 @@ public class RPCService {
 				if (gameState == GameState.LAUNCHING) {
 					skipRPCMessages = true;
 					log.warn("Lost connection to first RPC Peer. GameState: LAUNCHING, NOT STOPPING!");
+					if (InfoWindow.INSTANCE == null) {
+						Debug.ENABLE_INFO_WINDOW = true;
+						Debug.init();
+					}
+					InfoWindow.INSTANCE.show();
 				} else {
 					log.info("Lost connection to first RPC Peer. GameState: {}, Stopping adapter...", gameState.getName());
 					IceAdapter.close();
