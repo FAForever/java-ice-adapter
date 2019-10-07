@@ -161,6 +161,10 @@ public class IceAdapter {
                     "--rpc-port arg (=7236)               set the port of internal JSON-RPC server\n" +
                     "--gpgnet-port arg (=0)               set the port of internal GPGNet server\n" +
                     "--lobby-port arg (=0)                set the port the game lobby should use for incoming UDP packets from the PeerRelay\n" +
+                    "--allow-interfaces                   semi-colon separated list of interface names that are allowed to be used by ICE\n" +
+                    "--block-interfaces                   semi-colon separated list of interface names that are blocked from being used by ICE\n" +
+                    "--allow-addresses                    semi-colon separated list of ip addresses that are allowed to be used by ICE\n" +
+                    "--block-addresses                    semi-colon separated list of ip addresses that are blocked from being used by ICE\n" +
                     "--log-directory arg                  NOT SUPPORTED, use env variable LOG_DIR instead\n" +
                     "--force-relay                        force the usage of relay candidates only\n" +
                     "--debug-window                       activate the debug window if JavaFX is available\n" +
@@ -184,6 +188,18 @@ public class IceAdapter {
         }
         if(arguments.containsKey("lobby-port")) {
             LOBBY_PORT = Integer.parseInt(arguments.get("lobby-port"));
+        }
+        if(arguments.containsKey("allow-interfaces")) {
+            System.setProperty("org.ice4j.ice.harvest.ALLOWED_INTERFACES", arguments.get("allow-interfaces"));
+        }
+        if(arguments.containsKey("block-interfaces")) {
+            System.setProperty("org.ice4j.ice.harvest.BLOCKED_INTERFACES", arguments.get("block-interfaces"));
+        }
+        if(arguments.containsKey("allow-addresses")) {
+            System.setProperty("org.ice4j.ice.harvest.ALLOWED_ADDRESSES", arguments.get("allow-addresses"));
+        }
+        if(arguments.containsKey("block-addresses")) {
+            System.setProperty("org.ice4j.ice.harvest.BLOCKED_ADDRESSES", arguments.get("block-addresses"));
         }
         if(arguments.containsKey("log-directory")) {
             log.warn("--log-directory is not supported, set the desired log directory using the LOG_DIR env variable");
