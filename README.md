@@ -82,6 +82,14 @@ faf-ice-adapter usage:
 --debug-window                       activate the debug window if JavaFX is available
 --info-window                        activate the info window if JavaFX is available (allows access at the debug window)
 --delay-ui arg                       delays the launch of the info and debug window by arg ms
+
+Local networking device binding:
+    The following options whitelist/blacklist specific interfaces and/or ip addresses to be used for connecting via ICE
+
+    --allow-interfaces                   semi-colon separated list of interface names that are allowed to be used by ICE
+    --block-interfaces                   semi-colon separated list of interface names that are blocked from being used by ICE
+    --allow-addresses                    semi-colon separated list of ip addresses that are allowed to be used by ICE
+    --block-addresses                    semi-colon separated list of ip addresses that are blocked from being used by ICE
 ```
 
 ## Example usage sequence

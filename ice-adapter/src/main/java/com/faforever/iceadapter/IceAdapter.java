@@ -161,15 +161,18 @@ public class IceAdapter {
                     "--rpc-port arg (=7236)               set the port of internal JSON-RPC server\n" +
                     "--gpgnet-port arg (=0)               set the port of internal GPGNet server\n" +
                     "--lobby-port arg (=0)                set the port the game lobby should use for incoming UDP packets from the PeerRelay\n" +
-                    "--allow-interfaces                   semi-colon separated list of interface names that are allowed to be used by ICE\n" +
-                    "--block-interfaces                   semi-colon separated list of interface names that are blocked from being used by ICE\n" +
-                    "--allow-addresses                    semi-colon separated list of ip addresses that are allowed to be used by ICE\n" +
-                    "--block-addresses                    semi-colon separated list of ip addresses that are blocked from being used by ICE\n" +
+
                     "--log-directory arg                  NOT SUPPORTED, use env variable LOG_DIR instead\n" +
                     "--force-relay                        force the usage of relay candidates only\n" +
                     "--debug-window                       activate the debug window if JavaFX is available\n" +
                     "--info-window                        activate the info window if JavaFX is available (allows access at the debug window)\n" +
-                    "--delay-ui arg                       delays the launch of the info and debug window by arg ms");
+                    "--delay-ui arg                       delays the launch of the info and debug window by arg ms\n\n" +
+                    "Local networking device binding:\n" +
+                    "\tThe following options whitelist/blacklist specific interfaces and/or ip addresses to be used for connecting via ICE\n\n" +
+                    "\t--allow-interfaces                   semi-colon separated list of interface names that are allowed to be used by ICE\n" +
+                    "\t--block-interfaces                   semi-colon separated list of interface names that are blocked from being used by ICE\n" +
+                    "\t--allow-addresses                    semi-colon separated list of ip addresses that are allowed to be used by ICE\n" +
+                    "\t--block-addresses                    semi-colon separated list of ip addresses that are blocked from being used by ICE\n");
             System.exit(0);
         }
 
