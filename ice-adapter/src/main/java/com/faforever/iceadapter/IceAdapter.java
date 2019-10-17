@@ -143,6 +143,7 @@ public class IceAdapter {
         onFAShutdown();//will close gameSession aswell
         GPGNetServer.close();
         RPCService.close();
+        TrayIcon.close();
 
         System.exit(0);
     }

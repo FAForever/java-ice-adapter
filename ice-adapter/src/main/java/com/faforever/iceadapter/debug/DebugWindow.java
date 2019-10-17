@@ -76,6 +76,11 @@ public class DebugWindow extends Application implements Debugger {
 
 //		new Thread(() -> Debug.debug.complete(this)).start();
 		log.info("Created debug window.");
+
+		//TODO: this is pretty hacky, replaces NoDebugger in case the context got just created from the tray icon
+		if (Debug.debug.isDone()) {
+			Debug.debug = new CompletableFuture<>();
+		}
 		Debug.debug.complete(this);
 
 		if(Debug.ENABLE_INFO_WINDOW) {

@@ -59,10 +59,14 @@ public class InfoWindow {
 	}
 
 	public void minimize() {
+		Platform.setImplicitExit(false);
 		Platform.runLater(this.stage::hide);
 	}
 
 	public void show() {
-		Platform.runLater(this.stage::show);
+		Platform.runLater(() -> {
+			this.stage.show();
+			Platform.setImplicitExit(true);
+		});
 	}
 }
