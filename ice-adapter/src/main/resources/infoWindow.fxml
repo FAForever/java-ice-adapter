@@ -27,7 +27,7 @@
                 </padding>
             </HBox>
 
-            <Label text="FAForever is currently testing a new connectivity solution to reduce&#10;disconnects while in game."
+            <Label text="This adapter establishes and monitors your connection to other players in game.&#10;Closing it will terminate all connections."
                    wrapText="true" textAlignment="CENTER"></Label>
 
 
@@ -37,7 +37,8 @@
                 </padding>
             </HBox>
 
-            <Label text="Please keep this window open while the game is in progress." styleClass="bold-text" textAlignment="CENTER"/>
+            <Label text="Please keep it running while the game is in progress." styleClass="bold-text"
+                   textAlignment="CENTER"/>
 
             <HBox>
                 <padding>

@@ -1,5 +1,7 @@
 package com.faforever.iceadapter.util;
 
+import com.faforever.iceadapter.debug.Debug;
+import com.faforever.iceadapter.debug.DebugWindow;
 import com.faforever.iceadapter.debug.InfoWindow;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,9 +44,14 @@ public class TrayIcon {
 
 			@Override
 			public void mousePressed(MouseEvent mouseEvent) {
-				if (InfoWindow.INSTANCE != null) {
-					InfoWindow.INSTANCE.show();
-				}
+				new Thread(() -> {
+					if (InfoWindow.INSTANCE == null) {
+						Debug.ENABLE_INFO_WINDOW = true;
+						DebugWindow.launchApplication();
+					} else {
+						InfoWindow.INSTANCE.show();
+					}
+				}).start();
 			}
 
 			@Override
@@ -60,13 +67,13 @@ public class TrayIcon {
 			}
 		});
 
-		showMessage("ICE Adapter started");
-
 		try {
 			SystemTray.getSystemTray().add(trayIcon);
 		} catch (AWTException e) {
 			log.error("Tray icon could not be added", e);
 		}
+
+		showMessage("ICE Adapter started");
 
 		log.info("Created tray icon");
 	}
