@@ -101,34 +101,11 @@ public class PeerIceModule {
                         .forEach(agent::addCandidateHarvester)
         );
 
-        CompletableFuture gatheringFuture = CompletableFuture.runAsync(() -> {
-            try {
-                component = agent.createComponent(mediaStream, Transport.UDP, MINIMUM_PORT + (int) (Math.random() * 999.0), MINIMUM_PORT, MINIMUM_PORT + 1000);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
-
-        Executor.executeDelayed(5000, () -> {
-            if(! gatheringFuture.isDone()) {
-                gatheringFuture.cancel(true);
-            }
-        });
-
         try {
-            gatheringFuture.join();
-        } catch(CompletionException e) {
-            //Completed exceptionally
-            log.error(getLogPrefix() + "Error while creating stream component/gathering candidates", e);
-            new Thread(this::onConnectionLost).start();
-            return;
-        } catch(CancellationException e) {
-            //was cancelled due to timeout
-            log.error(getLogPrefix() + "Gathering candidates timed out", e);
-            new Thread(this::onConnectionLost).start();
-            return;
+            component = agent.createComponent(mediaStream, Transport.UDP, MINIMUM_PORT + (int) (Math.random() * 999.0), MINIMUM_PORT, MINIMUM_PORT + 1000);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-
 
         int previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
         CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(IceAdapter.id, peer.getRemoteId(), agent, component, previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.ALLOW_HOST, previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.ALLOW_REFLEXIVE, IceAdapter.ALLOW_RELAY);
@@ -139,7 +116,7 @@ public class PeerIceModule {
         //TODO: is this a good fix for awaiting candidates loop????
         //Make sure to abort the connection process and reinitiate when we haven't received an answer to our offer in 6 seconds, candidate packet was probably lost
         final int currentacei = ++awaitingCandidatesEventId;
-        Executor.executeDelayed(6000, () -> {
+        Executor.executeDelayed(6_000, () -> {
             if(peer.isClosing()) {
                 log.warn(getLogPrefix() + "Peer {} not connected anymore, aborting reinitiation of ICE", peer.getRemoteId());
                 return;
@@ -205,27 +182,21 @@ public class PeerIceModule {
 
         //Wait for termination/completion of the agent
         long iceStartTime = System.currentTimeMillis();
-        while (agent.getState() != IceProcessingState.COMPLETED) {//TODO include more?, maybe stop on COMPLETED, is that to early?
+        while (agent.getState().isOver()) {
             try {
                 Thread.sleep(20);
             } catch (InterruptedException e) {
                 log.error(getLogPrefix() + "Interrupted while waiting for ICE", e);
             }
-
-            if (agent.getState() == IceProcessingState.FAILED) {//TODO null pointer due to no agent?
-                onConnectionLost();
-                return;
-            }
-
-
-            if(System.currentTimeMillis() - iceStartTime > 15_000) {
-                log.error(getLogPrefix() + "ABORTING ICE DUE TO TIMEOUT");
-                onConnectionLost();
-                return;
-            }
         }
 
-        log.debug(getLogPrefix() + "ICE terminated");
+        log.debug(getLogPrefix() + "ICE connectivity " + agent.getState().toString());
+
+        if(agent.getState() == IceProcessingState.FAILED || agent.getState() == IceProcessingState.TERMINATED)
+        {
+            onConnectionLost();
+            return;
+        }
 
         //We are connected
         connected = true;
