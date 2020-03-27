@@ -182,7 +182,7 @@ public class PeerIceModule {
 
         //Wait for termination/completion of the agent
         long iceStartTime = System.currentTimeMillis();
-        while (agent.getState().isOver()) {
+        while (!agent.getState().isOver()) {
             try {
                 Thread.sleep(20);
             } catch (InterruptedException e) {
