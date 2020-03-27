@@ -112,19 +112,6 @@ public class PeerIceModule {
         log.debug(getLogPrefix() + "Sending own candidates to {}", peer.getRemoteId());
         setState(AWAITING_CANDIDATES);
         RPCService.onIceMsg(localCandidatesMessage);
-
-        //TODO: is this a good fix for awaiting candidates loop????
-        //Make sure to abort the connection process and reinitiate when we haven't received an answer to our offer in 6 seconds, candidate packet was probably lost
-        final int currentacei = ++awaitingCandidatesEventId;
-        Executor.executeDelayed(6_000, () -> {
-            if(peer.isClosing()) {
-                log.warn(getLogPrefix() + "Peer {} not connected anymore, aborting reinitiation of ICE", peer.getRemoteId());
-                return;
-            }
-            if (iceState == AWAITING_CANDIDATES && currentacei == awaitingCandidatesEventId) {
-                onConnectionLost();
-            }
-        });
     }
 
     //How often have we been waiting for a response to local candidates/offer
