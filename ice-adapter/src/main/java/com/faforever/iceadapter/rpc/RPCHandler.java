@@ -60,7 +60,7 @@ public class RPCHandler {
         if (gameSession != null) {//This is highly unlikely, game session got created if JoinGame/HostGame came first
             Peer peer = gameSession.getPeers().get((int) remotePlayerId);
             if (peer != null) {//This is highly unlikely, peer is present if connectToPeer was called first
-                peer.getIce().onIceMessgageReceived(gson.fromJson((String) msg, CandidatesMessage.class));
+                peer.getIce().onIceMessageReceived(gson.fromJson((String) msg, CandidatesMessage.class));
                 err = false;
             }
         }
