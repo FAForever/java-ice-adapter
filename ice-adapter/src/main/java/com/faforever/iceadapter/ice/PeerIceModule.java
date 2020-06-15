@@ -15,11 +15,11 @@ import org.ice4j.security.LongTermCredential;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
 import static com.faforever.iceadapter.ice.IceState.*;
@@ -47,7 +47,7 @@ public class PeerIceModule {
     //Checks the connection by sending echo requests and initiates a reconnect if needed
     private final PeerConnectivityCheckerModule connectivityChecker = new PeerConnectivityCheckerModule(this);
 
-    //A list of the timestamps of initiated connectivity attemps, used to detect if relay/srflx should be forced
+    //A list of the timestamps of initiated connectivity attempts, used to detect if relay/srflx should be forced
     private final List<Long> connectivityAttemptTimes = new ArrayList<>();
 
     public PeerIceModule(Peer peer) {
@@ -95,8 +95,23 @@ public class PeerIceModule {
      */
     private void gatherCandidates() {
         log.info(getLogPrefix() + "Gathering ice candidates");
-        GameSession.getIceServers().stream().flatMap(s -> s.getStunAddresses().stream()).map(StunCandidateHarvester::new).forEach(agent::addCandidateHarvester);
-        GameSession.getIceServers().forEach(iceServer ->
+        List<IceServer> iceServers = GameSession.getIceServers();
+        OptionalDouble minRtt = iceServers.stream()
+                .map(server -> server.getRtt().join())
+                .filter(OptionalDouble::isPresent)
+                .mapToDouble(OptionalDouble::getAsDouble)
+                .min();
+        log.info(getLogPrefix() + "minRtt: " + minRtt.toString());
+        // Ignore all servers which had an rtt greater than the minimum
+        if (minRtt.isPresent()) {
+            double minRttAsDouble = minRtt.getAsDouble();
+            iceServers = iceServers.stream().filter(server -> {
+                OptionalDouble rtt = server.getRtt().join();
+                return !(rtt.isPresent() && rtt.getAsDouble() > minRttAsDouble);
+            }).collect(Collectors.toList());
+        }
+        iceServers.stream().flatMap(s -> s.getStunAddresses().stream()).map(StunCandidateHarvester::new).forEach(agent::addCandidateHarvester);
+        iceServers.forEach(iceServer ->
                 iceServer.getTurnAddresses().stream().map(a -> new TurnCandidateHarvester(a, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential())))
                         .forEach(agent::addCandidateHarvester)
         );
@@ -157,7 +172,7 @@ public class PeerIceModule {
      * Starts harvesting local candidates if in answer mode, then initiates the actual ICE process
      * @param remoteCandidatesMessage
      */
-    public synchronized void onIceMessgageReceived(CandidatesMessage remoteCandidatesMessage) {
+    public synchronized void onIceMessageReceived(CandidatesMessage remoteCandidatesMessage) {
         if(peer.isClosing()) {
             log.warn(getLogPrefix() + "Peer not connected anymore, discarding ice message");
             return;
