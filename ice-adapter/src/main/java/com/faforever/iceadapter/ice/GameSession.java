@@ -1,13 +1,19 @@
 package com.faforever.iceadapter.ice;
 
+import com.faforever.iceadapter.IceAdapter;
+import com.faforever.iceadapter.util.PingWrapper;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
 
@@ -81,8 +87,54 @@ public class GameSession {
             return;
         }
 
+        // For caching pings to a given host (the same host can appear in multiple urls)
+        LoadingCache<String, CompletableFuture<OptionalDouble>> hostPingCache = CacheBuilder.newBuilder().build(
+                new CacheLoader<String, CompletableFuture<OptionalDouble>>() {
+                    @Override
+                    public CompletableFuture<OptionalDouble> load(String host) throws Exception {
+                        return PingWrapper.getRTT(host, IceAdapter.PING_COUNT)
+                                .thenApply(OptionalDouble::of)
+                                .exceptionally(ex -> OptionalDouble.empty());
+                    }
+                }
+        );
+
         for(Map<String, Object> iceServerData : iceServersData) {
-            iceServers.add(IceServer.fromData(iceServerData));
+            IceServer iceServer = new IceServer();
+
+            if (iceServerData.containsKey("username")) {
+                iceServer.setTurnUsername((String) iceServerData.get("username"));
+            }
+            if (iceServerData.containsKey("credential")) {
+                iceServer.setTurnCredential((String) iceServerData.get("credential"));
+            }
+
+            if (iceServerData.containsKey("urls")) {
+                List<String> urls;
+                Object urlsData = iceServerData.get("urls");
+                if (urlsData instanceof List) {
+                    urls = (List<String>) urlsData;
+                } else {
+                    urls = Collections.singletonList((String) iceServerData.get("url"));
+                }
+
+                urls.stream()
+                        .map(IceServer.urlPattern::matcher)
+                        .filter(Matcher::matches)
+                        .forEach(matcher -> {
+                            String host = matcher.group("host");
+                            int port = matcher.group("port") != null ? Integer.parseInt(matcher.group("port")) : 3478;
+                            Transport transport = matcher.group("protocol").equals("stun") ? Transport.UDP : Transport.parse(matcher.group("transport"));
+
+                            TransportAddress address = new TransportAddress(host, port, transport);
+                            (matcher.group("protocol").equals("stun") ? iceServer.getStunAddresses() : iceServer.getTurnAddresses()).add(address);
+
+                            if (IceAdapter.PING_COUNT > 0) {
+                                iceServer.setRoundTripTime(hostPingCache.getUnchecked(host));
+                            }
+                        });
+            }
+            iceServers.add(iceServer);
         }
 
         log.info("Ice Servers set, total addresses: {}",
