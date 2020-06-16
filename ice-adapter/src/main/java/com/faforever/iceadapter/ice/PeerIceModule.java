@@ -15,7 +15,9 @@ import org.ice4j.security.LongTermCredential;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -95,21 +97,9 @@ public class PeerIceModule {
      */
     private void gatherCandidates() {
         log.info(getLogPrefix() + "Gathering ice candidates");
-        List<IceServer> iceServers = GameSession.getIceServers();
-        OptionalDouble minRtt = iceServers.stream()
-                .map(server -> server.getRoundTripTime().join())
-                .filter(OptionalDouble::isPresent)
-                .mapToDouble(OptionalDouble::getAsDouble)
-                .min();
-        log.info(getLogPrefix() + "minRtt: " + minRtt.toString());
-        // Ignore all servers which had an rtt greater than the minimum
-        if (minRtt.isPresent()) {
-            double minRttAsDouble = minRtt.getAsDouble();
-            iceServers = iceServers.stream().filter(server -> {
-                OptionalDouble rtt = server.getRoundTripTime().join();
-                return !(rtt.isPresent() && rtt.getAsDouble() > minRttAsDouble);
-            }).collect(Collectors.toList());
-        }
+
+        List<IceServer> iceServers = getViableIceServers();
+
         iceServers.stream().flatMap(s -> s.getStunAddresses().stream()).map(StunCandidateHarvester::new).forEach(agent::addCandidateHarvester);
         iceServers.forEach(iceServer ->
                 iceServer.getTurnAddresses().stream().map(a -> new TurnCandidateHarvester(a, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential())))
@@ -167,6 +157,45 @@ public class PeerIceModule {
 
     //How often have we been waiting for a response to local candidates/offer
     private volatile int awaitingCandidatesEventId = 0;
+
+    private List<IceServer> getViableIceServers() {
+        List<IceServer> allIceServers = GameSession.getIceServers();
+        if (IceAdapter.PING_COUNT <= 0 || allIceServers.isEmpty()) {
+            return allIceServers;
+        }
+
+        List<IceServer> fafIceServers = allIceServers.stream()
+                .filter(server -> server.getTurnAddresses().stream()
+                        .anyMatch(transportAddress -> transportAddress.getHostString().contains("faforever.com")))
+                .collect(Collectors.toList());
+        // Try official servers first
+        List<IceServer> viableIceServers = fafIceServers.stream()
+                .filter(IceServer::hasAcceptablePing)
+                .collect(Collectors.toList());
+        if (!viableIceServers.isEmpty()) {
+            return viableIceServers;
+        }
+
+        // Try servers with acceptable ping
+        viableIceServers = allIceServers.stream()
+                .filter(IceServer::hasAcceptablePing)
+                .collect(Collectors.toList());
+        if (!viableIceServers.isEmpty()) {
+            return viableIceServers;
+        }
+
+        // Try the closest server
+        IceServer closestIceServer = allIceServers.stream()
+                .min(Comparator.comparing(server -> server.getRoundTripTime().join().orElse(Double.POSITIVE_INFINITY))).get();
+        if (closestIceServer.getRoundTripTime().join().isPresent()) {
+            viableIceServers.add(closestIceServer);
+        }
+        if (!viableIceServers.isEmpty()) {
+            return viableIceServers;
+        }
+
+        return allIceServers;
+    }
 
     /**
      * Starts harvesting local candidates if in answer mode, then initiates the actual ICE process

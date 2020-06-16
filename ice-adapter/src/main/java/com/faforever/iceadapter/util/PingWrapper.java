@@ -23,16 +23,16 @@ public class PingWrapper {
     /*
      * Get the round trip time to an address.
      */
-    public static CompletableFuture<Double> getRTT(String address) {
+    public static CompletableFuture<Double> getRTT(String address, Integer count) {
         try {
             Process process;
             Pattern output_pattern;
 
             if (SystemUtils.IS_OS_WINDOWS) {
-                process = new ProcessBuilder("ping", "-n", "1", address).start();
+                process = new ProcessBuilder("ping", "-n", count.toString(), address).start();
                 output_pattern = WINDOWS_OUTPUT_PATTERN;
             } else if (SystemUtils.IS_OS_UNIX) {
-                process = new ProcessBuilder("ping", "-c", "1", address).start();
+                process = new ProcessBuilder("ping", "-c", count.toString(), address).start();
                 output_pattern = UNIX_OUTPUT_PATTERN;
             } else {
                 throw new UnsupportedOperationException("Unsupported operating system");
@@ -60,7 +60,7 @@ public class PingWrapper {
                 }
             });
         } catch (IOException e) {
-            CompletableFuture<Double> future = new CompletableFuture<Double>();
+            CompletableFuture<Double> future = new CompletableFuture<>();
             future.completeExceptionally(e);
             return future;
         }
