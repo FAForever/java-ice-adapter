@@ -97,7 +97,7 @@ public class PeerIceModule {
         log.info(getLogPrefix() + "Gathering ice candidates");
         List<IceServer> iceServers = GameSession.getIceServers();
         OptionalDouble minRtt = iceServers.stream()
-                .map(server -> server.getRtt().join())
+                .map(server -> server.getRoundTripTime().join())
                 .filter(OptionalDouble::isPresent)
                 .mapToDouble(OptionalDouble::getAsDouble)
                 .min();
@@ -106,7 +106,7 @@ public class PeerIceModule {
         if (minRtt.isPresent()) {
             double minRttAsDouble = minRtt.getAsDouble();
             iceServers = iceServers.stream().filter(server -> {
-                OptionalDouble rtt = server.getRtt().join();
+                OptionalDouble rtt = server.getRoundTripTime().join();
                 return !(rtt.isPresent() && rtt.getAsDouble() > minRttAsDouble);
             }).collect(Collectors.toList());
         }

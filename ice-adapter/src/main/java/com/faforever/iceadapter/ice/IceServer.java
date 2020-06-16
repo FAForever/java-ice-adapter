@@ -16,7 +16,7 @@ public class IceServer {
   private List<TransportAddress> turnAddresses = new ArrayList<>();
   private String turnUsername = "";
   private String turnCredential = "";
-  private CompletableFuture<OptionalDouble> rtt;
+  private CompletableFuture<OptionalDouble> roundTripTime;
 
   private static final Pattern urlPattern = Pattern.compile("(?<protocol>stun|turn):(?<host>(\\w|\\.)+)(:(?<port>\\d+))?(\\?transport=(?<transport>(tcp|udp)))?");
 
@@ -50,7 +50,7 @@ public class IceServer {
                 TransportAddress address = new TransportAddress(host, port, transport);
                 (matcher.group("protocol").equals("stun") ? iceServer.getStunAddresses() : iceServer.getTurnAddresses()).add(address);
 
-                iceServer.rtt = PingWrapper.getRTT(host).thenApply(OptionalDouble::of).exceptionally(ex -> OptionalDouble.empty());
+                iceServer.roundTripTime = PingWrapper.getRTT(host).thenApply(OptionalDouble::of).exceptionally(ex -> OptionalDouble.empty());
               });
     }
     return iceServer;
