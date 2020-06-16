@@ -8,12 +8,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.io.CharStreams;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.SystemUtils;
 
 
 /*
  * A wrapper around calling the system `ping` executable to query the latency of a host.
  */
+@Slf4j
 public class PingWrapper {
     static final Pattern WINDOWS_OUTPUT_PATTERN = Pattern.compile("Average = (\\d+)ms", Pattern.MULTILINE);
     static final Pattern UNIX_OUTPUT_PATTERN = Pattern.compile("min/avg/max/mdev = [0-9.]+/([0-9.]+)/[0-9.]+/[0-9.]+", Pattern.MULTILINE);
@@ -46,8 +48,11 @@ public class PingWrapper {
                     Matcher m = output_pattern.matcher(output);
 
                     if (m.find()) {
-                        return Double.parseDouble(m.group(1));
+                        double result = Double.parseDouble(m.group(1));
+                        log.debug(String.format("Pinged %s with an RTT of %f", address, result));
+                        return result;
                     } else {
+                        log.warn(String.format("Failed to ping %s", address));
                         throw new RuntimeException("Failed to contact the host");
                     }
                 } catch (InterruptedException | IOException | RuntimeException e) {
@@ -55,7 +60,7 @@ public class PingWrapper {
                 }
             });
         } catch (IOException e) {
-            CompletableFuture future = new CompletableFuture();
+            CompletableFuture<Double> future = new CompletableFuture<Double>();
             future.completeExceptionally(e);
             return future;
         }
