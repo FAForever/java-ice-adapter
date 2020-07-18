@@ -87,12 +87,12 @@ public class GameSession {
             return;
         }
 
-        // For caching pings to a given host (the same host can appear in multiple urls)
-        LoadingCache<String, CompletableFuture<OptionalDouble>> hostPingCache = CacheBuilder.newBuilder().build(
+        // For caching RTT to a given host (the same host can appear in multiple urls)
+        LoadingCache<String, CompletableFuture<OptionalDouble>> hostRTTCache = CacheBuilder.newBuilder().build(
                 new CacheLoader<String, CompletableFuture<OptionalDouble>>() {
                     @Override
                     public CompletableFuture<OptionalDouble> load(String host) throws Exception {
-                        return PingWrapper.getRTT(host, IceAdapter.PING_COUNT)
+                        return PingWrapper.getLatency(host, IceAdapter.PING_COUNT)
                                 .thenApply(OptionalDouble::of)
                                 .exceptionally(ex -> OptionalDouble.empty());
                     }
@@ -130,7 +130,7 @@ public class GameSession {
                             (matcher.group("protocol").equals("stun") ? iceServer.getStunAddresses() : iceServer.getTurnAddresses()).add(address);
 
                             if (IceAdapter.PING_COUNT > 0) {
-                                iceServer.setRoundTripTime(hostPingCache.getUnchecked(host));
+                                iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
                             }
                         });
             }

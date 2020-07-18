@@ -1,15 +1,15 @@
 package com.faforever.iceadapter.util;
 
+import com.google.common.io.CharStreams;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.SystemUtils;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.google.common.io.CharStreams;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.SystemUtils;
 
 
 /*
@@ -23,7 +23,7 @@ public class PingWrapper {
     /*
      * Get the round trip time to an address.
      */
-    public static CompletableFuture<Double> getRTT(String address, Integer count) {
+    public static CompletableFuture<Double> getLatency(String address, Integer count) {
         try {
             Process process;
             Pattern output_pattern;
