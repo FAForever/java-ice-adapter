@@ -2,7 +2,6 @@ package com.faforever.iceadapter.util;
 
 import com.google.common.io.CharStreams;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -18,7 +17,7 @@ import java.util.regex.Pattern;
 @Slf4j
 public class PingWrapper {
     static final Pattern WINDOWS_OUTPUT_PATTERN = Pattern.compile("Average = (\\d+)ms", Pattern.MULTILINE);
-    static final Pattern UNIX_OUTPUT_PATTERN = Pattern.compile("min/avg/max/mdev = [0-9.]+/([0-9.]+)/[0-9.]+/[0-9.]+", Pattern.MULTILINE);
+    static final Pattern GNU_OUTPUT_PATTERN = Pattern.compile("min/avg/max/mdev = [0-9.]+/([0-9.]+)/[0-9.]+/[0-9.]+", Pattern.MULTILINE);
 
     /*
      * Get the round trip time to an address.
@@ -28,14 +27,12 @@ public class PingWrapper {
             Process process;
             Pattern output_pattern;
 
-            if (SystemUtils.IS_OS_WINDOWS) {
+            if (System.getProperty("os.name").startsWith("Windows")) {
                 process = new ProcessBuilder("ping", "-n", count.toString(), address).start();
                 output_pattern = WINDOWS_OUTPUT_PATTERN;
-            } else if (SystemUtils.IS_OS_UNIX) {
-                process = new ProcessBuilder("ping", "-c", count.toString(), address).start();
-                output_pattern = UNIX_OUTPUT_PATTERN;
             } else {
-                throw new UnsupportedOperationException("Unsupported operating system");
+                process = new ProcessBuilder("ping", "-c", count.toString(), address).start();
+                output_pattern = GNU_OUTPUT_PATTERN;
             }
 
             return CompletableFuture.supplyAsync(() -> {
