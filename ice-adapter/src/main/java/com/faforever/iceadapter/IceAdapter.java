@@ -34,7 +34,7 @@ public class IceAdapter {
     public static int LOBBY_PORT = 0;
 
     public static int PING_COUNT = 1;
-    public static double ACCEPTABLE_PING = 250.0;
+    public static double ACCEPTABLE_LATENCY = 250.0;
 
     public static volatile GameSession gameSession;
 
@@ -171,7 +171,7 @@ public class IceAdapter {
                     "--info-window                        activate the info window if JavaFX is available (allows access at the debug window)\n" +
                     "--delay-ui arg                       delays the launch of the info and debug window by arg ms\n" +
                     "--ping-count arg (=1)                number of times to ping each turn server to determine latency\n" +
-                    "--acceptable-ping arg (=250.0)       if ping to the official FAF relay surpasses this threshold, search for closer relays");
+                    "--acceptable-latency arg (=250.0)    if latency to the official FAF relay surpasses this threshold, search for closer relays");
             System.exit(0);
         }
 
@@ -205,8 +205,8 @@ public class IceAdapter {
         if(arguments.containsKey("ping-count")) {
             PING_COUNT = Integer.parseInt(arguments.get("ping-count"));
         }
-        if(arguments.containsKey("acceptable-ping")) {
-            ACCEPTABLE_PING = Double.parseDouble(arguments.get("acceptable-ping"));
+        if(arguments.containsKey("acceptable-latency")) {
+            ACCEPTABLE_LATENCY = Double.parseDouble(arguments.get("acceptable-latency"));
         }
 
         Debug.ENABLE_DEBUG_WINDOW = arguments.containsKey("debug-window");

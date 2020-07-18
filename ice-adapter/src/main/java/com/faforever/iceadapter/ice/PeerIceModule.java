@@ -170,15 +170,15 @@ public class PeerIceModule {
                 .collect(Collectors.toList());
         // Try official servers first
         List<IceServer> viableIceServers = fafIceServers.stream()
-                .filter(IceServer::hasAcceptablePing)
+                .filter(IceServer::hasAcceptableLatency)
                 .collect(Collectors.toList());
         if (!viableIceServers.isEmpty()) {
             return viableIceServers;
         }
 
-        // Try servers with acceptable ping
+        // Try servers with acceptable latency
         viableIceServers = allIceServers.stream()
-                .filter(IceServer::hasAcceptablePing)
+                .filter(IceServer::hasAcceptableLatency)
                 .collect(Collectors.toList());
         if (!viableIceServers.isEmpty()) {
             return viableIceServers;

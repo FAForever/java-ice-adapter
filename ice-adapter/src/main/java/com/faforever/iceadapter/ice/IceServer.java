@@ -20,8 +20,8 @@ public class IceServer {
 
   public static final Pattern urlPattern = Pattern.compile("(?<protocol>stun|turn):(?<host>(\\w|\\.)+)(:(?<port>\\d+))?(\\?transport=(?<transport>(tcp|udp)))?");
 
-  public boolean hasAcceptablePing() {
+  public boolean hasAcceptableLatency() {
       OptionalDouble rtt = this.getRoundTripTime().join();
-      return !rtt.isPresent() || rtt.getAsDouble() < IceAdapter.ACCEPTABLE_PING;
+      return !rtt.isPresent() || rtt.getAsDouble() < IceAdapter.ACCEPTABLE_LATENCY;
   }
 }
