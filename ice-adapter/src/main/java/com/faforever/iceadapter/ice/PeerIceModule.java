@@ -13,11 +13,10 @@ import org.ice4j.ice.harvest.StunCandidateHarvester;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.security.LongTermCredential;
 
+import javax.swing.text.html.Option;
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -185,10 +184,11 @@ public class PeerIceModule {
         }
 
         // Try the closest server
-        IceServer closestIceServer = allIceServers.stream()
-                .min(Comparator.comparing(server -> server.getRoundTripTime().join().orElse(Double.POSITIVE_INFINITY))).get();
-        if (closestIceServer.getRoundTripTime().join().isPresent()) {
-            viableIceServers.add(closestIceServer);
+        Optional<IceServer> closestIceServer = allIceServers.stream()
+                .filter(server -> server.getRoundTripTime().join().isPresent())
+                .min(Comparator.comparing(server -> server.getRoundTripTime().join().getAsDouble()));
+        if (closestIceServer.isPresent()) {
+            viableIceServers.add(closestIceServer.get());
         }
         if (!viableIceServers.isEmpty()) {
             return viableIceServers;

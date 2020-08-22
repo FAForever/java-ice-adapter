@@ -46,10 +46,10 @@ public class PingWrapper {
 
                     if (m.find()) {
                         double result = Double.parseDouble(m.group(1));
-                        log.debug(String.format("Pinged %s with an RTT of %f", address, result));
+                        log.debug("Pinged {} with an RTT of {}", address, result);
                         return result;
                     } else {
-                        log.warn(String.format("Failed to ping %s", address));
+                        log.warn("Failed to ping {}", address);
                         throw new RuntimeException("Failed to contact the host");
                     }
                 } catch (InterruptedException | IOException | RuntimeException e) {
