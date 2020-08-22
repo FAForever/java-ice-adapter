@@ -123,8 +123,8 @@ public class GameSession {
                         .filter(Matcher::matches)
                         .forEach(matcher -> {
                             String host = matcher.group("host");
-                            int port = matcher.group("port") != null ? Integer.parseInt(matcher.group("port")) : 3478;
-                            Transport transport = matcher.group("protocol").equals("stun") ? Transport.UDP : Transport.parse(matcher.group("transport"));
+                            int port = Optional.ofNullable(matcher.group("port")).map(Integer::parseInt).orElse(3478);
+                            Transport transport = Optional.ofNullable(matcher.group("transport")).map(Transport::parse).orElse(Transport.UDP);
 
                             TransportAddress address = new TransportAddress(host, port, transport);
                             (matcher.group("protocol").equals("stun") ? iceServer.getStunAddresses() : iceServer.getTurnAddresses()).add(address);
