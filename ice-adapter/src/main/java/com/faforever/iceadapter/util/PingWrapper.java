@@ -1,12 +1,16 @@
 package com.faforever.iceadapter.util;
 
+import com.faforever.iceadapter.IceAdapter;
 import com.google.common.io.CharStreams;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,6 +22,12 @@ import java.util.regex.Pattern;
 public class PingWrapper {
     static final Pattern WINDOWS_OUTPUT_PATTERN = Pattern.compile("Average = (\\d+)ms", Pattern.MULTILINE);
     static final Pattern GNU_OUTPUT_PATTERN = Pattern.compile("min/avg/max/mdev = [0-9.]+/([0-9.]+)/[0-9.]+/[0-9.]+", Pattern.MULTILINE);
+
+    // In case the server cannot be reached / doesn't respond to ICMP echo, use an alternative fallback with a similar latency
+    private static final Map<String, String> fallbackServers = new HashMap<String, String>() {{
+        put("faforever.com", "test.faforever.com");
+        put("test.faforever.com", "geosearchef.de");
+    }};
 
     /*
      * Get the round trip time to an address.
@@ -35,6 +45,7 @@ public class PingWrapper {
                 output_pattern = GNU_OUTPUT_PATTERN;
             }
 
+            String finalAddress = address;
             return CompletableFuture.supplyAsync(() -> {
                 try {
                     process.waitFor();
@@ -46,13 +57,18 @@ public class PingWrapper {
 
                     if (m.find()) {
                         double result = Double.parseDouble(m.group(1));
-                        log.debug("Pinged {} with an RTT of {}", address, result);
+                        log.debug("Pinged {} with an RTT of {}", finalAddress, result);
                         return result;
                     } else {
-                        log.warn("Failed to ping {}", address);
+                        log.warn("Failed to ping {}", finalAddress);
+                        if(fallbackServers.containsKey(address)) {
+                            String fallback = fallbackServers.get(address);
+                            log.info("Falling back to " + fallback + " for latency estimation");
+                            return getLatency(fallback, IceAdapter.PING_COUNT).get();
+                        }
                         throw new RuntimeException("Failed to contact the host");
                     }
-                } catch (InterruptedException | IOException | RuntimeException e) {
+                } catch (InterruptedException | IOException | RuntimeException | ExecutionException e) {
                     throw new CompletionException(e);
                 }
             });
