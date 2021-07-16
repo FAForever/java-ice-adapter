@@ -8,15 +8,18 @@ import com.faforever.iceadapter.util.TrayIcon;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
 import org.ice4j.ice.*;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.security.LongTermCredential;
 
-import javax.swing.text.html.Option;
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -136,11 +139,10 @@ public class PeerIceModule {
 
         int previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
         CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(IceAdapter.id, peer.getRemoteId(), agent, component, previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.ALLOW_HOST, previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.ALLOW_REFLEXIVE, IceAdapter.ALLOW_RELAY);
-        log.debug(getLogPrefix() + "Sending own candidates to {}", peer.getRemoteId());
+        log.debug(getLogPrefix() + "Sending own candidates to {}, offered candidates: {}", peer.getRemoteId(), localCandidatesMessage.getCandidates().stream().map(it -> it.getType().toString() + "(" + it.getProtocol() + ")").collect(Collectors.joining(", ")));
         setState(AWAITING_CANDIDATES);
         RPCService.onIceMsg(localCandidatesMessage);
 
-        //TODO: is this a good fix for awaiting candidates loop????
         //Make sure to abort the connection process and reinitiate when we haven't received an answer to our offer in 6 seconds, candidate packet was probably lost
         final int currentacei = ++awaitingCandidatesEventId;
         Executor.executeDelayed(6000, () -> {
@@ -172,6 +174,7 @@ public class PeerIceModule {
                 .filter(IceServer::hasAcceptableLatency)
                 .collect(Collectors.toList());
         if (!viableIceServers.isEmpty()) {
+            log.info("Using official ice servers: {}", viableIceServers.stream().map(it -> "[" + it.getTurnAddresses().stream().map(TransportAddress::toString).collect(Collectors.joining(", ")) + "]").collect(Collectors.joining(", ")));
             return viableIceServers;
         }
 
@@ -180,6 +183,7 @@ public class PeerIceModule {
                 .filter(IceServer::hasAcceptableLatency)
                 .collect(Collectors.toList());
         if (!viableIceServers.isEmpty()) {
+            log.info("Using all viable ice servers: {}", viableIceServers.stream().map(it -> "[" + it.getTurnAddresses().stream().map(TransportAddress::toString).collect(Collectors.joining(", ")) + "]").collect(Collectors.joining(", ")));
             return viableIceServers;
         }
 
@@ -188,12 +192,15 @@ public class PeerIceModule {
                 .filter(server -> server.getRoundTripTime().join().isPresent())
                 .min(Comparator.comparing(server -> server.getRoundTripTime().join().getAsDouble()));
         if (closestIceServer.isPresent()) {
+            log.info("Using closest ice server: {}", closestIceServer.get().getTurnAddresses().stream().map(TransportAddress::toString).collect(Collectors.joining(", ")));
             viableIceServers.add(closestIceServer.get());
         }
         if (!viableIceServers.isEmpty()) {
+            log.info("Using all reachable ice servers: {}", viableIceServers.stream().map(it -> "[" + it.getTurnAddresses().stream().map(TransportAddress::toString).collect(Collectors.joining(", ")) + "]").collect(Collectors.joining(", ")));
             return viableIceServers;
         }
 
+        log.info("Using all ice servers: {}", viableIceServers.stream().map(it -> "[" + it.getTurnAddresses().stream().map(TransportAddress::toString).collect(Collectors.joining(", ")) + "]").collect(Collectors.joining(", ")));
         return allIceServers;
     }
 
@@ -209,7 +216,7 @@ public class PeerIceModule {
 
         //Start ICE async as it's blocking and this is the RPC thread
         new Thread(() -> {
-            log.debug(getLogPrefix() + "Got IceMsg for peer");
+            log.debug(getLogPrefix() + "Got IceMsg for peer, offered candidates: {}", remoteCandidatesMessage.getCandidates().stream().map(it -> it.getType().toString() + "(" + it.getProtocol() + ")").collect(Collectors.joining(", ")));
 
             if (peer.isLocalOffer()) {
                 if (iceState != AWAITING_CANDIDATES) {
@@ -269,7 +276,7 @@ public class PeerIceModule {
             }
         }
 
-        log.debug(getLogPrefix() + "ICE terminated");
+        log.debug(getLogPrefix() + "ICE terminated, connected, selected candidate pair: " + component.getSelectedPair().getLocalCandidate().getType().toString() + " <-> " + component.getSelectedPair().getRemoteCandidate().getType().toString());
 
         //We are connected
         connected = true;
