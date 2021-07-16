@@ -6,6 +6,7 @@ import com.faforever.iceadapter.debug.InfoWindow;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -16,7 +17,7 @@ import java.net.URL;
 public class TrayIcon {
 
 	public static final String FAF_LOGO_URL = "https://faforever.com/images/faf-logo.png";
-	private static java.awt.TrayIcon trayIcon;
+	private static volatile java.awt.TrayIcon trayIcon;
 
 
 	public static void create() {
@@ -79,9 +80,11 @@ public class TrayIcon {
 	}
 
 	public static void showMessage(String message) {
-		if (trayIcon != null) {
-			trayIcon.displayMessage("FAForever Connection ICE Adapter", message, java.awt.TrayIcon.MessageType.INFO);
-		}
+		SwingUtilities.invokeLater(() -> {
+			if (trayIcon != null) {
+				trayIcon.displayMessage("FAForever Connection ICE Adapter", message, java.awt.TrayIcon.MessageType.INFO);
+			}
+		});
 	}
 
 	public static void close() {

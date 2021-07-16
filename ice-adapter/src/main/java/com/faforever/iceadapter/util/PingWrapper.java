@@ -64,8 +64,10 @@ public class PingWrapper {
                         if(fallbackServers.containsKey(address)) {
                             String fallback = fallbackServers.get(address);
                             log.info("Falling back to " + fallback + " for latency estimation");
+                            TrayIcon.showMessage("Failed to estimate latency to " + address + ". Falling back to " + fallback + ".");
                             return getLatency(fallback, IceAdapter.PING_COUNT).get();
                         }
+                        TrayIcon.showMessage("Unable to contact relay server!");
                         throw new RuntimeException("Failed to contact the host");
                     }
                 } catch (InterruptedException | IOException | RuntimeException | ExecutionException e) {
