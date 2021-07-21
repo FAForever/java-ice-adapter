@@ -74,8 +74,6 @@ public class TrayIcon {
 			log.error("Tray icon could not be added", e);
 		}
 
-		showMessage("ICE Adapter started");
-
 		log.info("Created tray icon");
 	}
 
