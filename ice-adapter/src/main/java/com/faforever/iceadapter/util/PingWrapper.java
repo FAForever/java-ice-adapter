@@ -26,7 +26,6 @@ public class PingWrapper {
     // In case the server cannot be reached / doesn't respond to ICMP echo, use an alternative fallback with a similar latency
     private static final Map<String, String> fallbackServers = new HashMap<String, String>() {{
         put("faforever.com", "test.faforever.com");
-        put("test.faforever.com", "geosearchef.de");
     }};
 
     /*
@@ -64,7 +63,7 @@ public class PingWrapper {
                         if(fallbackServers.containsKey(address)) {
                             String fallback = fallbackServers.get(address);
                             log.info("Falling back to " + fallback + " for latency estimation");
-                            TrayIcon.showMessage("Failed to estimate latency to " + address + ". Falling back to " + fallback + ".");
+                            TrayIcon.showMessage("Failed to estimate latency to " + address + ". Using fallback server instead.");
                             return getLatency(fallback, IceAdapter.PING_COUNT).get();
                         }
                         TrayIcon.showMessage("Unable to contact relay server!");
