@@ -62,8 +62,8 @@ public class PingWrapper {
                         log.warn("Failed to ping {}", finalAddress);
                         if(fallbackServers.containsKey(address)) {
                             String fallback = fallbackServers.get(address);
-                            log.info("Falling back to " + fallback + " for latency estimation");
-                            TrayIcon.showMessage("Failed to estimate latency to " + address + ". Using fallback server instead.");
+                            log.warn("SERVER NOT RESPONDING (TO ICMP ECHO). FIX THE SERVER!!! THIS IS A -->TEMPORARY<-- SOLUTION! Falling back to " + fallback + " for latency estimation");
+//                            TrayIcon.showMessage("Failed to estimate latency to " + address + ". Using fallback server instead."); // TODO: disabled to not annoy people, enable after the server is fixed
                             return getLatency(fallback, IceAdapter.PING_COUNT).get();
                         }
                         TrayIcon.showMessage("Unable to contact relay server!");
