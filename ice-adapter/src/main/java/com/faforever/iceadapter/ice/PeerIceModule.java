@@ -428,11 +428,11 @@ public class PeerIceModule {
                         sendViaIce(data, 0, packet.getLength());//Turn around, send echo back
                     }
                 } else {
-                    log.warn(getLogPrefix() + "Received invalid packet, first byte: 0x{}", data[0]);
+                    log.warn(getLogPrefix() + "Received invalid packet, first byte: 0x{}, length: {}", data[0], packet.getLength());
                 }
 
             } catch (IOException e) {//TODO: nullpointer from localComponent.xxxx????
-                log.warn(getLogPrefix() + "Error while reading from ICE adapter");
+                log.warn(getLogPrefix() + "Error while reading from ICE adapter", e);
                 if(component == localComponent) {
                     onConnectionLost();
                 }

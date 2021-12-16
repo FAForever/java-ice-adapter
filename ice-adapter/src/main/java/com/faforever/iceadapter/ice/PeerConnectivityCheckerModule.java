@@ -99,6 +99,7 @@ public class PeerConnectivityCheckerModule {
             }
 
             if (System.currentTimeMillis() - lastPacketReceived > 10000) {
+                log.warn("Didn't receive any answer to echo requests for the past 10 seconds from {}, aborting connection", ice.getPeer().getRemoteLogin());
                 new Thread(ice::onConnectionLost).start();
                 return;
             }
