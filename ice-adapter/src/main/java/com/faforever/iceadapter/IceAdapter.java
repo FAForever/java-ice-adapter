@@ -36,6 +36,9 @@ public class IceAdapter {
     public static int PING_COUNT = 1;
     public static double ACCEPTABLE_LATENCY = 250.0;
 
+    public static int GPGNET_SERVER_BIND_RETRY_COUNT = 3;
+    public static int GPGNET_SERVER_BIND_RETRY_DELAY = 500;
+
     public static volatile GameSession gameSession;
 
     public static void main(String args[]) {

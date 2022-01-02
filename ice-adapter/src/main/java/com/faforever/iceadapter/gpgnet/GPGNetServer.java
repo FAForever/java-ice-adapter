@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -46,7 +47,34 @@ public class GPGNetServer {
         }
 
         try {
-            serverSocket = new ServerSocket(IceAdapter.GPGNET_PORT);
+            int retries = 0;
+            boolean connected = false;
+            while(!connected) {
+                try {
+                    serverSocket = new ServerSocket(IceAdapter.GPGNET_PORT);
+                    connected = true;
+                } catch(BindException e) { // the client determines the port by opening sockets on lots of possible ports, if sufficient time hasn't passed yet, the port may still be blocked
+                    log.warn("Couldn't bind GPGNetServer socket to port {}, maybe it's still in use, retrying in {} ms", IceAdapter.GPGNET_PORT, IceAdapter.GPGNET_SERVER_BIND_RETRY_DELAY);
+
+                    if(! serverSocket.isClosed()) {
+                        try {
+                            serverSocket.close();
+                        } catch(IOException ex) {
+                            log.warn("Error while closing GPGNet server socket after it failed to bind", ex);
+                        }
+                    }
+
+                    try { Thread.sleep(IceAdapter.GPGNET_SERVER_BIND_RETRY_DELAY); } catch (InterruptedException ex) { log.error("Interrupted while waiting for GPGNetServer restart", ex); }
+
+                    if(retries >= IceAdapter.GPGNET_SERVER_BIND_RETRY_COUNT) {
+                        throw e;
+                    }
+                }
+
+                if(retries >= IceAdapter.GPGNET_SERVER_BIND_RETRY_COUNT) {
+                    throw new RuntimeException("No gpg net server running due to unknown reason");
+                }
+            }
         } catch (IOException e) {
             log.error("Couldn't start GPGNetServer", e);
             System.exit(-1);
