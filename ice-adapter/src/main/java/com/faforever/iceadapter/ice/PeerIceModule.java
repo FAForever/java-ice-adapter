@@ -416,6 +416,9 @@ public class PeerIceModule {
                 if (packet.getLength() == 0) {
                     continue;
                 }
+                if (packet.getLength() > data.length - 1000) {
+                    log.warn("Received packet is very long at {} bytes, maybe an overflow occured!?", packet.getLength());
+                }
 
                 if (data[0] == 'd') {
                     //Received data
