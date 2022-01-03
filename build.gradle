@@ -34,5 +34,5 @@ dependencies {
 }
 
 task createAllJars (type: GradleBuild) {
-    tasks = [":client:shadowJar",":server:shadowJar",":ice-adapter:shadowJar"]
+    tasks = [":client:shadowJar",":server:shadowJar",":ice-adapter:shadowJar",":echo-server:shadowJar"]
 }

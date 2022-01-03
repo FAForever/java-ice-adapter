@@ -1,4 +1,4 @@
-package com.faforever.iceadapter.util;
+package com.faforever.iceadapter.util.latencyestimation;
 
 import com.google.common.io.CharStreams;
 import lombok.extern.slf4j.Slf4j;

@@ -36,6 +36,8 @@ public class PeerIceModule {
     private static final int FORCE_SRFLX_COUNT = 1;
     private static final int FORCE_RELAY_COUNT = 2;
 
+    private static final int GATHERING_TIMEOUT = 5000;
+
     private Peer peer;
 
     private Agent agent;
@@ -116,7 +118,7 @@ public class PeerIceModule {
             }
         });
 
-        Executor.executeDelayed(5000, () -> {
+        Executor.executeDelayed(GATHERING_TIMEOUT, () -> {
             if(! gatheringFuture.isDone()) {
                 gatheringFuture.cancel(true);
             }
@@ -408,7 +410,7 @@ public class PeerIceModule {
         Component localComponent = component;
 
         byte data[] = new byte[65536];//64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
-        while (IceAdapter.running && IceAdapter.gameSession == peer.getGameSession()) {
+        while (IceAdapter.running && IceAdapter.gameSession == peer.getGameSession()) { // TODO: && listenerThread == this thread
             try {
                 DatagramPacket packet = new DatagramPacket(data, data.length);
                 localComponent.getSelectedPair().getIceSocketWrapper().getUDPSocket().receive(packet);
