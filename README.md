@@ -3,7 +3,7 @@
  A P2P connection proxy for Supreme Commander: Forged Alliance using [ICE](https://en.wikipedia.org/wiki/Interactive_Connectivity_Establishment).
 
 ## Building
-Build the project using gradle from the provided wrapper. The use of an Oracle JDK 8 or an OpenJDK+OpenJFX 8 is recommended till the JavaFX dependencies are updated.
+Build the project using gradle from the provided wrapper (Java 17 required).
 
 ## JSONRPC Protocol
 The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www.jsonrpc.org/specification) interface over TCP.
