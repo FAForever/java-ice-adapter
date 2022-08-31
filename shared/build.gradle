@@ -1,12 +1,12 @@
 
 apply plugin: 'java'
-apply plugin: 'io.franzbecker.gradle-lombok'
 
 group 'Geosearchef'
 version '1.0-SNAPSHOT'
 
-sourceCompatibility = 1.8
+sourceCompatibility = JavaVersion.VERSION_17
 
 dependencies{
-
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+    implementation("org.projectlombok:lombok:$lombokVersion")
 }

@@ -1,8 +1,4 @@
 buildscript {
-    dependencies {
-        classpath group: 'de.dynamicfiles.projects.gradle.plugins', name: 'javafx-gradle-plugin', version: '8.8.2'
-    }
-
     repositories {
         mavenLocal()
         mavenCentral()
@@ -12,15 +8,13 @@ buildscript {
 apply plugin: 'idea'
 apply plugin: 'java'
 apply plugin: 'java-library'
-apply plugin: 'io.franzbecker.gradle-lombok'
-apply plugin: 'javafx-gradle-plugin'
 apply plugin: 'com.github.johnrengelman.shadow'
 
 group 'Geosearchef'
 version = 'SNAPSHOT'
 
 
-sourceCompatibility = 1.8
+sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
     mavenCentral()
@@ -28,6 +22,11 @@ repositories {
 }
 
 dependencies {
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+    implementation("org.projectlombok:lombok:$lombokVersion")
+    testAnnotationProcessor("org.projectlombok:lombok:$lombokVersion")
+    testImplementation("org.projectlombok:lombok:$lombokVersion")
+
 //    implementation "org.jitsi:ice4j:1.0"
 //    implementation 'com.github.jitsi:ice4j:59693a4894'
     implementation 'com.github.Geosearchef:ice4j:52c8e4bcef'
@@ -38,6 +37,13 @@ dependencies {
 //    implementation "org.slf4j:slf4j-simple:1.7.25"
     implementation "ch.qos.logback:logback-classic:1.2.3"
     implementation "ch.qos.logback:logback-core:1.2.3"
+
+    implementation("org.openjfx:javafx-base:${javafxVersion}:${javafxPlatform}")
+    implementation("org.openjfx:javafx-controls:${javafxVersion}:${javafxPlatform}")
+    implementation("org.openjfx:javafx-graphics:${javafxVersion}:${javafxPlatform}")
+    implementation("org.openjfx:javafx-fxml:${javafxVersion}:${javafxPlatform}")
+    implementation("org.openjfx:javafx-web:${javafxVersion}:${javafxPlatform}")
+    implementation("org.openjfx:javafx-media:${javafxVersion}:${javafxPlatform}")
 }
 
 jar {

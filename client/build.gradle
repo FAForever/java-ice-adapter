@@ -1,18 +1,27 @@
 
 apply plugin: 'java'
-apply plugin: 'io.franzbecker.gradle-lombok'
-apply plugin: 'com.github.johnrengelman.plugin-shadow'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 group 'Geosearchef'
 version '1.0-SNAPSHOT'
 
-sourceCompatibility = 1.8
+sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+    implementation("org.projectlombok:lombok:$lombokVersion")
+
+    implementation("org.openjfx:javafx-base:${javafxVersion}:${javafxPlatform}")
+    implementation("org.openjfx:javafx-controls:${javafxVersion}:${javafxPlatform}")
+    implementation("org.openjfx:javafx-graphics:${javafxVersion}:${javafxPlatform}")
+    implementation("org.openjfx:javafx-fxml:${javafxVersion}:${javafxPlatform}")
+    implementation("org.openjfx:javafx-web:${javafxVersion}:${javafxPlatform}")
+    implementation("org.openjfx:javafx-media:${javafxVersion}:${javafxPlatform}")
+
     implementation project(":shared")
 //    implementation project(":ice-adapter")
     implementation "com.sun.jna:jna:3.0.9"
@@ -21,10 +30,6 @@ dependencies {
     implementation 'com.github.Geosearchef:JJsonRpc:master'
     implementation "com.google.code.gson:gson:2.7"
     implementation "com.google.guava:guava:18.0"
-}
-
-configureRelocationShadowJar{
-    prefix=""
 }
 
 
