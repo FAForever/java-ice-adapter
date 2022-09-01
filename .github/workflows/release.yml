@@ -1,0 +1,79 @@
+# This workflow will build a Java project with Gradle
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release Version'
+        required: true
+
+jobs:
+  release:
+
+    runs-on: ubuntu-latest
+    container: eclipse-temurin:17-jdk
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run Checks
+        run: ./gradlew --stacktrace -PjavafxPlatform=linux
+
+      - name: Build Windows Files
+        run: |
+          ./gradlew -Pversion="${{ github.event.inputs.version }}" -PjavafxPlatform=win --stacktrace :ice-adapter:shadow-jar
+
+      - name: Build Linux Files
+        run: |
+          ./gradlew -Pversion="${{ github.event.inputs.version }}" -PjavafxPlatform=linux --stacktrace :ice-adapter:shadow-jar
+
+      - name: Create Draft Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          release_name: ${{ github.event.inputs.version }}
+          draft: true
+          prerelease: true
+
+      - name: Get Artifact Paths
+        id: artifact_paths
+        run: |
+          LINUX_JAR=$(ls build/distributions/ice-adapter-*-linux.jar | head -n 1)
+          LINUX_JAR_NAME=$(basename $LINUX_JAR)
+          WINDOWS_JAR=$(ls build/distributions/ice-adapter-*-win.jar | head -n 1)
+          WINDOWS_JAR_NAME=$(basename $WINDOWS_JAR)
+          echo ::set-output name=LINUX_JAR::${LINUX_JAR}
+          echo ::set-output name=LINUX_JAR_NAME::${LINUX_JAR_NAME}
+          echo ::set-output name=WINDOWS_JAR::${WINDOWS_JAR}
+          echo ::set-output name=WINDOWS_JAR_NAME::${WINDOWS_JAR_NAME}
+
+      - name: Upload Linux Files
+        id: upload-linux
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.artifact_paths.outputs.LINUX_JAR }}
+          asset_name: ${{ steps.artifact_paths.outputs.LINUX_JAR_NAME }}
+          asset_content_type: application/java-archive
+
+      - name: Upload Windows zip
+        id: upload-zip
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.artifact_paths.outputs.WINDOWS_JAR }}
+          asset_name: ${{ steps.artifact_paths.outputs.WINDOWS_JAR_NAME }}
+          asset_content_type: application/java-archive
