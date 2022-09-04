@@ -103,7 +103,7 @@ public class GameSession {
                 new CacheLoader<String, CompletableFuture<OptionalDouble>>() {
                     @Override
                     public CompletableFuture<OptionalDouble> load(String host) throws Exception {
-                        return PingWrapper.getLatency(host, IceAdapter.PING_COUNT)
+                        return PingWrapper.getLatency(host, IceAdapter.getPingCount())
                                 .thenApply(OptionalDouble::of)
                                 .exceptionally(ex -> OptionalDouble.empty());
                     }
@@ -142,7 +142,7 @@ public class GameSession {
                             TransportAddress address = new TransportAddress(host, port, transport);
                             (matcher.group("protocol").equals("stun") ? iceServer.getStunAddresses() : iceServer.getTurnAddresses()).add(address);
 
-                            if (IceAdapter.PING_COUNT > 0) {
+                            if (IceAdapter.getPingCount() > 0) {
                                 iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
                             }
 

@@ -23,18 +23,18 @@ import static com.faforever.iceadapter.debug.Debug.debug;
 @Slf4j
 public class RPCService {
 
-	private static Gson gson = new Gson();
+	private final static Gson gson = new Gson();
 
 	private static TcpServer tcpServer;
-	private static RPCHandler rpcHandler;
 
 	private static volatile boolean skipRPCMessages = false;
 
-	public static void init() {
-		log.info("Creating RPC server on port {}", IceAdapter.RPC_PORT);
+	public static void init(int port) {
+		Debug.RPC_PORT = port;
+		log.info("Creating RPC server on port {}", port);
 
-		rpcHandler = new RPCHandler();
-		tcpServer = new TcpServer(IceAdapter.RPC_PORT, rpcHandler);
+		RPCHandler rpcHandler = new RPCHandler(port);
+		tcpServer = new TcpServer(port, rpcHandler);
 		tcpServer.start();
 
 		debug().rpcStarted(tcpServer.getFirstPeer());

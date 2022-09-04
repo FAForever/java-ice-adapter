@@ -8,6 +8,7 @@ import com.faforever.iceadapter.ice.CandidatesMessage;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.ice.Peer;
 import com.google.gson.Gson;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.Candidate;
@@ -24,13 +25,11 @@ import java.util.Optional;
  * Handles calls from JsonRPC (the client)
  */
 @Slf4j
+@RequiredArgsConstructor
 public class RPCHandler {
 
-    private Gson gson = new Gson();
-
-    public RPCHandler() {
-
-    }
+    private final Gson gson = new Gson();
+    private final int rpcPort;
 
     public void hostGame(String mapName) {
         IceAdapter.onHostGame(mapName);
@@ -86,7 +85,7 @@ public class RPCHandler {
 
     //TODO: this method is temporary and needs to be improved
     public String status() {
-        IceStatus.IceGPGNetState gpgpnet = new IceStatus.IceGPGNetState(IceAdapter.GPGNET_PORT, GPGNetServer.isConnected(), GPGNetServer.getGameStateString(), "-");
+        IceStatus.IceGPGNetState gpgpnet = new IceStatus.IceGPGNetState(GPGNetServer.getGpgnetPort(), GPGNetServer.isConnected(), GPGNetServer.getGameStateString(), "-");
 
         List<IceStatus.IceRelay> relays = new ArrayList<>();
         GameSession gameSession = IceAdapter.gameSession;
@@ -116,9 +115,9 @@ public class RPCHandler {
         IceStatus status = new IceStatus(
                 IceAdapter.VERSION,
                 GameSession.getIceServers().stream().mapToInt(s -> s.getTurnAddresses().size() + s.getStunAddresses().size()).sum(),
-                IceAdapter.LOBBY_PORT,
+                GPGNetServer.getLobbyPort(),
                 GPGNetServer.lobbyInitMode.getName(),
-                new IceStatus.IceOptions(IceAdapter.id, IceAdapter.login, IceAdapter.RPC_PORT, IceAdapter.GPGNET_PORT),
+                new IceStatus.IceOptions(IceAdapter.getId(), IceAdapter.getLogin(), rpcPort, GPGNetServer.getGpgnetPort()),
                 gpgpnet,
                 relays.toArray(new IceStatus.IceRelay[relays.size()])
         );

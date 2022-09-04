@@ -5,6 +5,7 @@ import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.Peer;
 import com.faforever.iceadapter.ice.PeerConnectivityCheckerModule;
+import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.Executor;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 import javafx.application.Application;
@@ -100,10 +101,10 @@ public class DebugWindow extends Application implements Debugger {
 
         runOnUIThread(() -> {
             controller.versionLabel.setText(String.format("Version: %s", IceAdapter.VERSION));
-            controller.userLabel.setText(String.format("User: %s(%d)", IceAdapter.login, IceAdapter.id));
-            controller.rpcPortLabel.setText(String.format("RPC_PORT: %d", IceAdapter.RPC_PORT));
-            controller.gpgnetPortLabel.setText(String.format("GPGNET_PORT: %d", IceAdapter.GPGNET_PORT));
-            controller.lobbyPortLabel.setText(String.format("LOBBY_PORT: %d", IceAdapter.LOBBY_PORT));
+            controller.userLabel.setText(String.format("User: %s(%d)", IceAdapter.getLogin(), IceAdapter.getId()));
+            controller.rpcPortLabel.setText(String.format("RPC_PORT: %d", Debug.RPC_PORT));
+            controller.gpgnetPortLabel.setText(String.format("GPGNET_PORT: %d", GPGNetServer.getGpgnetPort()));
+            controller.lobbyPortLabel.setText(String.format("LOBBY_PORT: %d", GPGNetServer.getLobbyPort()));
         });
     }
 

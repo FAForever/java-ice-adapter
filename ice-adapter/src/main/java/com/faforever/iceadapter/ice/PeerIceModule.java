@@ -31,6 +31,22 @@ import static com.faforever.iceadapter.ice.IceState.*;
 @Getter
 @Slf4j
 public class PeerIceModule {
+    private static boolean ALLOW_HOST = true;
+    private static boolean ALLOW_REFLEXIVE = true;
+    private static boolean ALLOW_RELAY = true;
+
+    public static void setForceRelay(boolean forceRelay) {
+        if (forceRelay) {
+            ALLOW_HOST = false;
+            ALLOW_REFLEXIVE = false;
+            ALLOW_RELAY = true;
+        } else {
+            ALLOW_HOST = true;
+            ALLOW_REFLEXIVE = true;
+            ALLOW_RELAY = true;
+        }
+    }
+
     private static final int MINIMUM_PORT = 6112; // PORT (range +1000) to be used by ICE for communicating, each peer needs a seperate port
     private static final long FORCE_SRFLX_RELAY_INTERVAL = 2 * 60 * 1000; // 2 mins, the interval in which multiple connects have to happen to force srflx/relay
     private static final int FORCE_SRFLX_COUNT = 1;
@@ -60,11 +76,12 @@ public class PeerIceModule {
 
     /**
      * Updates the current iceState and informs the client via RPC
+     *
      * @param newState the new State
      */
     private void setState(IceState newState) {
         this.iceState = newState;
-        RPCService.onIceConnectionStateChanged(IceAdapter.id, peer.getRemoteId(), iceState.getMessage());
+        RPCService.onIceConnectionStateChanged(IceAdapter.getId(), peer.getRemoteId(), iceState.getMessage());
         debug().peerStateChanged(this.peer);
     }
 
@@ -117,19 +134,19 @@ public class PeerIceModule {
         });
 
         Executor.executeDelayed(5000, () -> {
-            if(! gatheringFuture.isDone()) {
+            if (!gatheringFuture.isDone()) {
                 gatheringFuture.cancel(true);
             }
         });
 
         try {
             gatheringFuture.join();
-        } catch(CompletionException e) {
+        } catch (CompletionException e) {
             //Completed exceptionally
             log.error(getLogPrefix() + "Error while creating stream component/gathering candidates", e);
             new Thread(this::onConnectionLost).start();
             return;
-        } catch(CancellationException e) {
+        } catch (CancellationException e) {
             //was cancelled due to timeout
             log.error(getLogPrefix() + "Gathering candidates timed out", e);
             new Thread(this::onConnectionLost).start();
@@ -138,15 +155,29 @@ public class PeerIceModule {
 
 
         int previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
-        CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(IceAdapter.id, peer.getRemoteId(), agent, component, previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.ALLOW_HOST, previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.ALLOW_REFLEXIVE, IceAdapter.ALLOW_RELAY);
-        log.debug(getLogPrefix() + "Sending own candidates to {}, offered candidates: {}", peer.getRemoteId(), localCandidatesMessage.candidates().stream().map(it -> it.type().toString() + "(" + it.protocol() + ")").collect(Collectors.joining(", ")));
+        CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(
+               IceAdapter.getId(),
+                peer.getRemoteId(),
+                agent,
+                component,
+                previousConnectivityAttempts < FORCE_SRFLX_COUNT && ALLOW_HOST,
+                previousConnectivityAttempts < FORCE_RELAY_COUNT && ALLOW_REFLEXIVE,
+                ALLOW_RELAY
+        );
+        log.debug(
+                getLogPrefix() + "Sending own candidates to {}, offered candidates: {}",
+                peer.getRemoteId(),
+                localCandidatesMessage.candidates().stream()
+                        .map(it -> it.type().toString() + "(" + it.protocol() + ")")
+                        .collect(Collectors.joining(", "))
+        );
         setState(AWAITING_CANDIDATES);
         RPCService.onIceMsg(localCandidatesMessage);
 
         //Make sure to abort the connection process and reinitiate when we haven't received an answer to our offer in 6 seconds, candidate packet was probably lost
         final int currentacei = ++awaitingCandidatesEventId;
         Executor.executeDelayed(6000, () -> {
-            if(peer.isClosing()) {
+            if (peer.isClosing()) {
                 log.warn(getLogPrefix() + "Peer {} not connected anymore, aborting reinitiation of ICE", peer.getRemoteId());
                 return;
             }
@@ -161,7 +192,7 @@ public class PeerIceModule {
 
     private List<IceServer> getViableIceServers() {
         List<IceServer> allIceServers = GameSession.getIceServers();
-        if (IceAdapter.PING_COUNT <= 0 || allIceServers.isEmpty()) {
+        if (IceAdapter.getPingCount() <= 0 || allIceServers.isEmpty()) {
             return allIceServers;
         }
 
@@ -206,10 +237,11 @@ public class PeerIceModule {
 
     /**
      * Starts harvesting local candidates if in answer mode, then initiates the actual ICE process
+     *
      * @param remoteCandidatesMessage
      */
     public synchronized void onIceMessageReceived(CandidatesMessage remoteCandidatesMessage) {
-        if(peer.isClosing()) {
+        if (peer.isClosing()) {
             log.warn(getLogPrefix() + "Peer not connected anymore, discarding ice message");
             return;
         }
@@ -238,7 +270,15 @@ public class PeerIceModule {
             setState(CHECKING);
 
             int previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
-            CandidateUtil.unpackCandidates(remoteCandidatesMessage, agent, component, mediaStream, previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.ALLOW_HOST, previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.ALLOW_REFLEXIVE, IceAdapter.ALLOW_RELAY);
+            CandidateUtil.unpackCandidates(
+                    remoteCandidatesMessage,
+                    agent,
+                    component,
+                    mediaStream,
+                    previousConnectivityAttempts < FORCE_SRFLX_COUNT && ALLOW_HOST,
+                    previousConnectivityAttempts < FORCE_RELAY_COUNT && ALLOW_REFLEXIVE,
+                    ALLOW_RELAY
+            );
 
             startIce();
 
@@ -269,7 +309,7 @@ public class PeerIceModule {
             }
 
 
-            if(System.currentTimeMillis() - iceStartTime > 15_000) {
+            if (System.currentTimeMillis() - iceStartTime > 15_000) {
                 log.error(getLogPrefix() + "ABORTING ICE DUE TO TIMEOUT");
                 onConnectionLost();
                 return;
@@ -280,7 +320,7 @@ public class PeerIceModule {
 
         //We are connected
         connected = true;
-        RPCService.onConnected(IceAdapter.id, peer.getRemoteId(), true);
+        RPCService.onConnected(IceAdapter.getId(), peer.getRemoteId(), true);
         setState(CONNECTED);
 
         if (component.getSelectedPair().getLocalCandidate().getType() == CandidateType.RELAYED_CANDIDATE) {
@@ -301,12 +341,12 @@ public class PeerIceModule {
      * Will then reinitiate ICE
      */
     public synchronized void onConnectionLost() {
-        if(peer.isClosing()) {
+        if (peer.isClosing()) {
             log.warn(getLogPrefix() + "Peer not connected anymore, aborting onConnectionLost of ICE");
             return;
         }
 
-        if(peer.getGameSession().isGameEnded()) {
+        if (peer.getGameSession().isGameEnded()) {
             log.warn("GAME ENDED, ABORTING onConnectionLost of ICE for peer " + getLogPrefix());
             return;
         }
@@ -323,7 +363,7 @@ public class PeerIceModule {
             listenerThread = null;
         }
 
-        if(turnRefreshModule != null) {
+        if (turnRefreshModule != null) {
             turnRefreshModule.close();
             turnRefreshModule = null;
         }
@@ -333,7 +373,7 @@ public class PeerIceModule {
         if (connected) {
             connected = false;
             log.warn(getLogPrefix() + "ICE connection has been lost for peer");
-            RPCService.onConnected(IceAdapter.id, peer.getRemoteId(), false);
+            RPCService.onConnected(IceAdapter.getId(), peer.getRemoteId(), false);
         }
 
         setState(DISCONNECTED);
@@ -361,7 +401,7 @@ public class PeerIceModule {
     }
 
     private synchronized void reinitIce() {
-        if(peer.isClosing()) {
+        if (peer.isClosing()) {
             log.warn(getLogPrefix() + "Peer not connected anymore, aborting reinitiation of ICE");
             return;
         }
@@ -370,6 +410,7 @@ public class PeerIceModule {
 
     /**
      * Data received from FA, prepends prefix and sends it via ICE to the other peer
+     *
      * @param faData
      * @param length
      */
@@ -383,6 +424,7 @@ public class PeerIceModule {
 
     /**
      * Send date via ice to the other peer
+     *
      * @param data
      * @param offset
      * @param length
@@ -408,7 +450,7 @@ public class PeerIceModule {
         Component localComponent = component;
 
         byte data[] = new byte[65536];//64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
-        while (IceAdapter.running && IceAdapter.gameSession == peer.getGameSession()) {
+        while (IceAdapter.isRunning() && IceAdapter.gameSession == peer.getGameSession()) {
             try {
                 DatagramPacket packet = new DatagramPacket(data, data.length);
                 localComponent.getSelectedPair().getIceSocketWrapper().getUDPSocket().receive(packet);
@@ -433,7 +475,7 @@ public class PeerIceModule {
 
             } catch (IOException e) {//TODO: nullpointer from localComponent.xxxx????
                 log.warn(getLogPrefix() + "Error while reading from ICE adapter", e);
-                if(component == localComponent) {
+                if (component == localComponent) {
                     onConnectionLost();
                 }
                 return;
@@ -444,13 +486,13 @@ public class PeerIceModule {
     }
 
     void close() {
-        if(turnRefreshModule != null) {
+        if (turnRefreshModule != null) {
             turnRefreshModule.close();
         }
-        if(connectivityChecker != null) {
+        if (connectivityChecker != null) {
             connectivityChecker.stop();
         }
-        if(agent != null) {
+        if (agent != null) {
             agent.free();
         }
     }
