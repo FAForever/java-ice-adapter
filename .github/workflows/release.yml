@@ -27,11 +27,11 @@ jobs:
 
       - name: Build Windows Files
         run: |
-          ./gradlew -Pversion="${{ github.event.inputs.version }}" -PjavafxPlatform=win --stacktrace :ice-adapter:shadow-jar
+          ./gradlew -Pversion="${{ github.event.inputs.version }}" -PjavafxPlatform=win --stacktrace :ice-adapter:shadowJar
 
       - name: Build Linux Files
         run: |
-          ./gradlew -Pversion="${{ github.event.inputs.version }}" -PjavafxPlatform=linux --stacktrace :ice-adapter:shadow-jar
+          ./gradlew -Pversion="${{ github.event.inputs.version }}" -PjavafxPlatform=linux --stacktrace :ice-adapter:shadowJar
 
       - name: Create Draft Release
         id: create_release
