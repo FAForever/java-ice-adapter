@@ -10,7 +10,7 @@ apply plugin: 'java'
 apply plugin: 'java-library'
 apply plugin: 'com.github.johnrengelman.shadow'
 
-group 'Geosearchef'
+group 'com.faforever'
 version = 'SNAPSHOT'
 
 
