@@ -5,19 +5,23 @@ import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.rpc.RPCService;
-import com.faforever.iceadapter.util.ArgumentParser;
 import com.faforever.iceadapter.util.Executor;
 import com.faforever.iceadapter.util.TrayIcon;
 import lombok.extern.slf4j.Slf4j;
+import picocli.CommandLine;
 
 import java.util.Arrays;
-import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
-
+@CommandLine.Command(name = "faf-ice-adapter", mixinStandardHelpOptions = true, usageHelpAutoWidth = true,
+        description = "An ice (RFC 5245) based network bridge between FAF client and ForgedAlliance.exe")
 @Slf4j
-public class IceAdapter {
+public class IceAdapter implements Callable<Integer> {
+    @CommandLine.ArgGroup(exclusive = false)
+    private IceOptions iceOptions;
+
     public static boolean ALLOW_HOST = true;
     public static boolean ALLOW_REFLEXIVE = true;
     public static boolean ALLOW_RELAY = true;
@@ -25,7 +29,6 @@ public class IceAdapter {
     public static volatile boolean running = true;
 
     public static String VERSION = "SNAPSHOT";
-    public static String COMMAND_LINE_ARGUMENTS;
 
     public static int id = -1;
     public static String login;
@@ -38,11 +41,20 @@ public class IceAdapter {
 
     public static volatile GameSession gameSession;
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
+        new CommandLine(new IceAdapter()).execute(args);
+    }
+
+    @Override
+    public Integer call() {
+        IceAdapter.start(iceOptions);
+        return 0;
+    }
+
+    public static void start(IceOptions iceOptions) {
         determineVersion();
 
-        COMMAND_LINE_ARGUMENTS = Arrays.stream(args).collect(Collectors.joining(" "));
-        interpretArguments(ArgumentParser.parse(args));
+        loadOptions(iceOptions);
 
         TrayIcon.create();
 
@@ -91,7 +103,7 @@ public class IceAdapter {
             log.warn("Game ended or in progress, ABORTING connectToPeer");
             return;
         }
-      
+
         log.info("onConnectToPeer {} {}, offer: {}", remotePlayerId, remotePlayerLogin, String.valueOf(offer));
         int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, offer);
 
@@ -140,7 +152,7 @@ public class IceAdapter {
      */
     public static void close() {
         log.info("close() - stopping the adapter");
-        
+
         Executor.executeDelayed(500, () -> System.exit(0));
 
         onFAShutdown();//will close gameSession aswell
@@ -156,61 +168,25 @@ public class IceAdapter {
      * Read command line arguments and set global, constant values
      * @param arguments The arguments to be read
      */
-    public static void interpretArguments(Map<String, String> arguments) {
-        if(arguments.containsKey("help")) {
-            System.out.println("faf-ice-adapter usage:\n" +
-                    "--help                               produce help message\n" +
-                    "--id arg                             set the ID of the local player\n" +
-                    "--login arg                          set the login of the local player, e.g. \"Rhiza\"\n" +
-                    "--rpc-port arg (=7236)               set the port of internal JSON-RPC server\n" +
-                    "--gpgnet-port arg (=0)               set the port of internal GPGNet server\n" +
-                    "--lobby-port arg (=0)                set the port the game lobby should use for incoming UDP packets from the PeerRelay\n" +
-                    "--log-directory arg                  NOT SUPPORTED, use env variable LOG_DIR instead\n" +
-                    "--force-relay                        force the usage of relay candidates only\n" +
-                    "--debug-window                       activate the debug window if JavaFX is available\n" +
-                    "--info-window                        activate the info window if JavaFX is available (allows access at the debug window)\n" +
-                    "--delay-ui arg                       delays the launch of the info and debug window by arg ms\n" +
-                    "--ping-count arg (=1)                number of times to ping each turn server to determine latency\n" +
-                    "--acceptable-latency arg (=250.0)    if latency to the official FAF relay surpasses this threshold, search for closer relays");
-            System.exit(0);
-        }
+    public static void loadOptions(IceOptions iceOptions) {
+        id = iceOptions.getId();
+        login = iceOptions.getLogin();
+        RPC_PORT = iceOptions.getRpcPort();
+        GPGNET_PORT = iceOptions.getGpgnetPort();
+        LOBBY_PORT = iceOptions.getLobbyPort();
 
-        if(! Arrays.asList("id", "login").stream().allMatch(arguments::containsKey)) {
-            log.error("Missing necessary argument.");
-            System.exit(-1);
-        }
-
-        id = Integer.parseInt(arguments.get("id"));
-        login = arguments.get("login");
-        if(arguments.containsKey("rpc-port")) {
-            RPC_PORT = Integer.parseInt(arguments.get("rpc-port"));
-        }
-        if(arguments.containsKey("gpgnet-port")) {
-            GPGNET_PORT = Integer.parseInt(arguments.get("gpgnet-port"));
-        }
-        if(arguments.containsKey("lobby-port")) {
-            LOBBY_PORT = Integer.parseInt(arguments.get("lobby-port"));
-        }
-        if(arguments.containsKey("log-directory")) {
-            log.warn("--log-directory is not supported, set the desired log directory using the LOG_DIR env variable");
-        }
-        if(arguments.containsKey("force-relay")) {
+        if(iceOptions.isForceRelay()) {
             ALLOW_HOST = false;
             ALLOW_REFLEXIVE = false;
             ALLOW_RELAY = true;
         }
-        if(arguments.containsKey("delay-ui")) {
-            Debug.DELAY_UI_MS = Integer.parseInt(arguments.get("delay-ui"));
-        }
-        if(arguments.containsKey("ping-count")) {
-            PING_COUNT = Integer.parseInt(arguments.get("ping-count"));
-        }
-        if(arguments.containsKey("acceptable-latency")) {
-            ACCEPTABLE_LATENCY = Double.parseDouble(arguments.get("acceptable-latency"));
-        }
 
-        Debug.ENABLE_DEBUG_WINDOW = arguments.containsKey("debug-window");
-        Debug.ENABLE_INFO_WINDOW = arguments.containsKey("info-window");
+        Debug.DELAY_UI_MS = iceOptions.getDelayUi();
+        PING_COUNT = iceOptions.getPingCount();
+        ACCEPTABLE_LATENCY = iceOptions.getAcceptableLatency();
+
+        Debug.ENABLE_DEBUG_WINDOW = iceOptions.isDebugWindow();
+        Debug.ENABLE_INFO_WINDOW = iceOptions.isInfoWindow();
         Debug.init();
     }
 
