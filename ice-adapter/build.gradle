@@ -32,7 +32,7 @@ dependencies {
 //    implementation "org.jitsi:ice4j:1.0"
 //    implementation 'com.github.jitsi:ice4j:59693a4894'
     implementation("com.github.Geosearchef:ice4j:52c8e4bcef")
-    implementation("com.github.Geosearchef:JJsonRpc:10a8fbaa26")
+    implementation("com.github.faforever:JJsonRpc:37669e0fed")
     implementation("com.google.code.gson:gson:$gsonVersion")
     implementation("com.google.guava:guava:$guavaVersion")
     implementation("org.slf4j:slf4j-api:1.7.36")
