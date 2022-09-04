@@ -47,9 +47,9 @@ jobs:
       - name: Get Artifact Paths
         id: artifact_paths
         run: |
-          LINUX_JAR=$(ls build/distributions/ice-adapter-*-linux.jar | head -n 1)
+          LINUX_JAR=$(ls ice-adapter/build/libs/faf-ice-adapter-*-linux.jar | head -n 1)
           LINUX_JAR_NAME=$(basename $LINUX_JAR)
-          WINDOWS_JAR=$(ls build/distributions/ice-adapter-*-win.jar | head -n 1)
+          WINDOWS_JAR=$(ls ice-adapter/build/libs/faf-ice-adapter-*-win.jar | head -n 1)
           WINDOWS_JAR_NAME=$(basename $WINDOWS_JAR)
           echo ::set-output name=LINUX_JAR::${LINUX_JAR}
           echo ::set-output name=LINUX_JAR_NAME::${LINUX_JAR_NAME}
