@@ -50,7 +50,7 @@ public class RPCHandler {
     }
 
     public void setLobbyInitMode(String lobbyInitMode) {
-        GPGNetServer.lobbyInitMode = LobbyInitMode.getByName(lobbyInitMode);
+        GPGNetServer.setLobbyInitMode(LobbyInitMode.getByName(lobbyInitMode));
         log.debug("LobbyInitMode set to {}", lobbyInitMode);
     }
 
@@ -73,12 +73,8 @@ public class RPCHandler {
 		log.info("IceMsg received {}", msg);
     }
 
-    public void sendToGpgNet(String header, String... chunks) {
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
-                gpgNetClient.sendGpgnetMessage(header, chunks);
-            });
-        });
+    public void sendToGpgNet(String header, Object... args) {
+        callbacks.sendToGpgNet(header, args);
     }
 
     public void setIceServers(List<Map<String, Object>> iceServers) {
@@ -118,7 +114,7 @@ public class RPCHandler {
                 IceAdapter.VERSION,
                 GameSession.getIceServers().stream().mapToInt(s -> s.getTurnAddresses().size() + s.getStunAddresses().size()).sum(),
                 GPGNetServer.getLobbyPort(),
-                GPGNetServer.lobbyInitMode.getName(),
+                GPGNetServer.getLobbyInitMode().getName(),
                 new IceStatus.IceOptions(IceAdapter.getId(), IceAdapter.getLogin(), rpcPort, GPGNetServer.getGpgnetPort()),
                 gpgpnet,
                 relays.toArray(new IceStatus.IceRelay[relays.size()])

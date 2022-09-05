@@ -1,5 +1,9 @@
 package com.faforever.iceadapter;
 
+import com.faforever.iceadapter.gpgnet.GPGNetServer;
+
+import java.util.concurrent.CompletableFuture;
+
 public interface FafRpcCallbacks {
     void onHostGame(String mapName);
 
@@ -10,4 +14,6 @@ public interface FafRpcCallbacks {
     void onDisconnectFromPeer(int remotePlayerId);
 
     void close();
+
+    void sendToGpgNet(String header, Object... args);
 }

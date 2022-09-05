@@ -1,12 +1,9 @@
 = Diagram of static class dependencies
+(only static method calls)
 
 ["graphviz", "static-dependencies"]
 ---------------------------------------------------------------------
 digraph dependencies {
-  IceAdapter -> GPGNetServer [label="init()"]
-  IceAdapter -> GPGNetServer [label="clientFuture"]
-  IceAdapter -> GPGNetServer [label="isConnected() \n&& getGameState()"]
-  IceAdapter -> GPGNetServer [label="close()"]
   IceAdapter -> RPCService [label="init()"]
   IceAdapter -> RPCService [label="close()"]
   IceAdapter -> TrayIcon [label="create()"]
@@ -23,7 +20,6 @@ digraph dependencies {
   GPGNetServer -> Debug [label="debug"]
   GPGNetServer -> GPGNetClient [label="getGameState()"]
 
-  RPCService -> IceAdapter [label="close()"]
   RPCService -> InfoWindow [label="INSTANCE"]
   RPCService -> GPGNetServer [label="getGameState()"]
 
@@ -33,7 +29,6 @@ digraph dependencies {
   RPCHandler -> IceAdapter [label="gameSession"]
   RPCHandler -> IceAdapter [label="<config>"]
   RPCHandler -> GPGNetServer [label="lobbyInitMode"]
-  RPCHandler -> GPGNetServer [label="clientFuture"]
 
   PeerIceModule -> IceAdapter [label="gameSession"]
 

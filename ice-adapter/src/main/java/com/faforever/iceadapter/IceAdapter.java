@@ -12,8 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
+
 @CommandLine.Command(name = "faf-ice-adapter", mixinStandardHelpOptions = true, usageHelpAutoWidth = true,
         description = "An ice (RFC 5245) based network bridge between FAF client and ForgedAlliance.exe")
 @Slf4j
@@ -22,6 +24,8 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
 
     @CommandLine.ArgGroup(exclusive = false)
     private IceOptions iceOptions;
+
+    private GPGNetServer gpgNetServer;
 
     public static String VERSION = "SNAPSHOT";
 
@@ -52,7 +56,8 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
         TrayIcon.create();
 
         PeerIceModule.setForceRelay(iceOptions.isForceRelay());
-        GPGNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort());
+        gpgNetServer = new GPGNetServer();
+        gpgNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort());
         RPCService.init(iceOptions.getRpcPort(), this);
 
         debug().startupComplete();
@@ -63,11 +68,7 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
         log.info("onHostGame");
         createGameSession();
 
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
-                gpgNetClient.sendGpgnetMessage("HostGame", mapName);
-            });
-        });
+        sendToGpgNet("HostGame", mapName);
     }
 
     @Override
@@ -76,16 +77,12 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
         createGameSession();
         int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, false);
 
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
-                gpgNetClient.sendGpgnetMessage("JoinGame", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
-            });
-        });
+        sendToGpgNet("JoinGame", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
     }
 
     @Override
     public void onConnectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer) {
-        if(GPGNetServer.isConnected() && GPGNetServer.getGameState().isPresent() && (GPGNetServer.getGameState().get() == GameState.LAUNCHING || GPGNetServer.getGameState().get() == GameState.ENDED)) {
+        if (gpgNetServer.isConnected() && gpgNetServer.getGameState().isPresent() && (gpgNetServer.getGameState().get() == GameState.LAUNCHING || gpgNetServer.getGameState().get() == GameState.ENDED)) {
             log.warn("Game ended or in progress, ABORTING connectToPeer");
             return;
         }
@@ -93,11 +90,7 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
         log.info("onConnectToPeer {} {}, offer: {}", remotePlayerId, remotePlayerLogin, String.valueOf(offer));
         int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, offer);
 
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
-                gpgNetClient.sendGpgnetMessage("ConnectToPeer", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
-            });
-        });
+        sendToGpgNet("ConnectToPeer", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
     }
 
     @Override
@@ -105,11 +98,7 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
         log.info("onDisconnectFromPeer {}", remotePlayerId);
         gameSession.disconnectFromPeer(remotePlayerId);
 
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
-                gpgNetClient.sendGpgnetMessage("DisconnectFromPeer", remotePlayerId);
-            });
-        });
+        sendToGpgNet("DisconnectFromPeer", remotePlayerId);
     }
 
     private synchronized static void createGameSession() {
@@ -126,7 +115,7 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
      * Closes the active Game/ICE session
      */
     public synchronized static void onFAShutdown() {
-        if(gameSession != null) {
+        if (gameSession != null) {
             log.info("FA SHUTDOWN, closing everything");
             gameSession.close();
             gameSession = null;
@@ -144,13 +133,17 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
         Executor.executeDelayed(500, () -> System.exit(0));
 
         onFAShutdown();//will close gameSession aswell
-        GPGNetServer.close();
+        gpgNetServer.close();
         RPCService.close();
         TrayIcon.close();
 
         System.exit(0);
     }
 
+    @Override
+    public void sendToGpgNet(String header, Object... args) {
+        gpgNetServer.sendToGpgNet(header, args);
+    }
 
     public static int getId() {
         return INSTANCE.iceOptions.getId();
@@ -178,7 +171,7 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
 
     private void determineVersion() {
         String versionFromGradle = getClass().getPackage().getImplementationVersion();
-        if(versionFromGradle != null) {
+        if (versionFromGradle != null) {
             VERSION = versionFromGradle;
         }
     }
