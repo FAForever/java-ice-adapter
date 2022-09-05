@@ -1,0 +1,52 @@
+= Diagram of static class dependencies
+
+["graphviz", "static-dependencies"]
+---------------------------------------------------------------------
+digraph dependencies {
+  IceAdapter -> GPGNetServer [label="init()"]
+  IceAdapter -> GPGNetServer [label="clientFuture"]
+  IceAdapter -> GPGNetServer [label="isConnected() \n&& getGameState()"]
+  IceAdapter -> GPGNetServer [label="close()"]
+  IceAdapter -> RPCService [label="init()"]
+  IceAdapter -> RPCService [label="close()"]
+  IceAdapter -> TrayIcon [label="create()"]
+  IceAdapter -> TrayIcon [label="close()"]
+  IceAdapter -> Debug [label="debug"]
+
+  GPGNetServer -> RPCService [label="onConnectionStateChanged()"]
+  GPGNetServer -> RPCService [label="onGpgNetMessageReceived()"]
+  GPGNetServer -> RPCService [label="onGpgnetConnectionLost()"]
+  GPGNetServer -> IceAdapter [label="gameSession()"]
+  GPGNetServer -> IceAdapter [label="running"]
+  GPGNetServer -> IceAdapter [label="<config>"]
+  GPGNetServer -> IceAdapter [label="onFAShutdown()"]
+  GPGNetServer -> Debug [label="debug"]
+  GPGNetServer -> GPGNetClient [label="getGameState()"]
+
+  RPCService -> IceAdapter [label="RPC_PORT"]
+  RPCService -> IceAdapter [label="close()"]
+  RPCService -> InfoWindow [label="INSTANCE"]
+  RPCService -> GPGNetServer [label="getGameState()"]
+
+  TrayIcon -> InfoWindow [label="INSTANCE"]
+  TrayIcon -> Debug [label="ENABLE_INFO_WINDOW"]
+
+  RPCHandler -> IceAdapter [label="onHostGame()"]
+  RPCHandler -> IceAdapter [label="onJoinGame()"]
+  RPCHandler -> IceAdapter [label="onConnectToPeer()"]
+  RPCHandler -> IceAdapter [label="onDisconnectFromPeer()"]
+  RPCHandler -> IceAdapter [label="gameSession"]
+  RPCHandler -> IceAdapter [label="<config>"]
+  RPCHandler -> IceAdapter [label="close()"]
+  RPCHandler -> GPGNetServer [label="lobbyInitMode"]
+  RPCHandler -> GPGNetServer [label="clientFuture"]
+
+  PeerIceModule -> IceAdapter [label="<config>"]
+  PeerIceModule -> IceAdapter [label="running"]
+  PeerIceModule -> IceAdapter [label="gameSession"]
+
+  PeerConnectivityCheckerModule -> IceAdapter [label="<config>"]
+  PeerConnectivityCheckerModule -> IceAdapter [label="running"]
+  PeerConnectivityCheckerModule -> IceAdapter [label="gameSession"]
+}
+---------------------------------------------------------------------
