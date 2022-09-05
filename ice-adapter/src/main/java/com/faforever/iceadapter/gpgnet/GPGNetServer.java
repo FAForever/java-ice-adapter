@@ -49,7 +49,7 @@ public class GPGNetServer {
         }
 
         try {
-            serverSocket = new ServerSocket(GPGNetServer.getGpgnetPort());
+            serverSocket = new ServerSocket(GPGNET_PORT);
         } catch (IOException e) {
             log.error("Couldn't start GPGNetServer", e);
             System.exit(-1);
@@ -66,11 +66,11 @@ public class GPGNetServer {
     public static class GPGNetClient {
         private volatile GameState gameState = GameState.NONE;
 
-        private Socket socket;
-        private Thread listenerThread;
+        private final Socket socket;
+        private final Thread listenerThread;
         private volatile boolean stopping = false;
         private FaDataOutputStream gpgnetOut;
-        private CompletableFuture<GPGNetClient> lobbyFuture = new CompletableFuture<>();
+        private final CompletableFuture<GPGNetClient> lobbyFuture = new CompletableFuture<>();
 
         private GPGNetClient(Socket socket) {
             this.socket = socket;
@@ -94,7 +94,7 @@ public class GPGNetServer {
          */
         private void processGpgnetMessage(String command, List<Object> args) {
             switch (command) {
-                case "GameState": {
+                case "GameState" -> {
                     gameState = GameState.getByName((String) args.get(0));
                     log.debug("New GameState: {}", gameState.getName());
 
@@ -105,20 +105,14 @@ public class GPGNetServer {
                     }
 
                     debug().gameStateChanged();
-
-                    break;
                 }
-
-                case "GameEnded": {
+                case "GameEnded" -> {
                     if (IceAdapter.gameSession != null) {
                         IceAdapter.gameSession.setGameEnded(true);
                         log.info("GameEnded received, stopping reconnects...");
                     }
-                    break;
                 }
-
-
-                default: {
+                default -> {
                     //No need to log, as we are not processing all messages but just forward them via RPC
                 }
             }
@@ -209,8 +203,8 @@ public class GPGNetServer {
      */
     private static void acceptThread() {
         while (true) {
-            try {
-                Socket socket = serverSocket.accept();
+            log.info("Listening for incoming connections from game");
+            try(Socket socket = serverSocket.accept()) {
                 synchronized (serverSocket) {
                     if (currentClient != null) {
                         onGpgnetConnectionLost();
@@ -220,9 +214,11 @@ public class GPGNetServer {
                     clientFuture.complete(currentClient);
 
                     debug().gpgnetConnectedDisconnected();
+
+                    log.info("Disconnected from game");
                 }
             } catch (SocketException e) {
-                return;
+                log.error("Game thread socket crashed", e);
             } catch (IOException e) {
                 log.error("Could not listen on socket", e);
             }
