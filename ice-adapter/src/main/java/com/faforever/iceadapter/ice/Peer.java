@@ -76,7 +76,7 @@ public class Peer {
      */
     private void faListener() {
         byte data[] = new byte[65536];//64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
-        while (IceAdapter.isRunning() && IceAdapter.gameSession == gameSession) {
+        while (IceAdapter.gameSession == gameSession) {
             try {
                 DatagramPacket packet = new DatagramPacket(data, data.length);
                 faSocket.receive(packet);

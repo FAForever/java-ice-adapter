@@ -23,8 +23,6 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
     @CommandLine.ArgGroup(exclusive = false)
     private IceOptions iceOptions;
 
-    public volatile boolean running = true;
-
     public static String VERSION = "SNAPSHOT";
 
     public static volatile GameSession gameSession;
@@ -176,10 +174,6 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
 
     public static double getAcceptableLatency() {
         return INSTANCE.iceOptions.getAcceptableLatency();
-    }
-
-    public static boolean isRunning() {
-        return INSTANCE.running;
     }
 
     private void determineVersion() {

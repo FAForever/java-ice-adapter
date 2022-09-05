@@ -18,7 +18,6 @@ digraph dependencies {
   GPGNetServer -> RPCService [label="onGpgNetMessageReceived()"]
   GPGNetServer -> RPCService [label="onGpgnetConnectionLost()"]
   GPGNetServer -> IceAdapter [label="gameSession()"]
-  GPGNetServer -> IceAdapter [label="running"]
   GPGNetServer -> IceAdapter [label="<config>"]
   GPGNetServer -> IceAdapter [label="onFAShutdown()"]
   GPGNetServer -> Debug [label="debug"]
@@ -36,10 +35,8 @@ digraph dependencies {
   RPCHandler -> GPGNetServer [label="lobbyInitMode"]
   RPCHandler -> GPGNetServer [label="clientFuture"]
 
-  PeerIceModule -> IceAdapter [label="running"]
   PeerIceModule -> IceAdapter [label="gameSession"]
 
-  PeerConnectivityCheckerModule -> IceAdapter [label="running"]
   PeerConnectivityCheckerModule -> IceAdapter [label="gameSession"]
 }
 ---------------------------------------------------------------------

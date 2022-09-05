@@ -208,7 +208,7 @@ public class GPGNetServer {
      * Listens for incoming connections from a game instance
      */
     private static void acceptThread() {
-        while (IceAdapter.isRunning()) {
+        while (true) {
             try {
                 Socket socket = serverSocket.accept();
                 synchronized (serverSocket) {
