@@ -17,7 +17,7 @@ import static com.faforever.iceadapter.debug.Debug.debug;
 @CommandLine.Command(name = "faf-ice-adapter", mixinStandardHelpOptions = true, usageHelpAutoWidth = true,
         description = "An ice (RFC 5245) based network bridge between FAF client and ForgedAlliance.exe")
 @Slf4j
-public class IceAdapter implements Callable<Integer> {
+public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
     private static IceAdapter INSTANCE;
 
     @CommandLine.ArgGroup(exclusive = false)
@@ -55,12 +55,13 @@ public class IceAdapter implements Callable<Integer> {
 
         PeerIceModule.setForceRelay(iceOptions.isForceRelay());
         GPGNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort());
-        RPCService.init(iceOptions.getRpcPort());
+        RPCService.init(iceOptions.getRpcPort(), this);
 
         debug().startupComplete();
     }
 
-    public static void onHostGame(String mapName) {
+    @Override
+    public void onHostGame(String mapName) {
         log.info("onHostGame");
         createGameSession();
 
@@ -71,7 +72,8 @@ public class IceAdapter implements Callable<Integer> {
         });
     }
 
-    public static void onJoinGame(String remotePlayerLogin, int remotePlayerId) {
+    @Override
+    public void onJoinGame(String remotePlayerLogin, int remotePlayerId) {
         log.info("onJoinGame {} {}", remotePlayerId, remotePlayerLogin);
         createGameSession();
         int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, false);
@@ -83,7 +85,8 @@ public class IceAdapter implements Callable<Integer> {
         });
     }
 
-    public static void onConnectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer) {
+    @Override
+    public void onConnectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer) {
         if(GPGNetServer.isConnected() && GPGNetServer.getGameState().isPresent() && (GPGNetServer.getGameState().get() == GameState.LAUNCHING || GPGNetServer.getGameState().get() == GameState.ENDED)) {
             log.warn("Game ended or in progress, ABORTING connectToPeer");
             return;
@@ -99,7 +102,8 @@ public class IceAdapter implements Callable<Integer> {
         });
     }
 
-    public static void onDisconnectFromPeer(int remotePlayerId) {
+    @Override
+    public void onDisconnectFromPeer(int remotePlayerId) {
         log.info("onDisconnectFromPeer {}", remotePlayerId);
         gameSession.disconnectFromPeer(remotePlayerId);
 
@@ -135,7 +139,8 @@ public class IceAdapter implements Callable<Integer> {
     /**
      * Stop the ICE adapter
      */
-    public static void close() {
+    @Override
+    public void close() {
         log.info("close() - stopping the adapter");
 
         Executor.executeDelayed(500, () -> System.exit(0));

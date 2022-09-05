@@ -12,6 +12,7 @@ digraph dependencies {
   IceAdapter -> TrayIcon [label="create()"]
   IceAdapter -> TrayIcon [label="close()"]
   IceAdapter -> Debug [label="debug"]
+  IceAdapter -> PeerIceModule [label="setForceRelay()"]
 
   GPGNetServer -> RPCService [label="onConnectionStateChanged()"]
   GPGNetServer -> RPCService [label="onGpgNetMessageReceived()"]
@@ -23,7 +24,6 @@ digraph dependencies {
   GPGNetServer -> Debug [label="debug"]
   GPGNetServer -> GPGNetClient [label="getGameState()"]
 
-  RPCService -> IceAdapter [label="RPC_PORT"]
   RPCService -> IceAdapter [label="close()"]
   RPCService -> InfoWindow [label="INSTANCE"]
   RPCService -> GPGNetServer [label="getGameState()"]
@@ -31,21 +31,14 @@ digraph dependencies {
   TrayIcon -> InfoWindow [label="INSTANCE"]
   TrayIcon -> Debug [label="ENABLE_INFO_WINDOW"]
 
-  RPCHandler -> IceAdapter [label="onHostGame()"]
-  RPCHandler -> IceAdapter [label="onJoinGame()"]
-  RPCHandler -> IceAdapter [label="onConnectToPeer()"]
-  RPCHandler -> IceAdapter [label="onDisconnectFromPeer()"]
   RPCHandler -> IceAdapter [label="gameSession"]
   RPCHandler -> IceAdapter [label="<config>"]
-  RPCHandler -> IceAdapter [label="close()"]
   RPCHandler -> GPGNetServer [label="lobbyInitMode"]
   RPCHandler -> GPGNetServer [label="clientFuture"]
 
-  PeerIceModule -> IceAdapter [label="<config>"]
   PeerIceModule -> IceAdapter [label="running"]
   PeerIceModule -> IceAdapter [label="gameSession"]
 
-  PeerConnectivityCheckerModule -> IceAdapter [label="<config>"]
   PeerConnectivityCheckerModule -> IceAdapter [label="running"]
   PeerConnectivityCheckerModule -> IceAdapter [label="gameSession"]
 }
