@@ -4,16 +4,12 @@
 ["graphviz", "static-dependencies"]
 ---------------------------------------------------------------------
 digraph dependencies {
-  IceAdapter -> RPCService [label="init()"]
-  IceAdapter -> RPCService [label="close()"]
   IceAdapter -> TrayIcon [label="create()"]
   IceAdapter -> TrayIcon [label="close()"]
   IceAdapter -> Debug [label="debug"]
   IceAdapter -> PeerIceModule [label="setForceRelay()"]
+  IceAdapter -> PeerIceModule [label="setRpcService()"]
 
-  GPGNetServer -> RPCService [label="onConnectionStateChanged()"]
-  GPGNetServer -> RPCService [label="onGpgNetMessageReceived()"]
-  GPGNetServer -> RPCService [label="onGpgnetConnectionLost()"]
   GPGNetServer -> IceAdapter [label="gameSession()"]
   GPGNetServer -> IceAdapter [label="<config>"]
   GPGNetServer -> IceAdapter [label="onFAShutdown()"]
@@ -21,7 +17,6 @@ digraph dependencies {
   GPGNetServer -> GPGNetClient [label="getGameState()"]
 
   RPCService -> InfoWindow [label="INSTANCE"]
-  RPCService -> GPGNetServer [label="getGameState()"]
 
   TrayIcon -> InfoWindow [label="INSTANCE"]
   TrayIcon -> Debug [label="ENABLE_INFO_WINDOW"]

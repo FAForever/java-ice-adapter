@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
 
@@ -26,6 +25,7 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
     private IceOptions iceOptions;
 
     private GPGNetServer gpgNetServer;
+    private RPCService rpcService;
 
     public static String VERSION = "SNAPSHOT";
 
@@ -55,10 +55,14 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
 
         TrayIcon.create();
 
-        PeerIceModule.setForceRelay(iceOptions.isForceRelay());
         gpgNetServer = new GPGNetServer();
-        gpgNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort());
-        RPCService.init(iceOptions.getRpcPort(), this);
+        rpcService = new RPCService();
+
+        PeerIceModule.setForceRelay(iceOptions.isForceRelay());
+        PeerIceModule.setRpcService(rpcService);
+
+        gpgNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort(), rpcService);
+        rpcService.init(iceOptions.getRpcPort(), gpgNetServer,this);
 
         debug().startupComplete();
     }
@@ -134,7 +138,7 @@ public class IceAdapter implements Callable<Integer>, FafRpcCallbacks {
 
         onFAShutdown();//will close gameSession aswell
         gpgNetServer.close();
-        RPCService.close();
+        rpcService.close();
         TrayIcon.close();
 
         System.exit(0);

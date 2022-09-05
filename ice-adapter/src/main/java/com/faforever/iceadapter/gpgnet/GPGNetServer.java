@@ -24,6 +24,7 @@ public class GPGNetServer {
 
     private int gpgnetPort;
     private int lobbyPort;
+    private RPCService rpcService;
     private ServerSocket serverSocket;
     private volatile GPGNetClient currentClient;
 
@@ -48,8 +49,10 @@ public class GPGNetServer {
         INSTANCE.lobbyInitMode = mode;
     }
 
-    public void init(int gpgnetPort, int lobbyPort) {
+    public void init(int gpgnetPort, int lobbyPort, RPCService rpcService) {
         INSTANCE = this;
+
+        this.rpcService = rpcService;
 
         if (gpgnetPort == 0) {
             this.gpgnetPort = NetworkToolbox.findFreeTCPPort(20000, 65536);
@@ -103,7 +106,7 @@ public class GPGNetServer {
             listenerThread = new Thread(this::listenerThread);
             listenerThread.start();
 
-            RPCService.onConnectionStateChanged("Connected");
+            rpcService.onConnectionStateChanged("Connected");
             log.info("GPGNetClient has connected");
         }
 
@@ -137,7 +140,7 @@ public class GPGNetServer {
             }
 
             log.info("Received GPGNet message: {} {}", command, args.stream().map(Object::toString).collect(Collectors.joining(" ")));
-            RPCService.onGpgNetMessageReceived(command, args);
+            rpcService.onGpgNetMessageReceived(command, args);
         }
 
         /**
@@ -209,7 +212,7 @@ public class GPGNetServer {
                     clientFuture = new CompletableFuture<>();
                 }
 
-                RPCService.onConnectionStateChanged("Disconnected");
+                rpcService.onConnectionStateChanged("Disconnected");
 
                 IceAdapter.onFAShutdown();
             }
