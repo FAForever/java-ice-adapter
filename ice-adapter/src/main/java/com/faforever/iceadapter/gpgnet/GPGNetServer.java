@@ -45,8 +45,8 @@ public class GPGNetServer {
         return INSTANCE.lobbyInitMode;
     }
 
-    public static void setLobbyInitMode(LobbyInitMode mode) {
-        INSTANCE.lobbyInitMode = mode;
+    public void setLobbyInitMode(LobbyInitMode mode) {
+        lobbyInitMode = mode;
     }
 
     public void init(int gpgnetPort, int lobbyPort, RPCService rpcService) {

@@ -32,6 +32,7 @@ public class RPCHandler {
     private final Gson gson = new Gson();
     private final int rpcPort;
     private final FafRpcCallbacks callbacks;
+    private final GPGNetServer gpgNetServer;
 
     public void hostGame(String mapName) {
         callbacks.onHostGame(mapName);
@@ -50,7 +51,7 @@ public class RPCHandler {
     }
 
     public void setLobbyInitMode(String lobbyInitMode) {
-        GPGNetServer.setLobbyInitMode(LobbyInitMode.getByName(lobbyInitMode));
+        gpgNetServer.setLobbyInitMode(LobbyInitMode.getByName(lobbyInitMode));
         log.debug("LobbyInitMode set to {}", lobbyInitMode);
     }
 
@@ -83,7 +84,7 @@ public class RPCHandler {
 
     //TODO: this method is temporary and needs to be improved
     public String status() {
-        IceStatus.IceGPGNetState gpgpnet = new IceStatus.IceGPGNetState(GPGNetServer.getGpgnetPort(), GPGNetServer.isConnected(), GPGNetServer.getGameStateString(), "-");
+        IceStatus.IceGPGNetState gpgpnet = new IceStatus.IceGPGNetState(gpgNetServer.getGpgnetPort(), gpgNetServer.isConnected(), gpgNetServer.getGameStateString(), "-");
 
         List<IceStatus.IceRelay> relays = new ArrayList<>();
         GameSession gameSession = IceAdapter.gameSession;
@@ -113,9 +114,9 @@ public class RPCHandler {
         IceStatus status = new IceStatus(
                 IceAdapter.VERSION,
                 GameSession.getIceServers().stream().mapToInt(s -> s.getTurnAddresses().size() + s.getStunAddresses().size()).sum(),
-                GPGNetServer.getLobbyPort(),
-                GPGNetServer.getLobbyInitMode().getName(),
-                new IceStatus.IceOptions(IceAdapter.getId(), IceAdapter.getLogin(), rpcPort, GPGNetServer.getGpgnetPort()),
+                gpgNetServer.getLobbyPort(),
+                gpgNetServer.getLobbyInitMode().getName(),
+                new IceStatus.IceOptions(IceAdapter.getId(), IceAdapter.getLogin(), rpcPort, gpgNetServer.getGpgnetPort()),
                 gpgpnet,
                 relays.toArray(new IceStatus.IceRelay[relays.size()])
         );
