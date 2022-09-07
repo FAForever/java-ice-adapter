@@ -4,11 +4,8 @@
 ["graphviz", "static-dependencies"]
 ---------------------------------------------------------------------
 digraph dependencies {
-  IceAdapter -> TrayIcon [label="create()"]
-  IceAdapter -> TrayIcon [label="close()"]
   IceAdapter -> Debug [label="debug"]
-  IceAdapter -> PeerIceModule [label="setForceRelay()"]
-  IceAdapter -> PeerIceModule [label="setRpcService()"]
+  IceAdapter -> PeerIceModule [label="init()"]
 
   GPGNetServer -> IceAdapter [label="gameSession()"]
   GPGNetServer -> IceAdapter [label="<config>"]
@@ -18,8 +15,8 @@ digraph dependencies {
 
   RPCService -> InfoWindow [label="INSTANCE"]
 
-  TrayIcon -> InfoWindow [label="INSTANCE"]
-  TrayIcon -> Debug [label="ENABLE_INFO_WINDOW"]
+  TrayIconWrapper -> InfoWindow [label="INSTANCE"]
+  TrayIconWrapper -> Debug [label="ENABLE_INFO_WINDOW"]
 
   RPCHandler -> IceAdapter [label="gameSession"]
   RPCHandler -> IceAdapter [label="<config>"]
@@ -28,5 +25,7 @@ digraph dependencies {
   PeerIceModule -> IceAdapter [label="gameSession"]
 
   PeerConnectivityCheckerModule -> IceAdapter [label="gameSession"]
+
+  InfoWindowController -> TrayIconWrapper [label="isTrayIconSupported"]
 }
 ---------------------------------------------------------------------

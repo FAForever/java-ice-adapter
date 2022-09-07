@@ -4,7 +4,7 @@ import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.CandidateUtil;
 import com.faforever.iceadapter.util.Executor;
-import com.faforever.iceadapter.util.TrayIcon;
+import com.faforever.iceadapter.util.TrayIconWrapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
@@ -32,12 +32,16 @@ import static com.faforever.iceadapter.ice.IceState.*;
 @Slf4j
 public class PeerIceModule {
     private static RPCService rpcService;
+    private static TrayIconWrapper trayIconWrapper;
     
     private static boolean ALLOW_HOST = true;
     private static boolean ALLOW_REFLEXIVE = true;
     private static boolean ALLOW_RELAY = true;
 
-    public static void setForceRelay(boolean forceRelay) {
+    public static void init(boolean forceRelay, RPCService rpcService, TrayIconWrapper trayIconWrapper) {
+        PeerIceModule.rpcService = rpcService;
+        PeerIceModule.trayIconWrapper = trayIconWrapper;
+
         if (forceRelay) {
             ALLOW_HOST = false;
             ALLOW_REFLEXIVE = false;
@@ -47,10 +51,6 @@ public class PeerIceModule {
             ALLOW_REFLEXIVE = true;
             ALLOW_RELAY = true;
         }
-    }
-    
-    public static void setRpcService(RPCService service) {
-        rpcService = service;
     }
 
     private static final int MINIMUM_PORT = 6112; // PORT (range +1000) to be used by ICE for communicating, each peer needs a seperate port
@@ -394,7 +394,7 @@ public class PeerIceModule {
         debug().peerStateChanged(this.peer);
 
         if (previousState == CONNECTED) {
-            TrayIcon.showMessage("Reconnecting to " + this.peer.getRemoteLogin() + " (connection lost)");
+            trayIconWrapper.showMessage("Reconnecting to " + this.peer.getRemoteLogin() + " (connection lost)");
         }
 
         if (previousState == CONNECTED && peer.isLocalOffer()) {
