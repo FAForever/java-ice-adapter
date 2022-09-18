@@ -12,8 +12,7 @@ public class IceOptions {
     @Option(names = "--id", required = true, description = "set the ID of the local player")
     private int id;
 
-    // Will be set to required=true in the 3.3+ release series
-    @Option(names = "--game-id", required = false, description = "set the ID of the game")
+    @Option(names = "--game-id", required = true, description = "set the ID of the game")
     private int gameId;
 
     @Option(names = "--login", required = true, description = "set the login of the local player e.g. \"Rhiza\"")
