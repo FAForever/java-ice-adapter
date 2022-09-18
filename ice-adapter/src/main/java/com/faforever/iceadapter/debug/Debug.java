@@ -1,5 +1,6 @@
 package com.faforever.iceadapter.debug;
 
+import com.faforever.iceadapter.IceAdapter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationTargetException;
@@ -18,6 +19,9 @@ public class Debug {
 	static CompletableFuture<Debugger> debug = new CompletableFuture<>();
 
 	public static void init() {
+		debug.complete(new TelemetryDebugger(IceAdapter.gameId));
+
+		/*
 		// Debugger window is started and set to debugFuture when either window is requested as the info window can be used to open the debug window
 		// This is not used anymore as the debug window is started and hidden in case it is requested via the tray icon
 		if(! ENABLE_DEBUG_WINDOW && ! ENABLE_INFO_WINDOW) {
@@ -40,6 +44,7 @@ public class Debug {
 			log.info("No JavaFX support detected. Running without debug window.");
 			debug.complete(new NoDebugger());
 		}
+		*/
 	}
 
 

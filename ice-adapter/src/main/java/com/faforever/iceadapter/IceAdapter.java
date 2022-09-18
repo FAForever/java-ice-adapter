@@ -31,6 +31,7 @@ public class IceAdapter implements Callable<Integer> {
     public static String VERSION = "SNAPSHOT";
 
     public static int id = -1;
+    public static int gameId = -1;
     public static String login;
     public static int RPC_PORT;
     public static int GPGNET_PORT = 0;
@@ -170,6 +171,7 @@ public class IceAdapter implements Callable<Integer> {
      */
     public static void loadOptions(IceOptions iceOptions) {
         id = iceOptions.getId();
+        gameId = iceOptions.getGameId();
         login = iceOptions.getLogin();
         RPC_PORT = iceOptions.getRpcPort();
         GPGNET_PORT = iceOptions.getGpgnetPort();

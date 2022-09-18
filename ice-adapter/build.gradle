@@ -39,6 +39,8 @@ dependencies {
 //    implementation "org.slf4j:slf4j-simple:1.7.25"
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("ch.qos.logback:logback-core:$logbackVersion")
+    implementation("org.java-websocket:Java-WebSocket:1.5.3")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.13.4")
 
     if(javafxClasspath == "compileOnly") {
         compileOnly("org.openjfx:javafx-base:${javafxVersion}:${javafxPlatform}")
