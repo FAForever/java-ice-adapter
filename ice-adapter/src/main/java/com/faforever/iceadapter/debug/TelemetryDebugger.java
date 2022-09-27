@@ -23,11 +23,6 @@ interface OutgoingMessageV1 {
     UUID messageId();
 }
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "messageType")
-interface IncomingMessageV1 {
-    UUID messageId();
-}
-
 record RegisterAsPeer(UUID messageId, String adapterVersion,
                       String userName) implements OutgoingMessageV1 {
 }
@@ -39,7 +34,10 @@ record UpdateCoturnList(UUID messageId, String connectedHost,
                         List<CoturnServer> knownServers) implements OutgoingMessageV1 {
 }
 
-record GameStateChanged(UUID messageId, GameState gameState) implements OutgoingMessageV1 {
+record UpdateGameState(UUID messageId, GameState newState) implements OutgoingMessageV1 {
+}
+
+record UpdateGpgnetState(UUID messageId, String newState) implements OutgoingMessageV1 {
 }
 
 @Slf4j
@@ -110,17 +108,23 @@ public class TelemetryDebugger implements Debugger {
 
     @Override
     public void gpgnetStarted() {
-
+        sendMessage(new UpdateGpgnetState(
+                UUID.randomUUID(),
+                "WAITING_FOR_GAME"
+        ));
     }
 
     @Override
     public void gpgnetConnectedDisconnected() {
-
+        sendMessage(new UpdateGpgnetState(
+                UUID.randomUUID(),
+                GPGNetServer.isConnected() ? "GAME_CONNECTED" : "WAITING_FOR_GAME"
+        ));
     }
 
     @Override
     public void gameStateChanged() {
-        sendMessage(new GameStateChanged(
+        sendMessage(new UpdateGameState(
                 UUID.randomUUID(), GPGNetServer.getGameState()
                 .orElseThrow(() -> new IllegalStateException("gameState must not change to null")))
         );
