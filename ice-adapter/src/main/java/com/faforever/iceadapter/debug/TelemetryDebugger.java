@@ -1,6 +1,8 @@
 package com.faforever.iceadapter.debug;
 
 import com.faforever.iceadapter.IceAdapter;
+import com.faforever.iceadapter.gpgnet.GPGNetServer;
+import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.Peer;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -12,23 +14,32 @@ import org.java_websocket.handshake.ServerHandshake;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "messageType")
-@JsonSubTypes(@JsonSubTypes.Type(value = RegisterAsPeer.class, name = "registerAsPeer"))
 interface OutgoingMessageV1 {
     UUID messageId();
 }
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "messageType")
-@JsonSubTypes(@JsonSubTypes.Type(value = RegisterAsPeer.class, name = "registerAsPeer"))
 interface IncomingMessageV1 {
     UUID messageId();
 }
 
-record RegisterAsPeer(UUID messageId, String adapterVersion, int gameId, int playerId,
+record RegisterAsPeer(UUID messageId, String adapterVersion,
                       String userName) implements OutgoingMessageV1 {
+}
+
+record CoturnServer(String region, String host, int port, Double averageRTT) {
+}
+
+record UpdateCoturnList(UUID messageId, String connectedHost,
+                        List<CoturnServer> knownServers) implements OutgoingMessageV1 {
+}
+
+record GameStateChanged(UUID messageId, GameState gameState) implements OutgoingMessageV1 {
 }
 
 @Slf4j
@@ -36,8 +47,9 @@ public class TelemetryDebugger implements Debugger {
     private final WebSocketClient websocketClient;
     private final ObjectMapper objectMapper;
 
-    public TelemetryDebugger(int gameId) {
-        websocketClient = new WebSocketClient(URI.create("ws://localhost:8080/ws/v1/game/" + gameId)) {
+    public TelemetryDebugger(int gameId, int playerId) {
+        URI uri = URI.create("ws://localhost:8080/adapter/v1/game/%d/player/%d".formatted(gameId, playerId));
+        websocketClient = new WebSocketClient(uri) {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
                 log.info("Telemetry websocket opened");
@@ -78,9 +90,13 @@ public class TelemetryDebugger implements Debugger {
             sendMessage(new RegisterAsPeer(
                     UUID.randomUUID(),
                     "SNAPSHOT",
-                    IceAdapter.gameId,
-                    IceAdapter.id,
                     IceAdapter.login
+            ));
+
+            sendMessage(new UpdateCoturnList(
+                    UUID.randomUUID(),
+                    "faforever.com",
+                    List.of(new CoturnServer("Europe", "faforever.com", 3478, null))
             ));
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -104,7 +120,10 @@ public class TelemetryDebugger implements Debugger {
 
     @Override
     public void gameStateChanged() {
-
+        sendMessage(new GameStateChanged(
+                UUID.randomUUID(), GPGNetServer.getGameState()
+                .orElseThrow(() -> new IllegalStateException("gameState must not change to null")))
+        );
     }
 
     @Override
