@@ -8,10 +8,15 @@ import java.util.Arrays;
 @Getter
 @RequiredArgsConstructor
 /**
- * GameState as sent by FA, ENDED was added by the FAF project
+ * GameState as sent by FA,
+ ENDED was added by the FAF project
  */
 public enum GameState {
-    NONE("None"), IDLE("Idle"), LOBBY("Lobby"), LAUNCHING("Launching"), ENDED("Ended"); //TODO: more?
+    NONE("None"),
+    IDLE("Idle"),
+    LOBBY("Lobby"),
+    LAUNCHING("Launching"),
+    ENDED("Ended"); //TODO: more?
 
     private final String name;
 
