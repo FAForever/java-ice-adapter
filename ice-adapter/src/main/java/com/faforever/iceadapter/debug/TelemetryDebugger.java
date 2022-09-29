@@ -3,18 +3,26 @@ package com.faforever.iceadapter.debug;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
+import com.faforever.iceadapter.ice.IceState;
 import com.faforever.iceadapter.ice.Peer;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.faforever.iceadapter.ice.PeerConnectivityCheckerModule;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 import lombok.extern.slf4j.Slf4j;
+import org.ice4j.ice.Candidate;
+import org.ice4j.ice.CandidatePair;
+import org.ice4j.ice.CandidateType;
+import org.ice4j.ice.Component;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -38,6 +46,22 @@ record UpdateGameState(UUID messageId, GameState newState) implements OutgoingMe
 }
 
 record UpdateGpgnetState(UUID messageId, String newState) implements OutgoingMessageV1 {
+}
+
+record ConnectToPeer(UUID messageId, int peerPlayerId, String peerName,
+                     boolean localOffer) implements OutgoingMessageV1 {
+}
+
+record DisconnectFromPeer(UUID messageId, int peerPlayerId) implements OutgoingMessageV1 {
+}
+
+record UpdatePeerState(
+        UUID messageId, int peerPlayerId, IceState iceState, CandidateType localCandidate,
+        CandidateType remoteCandidate) implements OutgoingMessageV1 {
+}
+
+record UpdatePeerConnectivity(UUID messageId, int peerPlayerId, Float averageRTT,
+                              Instant lastReceived) implements OutgoingMessageV1 {
 }
 
 @Slf4j
@@ -70,6 +94,7 @@ public class TelemetryDebugger implements Debugger {
         };
 
         objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
     }
 
     private void sendMessage(OutgoingMessageV1 message) {
@@ -103,7 +128,7 @@ public class TelemetryDebugger implements Debugger {
 
     @Override
     public void rpcStarted(CompletableFuture<JJsonPeer> peerFuture) {
-
+        // nobody cares Sean, nobody cares
     }
 
     @Override
@@ -132,21 +157,45 @@ public class TelemetryDebugger implements Debugger {
 
     @Override
     public void connectToPeer(int id, String login, boolean localOffer) {
-
+        sendMessage(new ConnectToPeer(UUID.randomUUID(), id, login, localOffer));
     }
 
     @Override
     public void disconnectFromPeer(int id) {
-
+        sendMessage(new DisconnectFromPeer(UUID.randomUUID(), id));
     }
 
     @Override
     public void peerStateChanged(Peer peer) {
-
+        sendMessage(new UpdatePeerState(
+                UUID.randomUUID(),
+                peer.getRemoteId(),
+                peer.getIce().getIceState(),
+                Optional.ofNullable(peer.getIce().getComponent())
+                        .map(Component::getSelectedPair)
+                        .map(CandidatePair::getLocalCandidate)
+                        .map(Candidate::getType)
+                        .orElse(null),
+                Optional.ofNullable(peer.getIce().getComponent())
+                        .map(Component::getSelectedPair)
+                        .map(CandidatePair::getRemoteCandidate)
+                        .map(Candidate::getType)
+                        .orElse(null)
+        ));
     }
 
     @Override
     public void peerConnectivityUpdate(Peer peer) {
-
+        sendMessage(new UpdatePeerConnectivity(
+                UUID.randomUUID(),
+                peer.getRemoteId(),
+                Optional.ofNullable(peer.getIce().getConnectivityChecker())
+                        .map(PeerConnectivityCheckerModule::getAverageRTT)
+                        .orElse(null),
+                Optional.ofNullable(peer.getIce().getConnectivityChecker())
+                        .map(PeerConnectivityCheckerModule::getLastPacketReceived)
+                        .map(Instant::ofEpochMilli)
+                        .orElse(null)
+        ));
     }
 }
