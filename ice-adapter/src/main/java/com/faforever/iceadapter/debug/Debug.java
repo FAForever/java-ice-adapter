@@ -19,7 +19,7 @@ public class Debug {
 	static CompletableFuture<Debugger> debug = new CompletableFuture<>();
 
 	public static void init() {
-		debug.complete(new TelemetryDebugger(IceAdapter.gameId, IceAdapter.id));
+		debug.complete(new TelemetryDebugger(IceAdapter.TELEMETRY_SERVER, IceAdapter.gameId, IceAdapter.id));
 
 		/*
 		// Debugger window is started and set to debugFuture when either window is requested as the info window can be used to open the debug window
