@@ -22,6 +22,8 @@ public class IceAdapter implements Callable<Integer> {
     @CommandLine.ArgGroup(exclusive = false)
     private IceOptions iceOptions;
 
+    public static String TELEMETRY_SERVER;
+
     public static boolean ALLOW_HOST = true;
     public static boolean ALLOW_REFLEXIVE = true;
     public static boolean ALLOW_RELAY = true;
@@ -45,6 +47,7 @@ public class IceAdapter implements Callable<Integer> {
     public static void main(String[] args) {
         new CommandLine(new IceAdapter()).execute(args);
     }
+
 
     @Override
     public Integer call() {
@@ -170,6 +173,7 @@ public class IceAdapter implements Callable<Integer> {
      * @param arguments The arguments to be read
      */
     public static void loadOptions(IceOptions iceOptions) {
+        TELEMETRY_SERVER = iceOptions.getTelemetryServer();
         id = iceOptions.getId();
         gameId = iceOptions.getGameId();
         login = iceOptions.getLogin();

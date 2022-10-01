@@ -69,8 +69,8 @@ public class TelemetryDebugger implements Debugger {
     private final WebSocketClient websocketClient;
     private final ObjectMapper objectMapper;
 
-    public TelemetryDebugger(int gameId, int playerId) {
-        URI uri = URI.create("ws://localhost:8080/adapter/v1/game/%d/player/%d".formatted(gameId, playerId));
+    public TelemetryDebugger(String telemetryServer, int gameId, int playerId) {
+        URI uri = URI.create("%s/adapter/v1/game/%d/player/%d".formatted(telemetryServer, gameId, playerId));
         websocketClient = new WebSocketClient(uri) {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
