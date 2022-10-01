@@ -33,6 +33,10 @@ jobs:
         run: |
           ./gradlew -Pversion="${{ github.event.inputs.version }}" -PjavafxPlatform=linux --stacktrace :ice-adapter:shadowJar
 
+      - name: Build No-JavaFX Files
+        run: |
+          ./gradlew -Pversion="${{ github.event.inputs.version }}" -PjavafxPlatform=linux -PjavafxClasspath=compileOnly --stacktrace :ice-adapter:shadowJar
+
       - name: Create Draft Release
         id: create_release
         uses: actions/create-release@v1
@@ -51,10 +55,25 @@ jobs:
           LINUX_JAR_NAME=$(basename $LINUX_JAR)
           WINDOWS_JAR=$(ls ice-adapter/build/libs/faf-ice-adapter-*-win.jar | head -n 1)
           WINDOWS_JAR_NAME=$(basename $WINDOWS_JAR)
+          NOJFX_JAR=$(ls ice-adapter/build/libs/faf-ice-adapter-*-nojfx.jar | head -n 1)
+          NOJFX_JAR_NAME=$(basename $NOJFX_JAR)
           echo ::set-output name=LINUX_JAR::${LINUX_JAR}
           echo ::set-output name=LINUX_JAR_NAME::${LINUX_JAR_NAME}
           echo ::set-output name=WINDOWS_JAR::${WINDOWS_JAR}
           echo ::set-output name=WINDOWS_JAR_NAME::${WINDOWS_JAR_NAME}
+          echo ::set-output name=NOJFX_JAR::${NOJFX_JAR}
+          echo ::set-output name=NOJFX_JAR_NAME::${NOJFX_JAR_NAME}
+
+      - name: Upload NoJFX Files
+        id: upload-nojfx
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.artifact_paths.outputs.NOJFX_JAR }}
+          asset_name: ${{ steps.artifact_paths.outputs.NOJFX_JAR_NAME }}
+          asset_content_type: application/java-archive
 
       - name: Upload Linux Files
         id: upload-linux
