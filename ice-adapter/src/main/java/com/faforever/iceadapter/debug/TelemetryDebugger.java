@@ -121,14 +121,15 @@ public class TelemetryDebugger implements Debugger {
                     "faforever.com",
                     List.of(new CoturnServer("Europe", "faforever.com", 3478, null))
             ));
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            log.error("Failed to connect to telemetry websocket", e);
         }
     }
 
     @Override
     public void rpcStarted(CompletableFuture<JJsonPeer> peerFuture) {
-        // nobody cares Sean, nobody cares
+        log.info("RPC started");
+        peerFuture.thenAccept(peer -> log.info("RPC connected"));
     }
 
     @Override
