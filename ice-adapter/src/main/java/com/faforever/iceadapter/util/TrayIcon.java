@@ -47,6 +47,7 @@ public class TrayIcon {
 			public void mousePressed(MouseEvent mouseEvent) {
 				new Thread(() -> {
 					if (InfoWindow.INSTANCE == null) {
+						log.info("Launching ICE adapter debug window");
 						Debug.ENABLE_INFO_WINDOW = true;
 						DebugWindow.launchApplication();
 					} else {

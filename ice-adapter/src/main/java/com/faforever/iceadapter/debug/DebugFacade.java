@@ -4,14 +4,20 @@ import com.faforever.iceadapter.ice.Peer;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class DebugFacade implements Debugger {
-    private final List<Debugger> debuggers = new ArrayList<>();
+    private final List<Debugger> debuggers = new CopyOnWriteArrayList();
 
     public void add(Debugger debugger) {
         debuggers.add(debugger);
+    }
+
+    public void remove(Debugger debugger) {
+        debuggers.remove(debugger);
     }
 
     @Override

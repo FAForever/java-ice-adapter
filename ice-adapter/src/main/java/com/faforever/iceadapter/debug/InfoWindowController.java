@@ -23,11 +23,7 @@ public class InfoWindowController {
 	}
 
 	public void onShowDebugWindowClicked(ActionEvent actionEvent) {
-		Debug.debug.thenAcceptAsync(debugger -> {
-			if(debugger instanceof DebugWindow) {
-				((DebugWindow)debugger).showWindow();
-			}
-		});
+		DebugWindow.INSTANCE.thenAcceptAsync(DebugWindow::showWindow);
 	}
 
 	public void onMinimizeToTrayClicked(ActionEvent actionEvent) {

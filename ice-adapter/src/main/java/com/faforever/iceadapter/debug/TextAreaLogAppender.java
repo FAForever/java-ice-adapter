@@ -40,7 +40,7 @@ public class TextAreaLogAppender<E> extends OutputStreamAppender<E> {
 
 		@Override
 		public void write(int b) {
-			if(Debug.debug.isDone() && !(Debug.debug().getClass().equals("com.faforever.iceadapter.debug.DebugWindow"))) {
+			if(DebugWindow.INSTANCE.isDone()) {
 				if(! buffer.isEmpty()) {
 					buffer.clear();
 				}
