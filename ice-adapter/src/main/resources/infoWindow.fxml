@@ -61,6 +61,8 @@
 
             <Button fx:id="showDebugWindowButton" text="Show debug window"/>
 
+            <Button fx:id="showTelemetryWebUiButton" text="Show telemetry web ui"/>
+
             <HBox>
                 <padding>
                     <Insets bottom="5" left="5" right="5" top="5"/>
