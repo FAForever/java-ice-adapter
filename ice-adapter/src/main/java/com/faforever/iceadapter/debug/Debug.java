@@ -16,16 +16,22 @@ public class Debug {
 	public static boolean ENABLE_INFO_WINDOW = false;
 	public static int DELAY_UI_MS = 0;//delays the launch of the user interface by X ms
 
-	static CompletableFuture<Debugger> debug = new CompletableFuture<>();
+	private final static DebugFacade debugFacade = new DebugFacade();
+
+	public static void register(Debugger debugger) {
+		debugFacade.add(debugger);
+	}
+
+	public static void remove(Debugger debugger) {
+		debugFacade.remove(debugger);
+	}
 
 	public static void init() {
-		debug.complete(new TelemetryDebugger(IceAdapter.TELEMETRY_SERVER, IceAdapter.gameId, IceAdapter.id));
+		new TelemetryDebugger(IceAdapter.TELEMETRY_SERVER, IceAdapter.gameId, IceAdapter.id);
 
-		/*
 		// Debugger window is started and set to debugFuture when either window is requested as the info window can be used to open the debug window
 		// This is not used anymore as the debug window is started and hidden in case it is requested via the tray icon
 		if(! ENABLE_DEBUG_WINDOW && ! ENABLE_INFO_WINDOW) {
-			debug.complete(new NoDebugger());
 			return;
 		}
 
@@ -36,25 +42,16 @@ public class Debug {
 				} catch (IllegalAccessException | ClassNotFoundException | NoSuchMethodException | InvocationTargetException e) {
 					e.printStackTrace();
 					log.error("Could not create DebugWindow. Running without debug window.");
-					debug.complete(new NoDebugger());
 				}
-			}).start();//Completes future once application started
-//			debug.join();
+			}).start(); //Completes future once application started
 		} else {
 			log.info("No JavaFX support detected. Running without debug window.");
-			debug.complete(new NoDebugger());
 		}
-		*/
 	}
 
 
 	public static Debugger debug() {
-		try {
-			return debug.get();
-		} catch (InterruptedException | ExecutionException e) {
-			log.error("Could not get debugger", e);
-			return new NoDebugger();
-		}
+		return debugFacade;
 	}
 
 	public static boolean isJavaFxSupported() {

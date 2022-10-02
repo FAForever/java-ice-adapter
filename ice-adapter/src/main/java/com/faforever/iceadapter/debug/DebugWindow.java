@@ -33,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class DebugWindow extends Application implements Debugger {
+	public static CompletableFuture<DebugWindow> INSTANCE = new CompletableFuture<>();
 
 	private Parent root;
 	private Scene scene;
@@ -47,6 +48,9 @@ public class DebugWindow extends Application implements Debugger {
 
 	@Override
 	public void start(Stage stage) {
+		INSTANCE = CompletableFuture.completedFuture(this);
+		Debug.register(this);
+
 		this.stage = stage;
 		stage.getIcons().add(new Image("https://faforever.com/images/faf-logo.png"));
 
@@ -76,12 +80,6 @@ public class DebugWindow extends Application implements Debugger {
 
 //		new Thread(() -> Debug.debug.complete(this)).start();
 		log.info("Created debug window.");
-
-		//TODO: this is pretty hacky, replaces NoDebugger in case the context got just created from the tray icon
-		if (Debug.debug.isDone()) {
-			Debug.debug = new CompletableFuture<>();
-		}
-		Debug.debug.complete(this);
 
 		if(Debug.ENABLE_INFO_WINDOW) {
 			Executor.executeDelayed(Debug.DELAY_UI_MS, () -> runOnUIThread(() -> new InfoWindow().init()));

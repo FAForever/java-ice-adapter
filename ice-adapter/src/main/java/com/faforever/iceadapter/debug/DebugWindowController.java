@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class DebugWindowController {
+	public static DebugWindowController INSTANCE;
+
 	public HBox genericInfo;
 	public Label versionLabel;
 	public Label userLabel;

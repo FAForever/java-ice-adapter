@@ -19,6 +19,7 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -70,6 +71,8 @@ public class TelemetryDebugger implements Debugger {
     private final ObjectMapper objectMapper;
 
     public TelemetryDebugger(String telemetryServer, int gameId, int playerId) {
+        Debug.register(this);
+
         URI uri = URI.create("%s/adapter/v1/game/%d/player/%d".formatted(telemetryServer, gameId, playerId));
         websocketClient = new WebSocketClient(uri) {
             @Override
@@ -89,7 +92,13 @@ public class TelemetryDebugger implements Debugger {
 
             @Override
             public void onError(Exception ex) {
-                log.error("Error in Telemetry websocket", ex);
+                if (ex instanceof ConnectException) {
+                    log.error("Error connecting to Telemetry websocket", ex);
+                    Debug.remove(TelemetryDebugger.this);
+                } else {
+                    log.error("Error in Telemetry websocket", ex);
+
+                }
             }
         };
 
@@ -109,21 +118,25 @@ public class TelemetryDebugger implements Debugger {
     @Override
     public void startupComplete() {
         try {
-            websocketClient.connectBlocking();
-            sendMessage(new RegisterAsPeer(
-                    UUID.randomUUID(),
-                    "SNAPSHOT",
-                    IceAdapter.login
-            ));
-
-            sendMessage(new UpdateCoturnList(
-                    UUID.randomUUID(),
-                    "faforever.com",
-                    List.of(new CoturnServer("Europe", "faforever.com", 3478, null))
-            ));
-        } catch (Exception e) {
+            if (!websocketClient.connectBlocking()) {
+                return;
+            }
+        } catch (InterruptedException e) {
+            Debug.remove(this);
             log.error("Failed to connect to telemetry websocket", e);
         }
+
+        sendMessage(new RegisterAsPeer(
+                UUID.randomUUID(),
+                "SNAPSHOT",
+                IceAdapter.login
+        ));
+
+        sendMessage(new UpdateCoturnList(
+                UUID.randomUUID(),
+                "faforever.com",
+                List.of(new CoturnServer("Europe", "faforever.com", 3478, null))
+        ));
     }
 
     @Override
