@@ -74,6 +74,8 @@ public class TelemetryDebugger implements Debugger {
         Debug.register(this);
 
         URI uri = URI.create("%s/adapter/v1/game/%d/player/%d".formatted(telemetryServer, gameId, playerId));
+        log.info("Open the telemetry ui via {}/app.html?gameId={}&playerId={}", telemetryServer.replaceFirst("ws", "http"), gameId, playerId);
+
         websocketClient = new WebSocketClient(uri) {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
