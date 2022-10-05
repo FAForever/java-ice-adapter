@@ -9,6 +9,7 @@ import com.faforever.iceadapter.ice.PeerConnectivityCheckerModule;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.util.concurrent.RateLimiter;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.ice.Candidate;
@@ -23,9 +24,11 @@ import java.net.ConnectException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "messageType")
 interface OutgoingMessageV1 {
@@ -69,6 +72,8 @@ record UpdatePeerConnectivity(UUID messageId, int peerPlayerId, Float averageRTT
 public class TelemetryDebugger implements Debugger {
     private final WebSocketClient websocketClient;
     private final ObjectMapper objectMapper;
+
+    private final Map<Integer, RateLimiter> peerRateLimiter = new ConcurrentHashMap<>();
 
     public TelemetryDebugger(String telemetryServer, int gameId, int playerId) {
         Debug.register(this);
@@ -178,6 +183,7 @@ public class TelemetryDebugger implements Debugger {
 
     @Override
     public void disconnectFromPeer(int id) {
+        peerRateLimiter.remove(id);
         sendMessage(new DisconnectFromPeer(UUID.randomUUID(), id));
     }
 
@@ -202,6 +208,16 @@ public class TelemetryDebugger implements Debugger {
 
     @Override
     public void peerConnectivityUpdate(Peer peer) {
+        if (!peerRateLimiter
+                .computeIfAbsent(peer.getRemoteId(), i -> RateLimiter.create(1.0))
+                .tryAcquire()) {
+            // We only want to send one connectivity update per second (per peer)
+            log.trace("Rate limiting prevents connectivity update for peer {} (id {})", peer.getRemoteLogin(), peer.getRemoteId());
+            return;
+        }
+
+        log.trace("Sending connectivity update for peer {} (id {})", peer.getRemoteLogin(), peer.getRemoteId());
+
         sendMessage(new UpdatePeerConnectivity(
                 UUID.randomUUID(),
                 peer.getRemoteId(),
