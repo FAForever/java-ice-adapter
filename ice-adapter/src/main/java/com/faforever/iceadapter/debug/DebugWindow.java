@@ -33,250 +33,256 @@ import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class DebugWindow extends Application implements Debugger {
-	public static CompletableFuture<DebugWindow> INSTANCE = new CompletableFuture<>();
+    public static CompletableFuture<DebugWindow> INSTANCE = new CompletableFuture<>();
 
-	private Parent root;
-	private Scene scene;
-	private DebugWindowController controller;
-	private Stage stage;
+    private Parent root;
+    private Scene scene;
+    private DebugWindowController controller;
+    private Stage stage;
 
-	private static final int WIDTH = 1200;
-	private static final int HEIGHT = 700;
+    private static final int WIDTH = 1200;
+    private static final int HEIGHT = 700;
 
-	private ObservableList<DebugPeer> peers = FXCollections.observableArrayList();
+    private ObservableList<DebugPeer> peers = FXCollections.observableArrayList();
 
 
-	@Override
-	public void start(Stage stage) {
-		INSTANCE = CompletableFuture.completedFuture(this);
-		Debug.register(this);
+    @Override
+    public void start(Stage stage) {
+        INSTANCE = CompletableFuture.completedFuture(this);
+        Debug.register(this);
 
-		this.stage = stage;
-		stage.getIcons().add(new Image("https://faforever.com/images/faf-logo.png"));
+        this.stage = stage;
+        stage.getIcons().add(new Image("https://faforever.com/images/faf-logo.png"));
 
-		try {
-			FXMLLoader loader = new FXMLLoader(getClass().getResource("/debugWindow.fxml"));
-			root = loader.load();
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/debugWindow.fxml"));
+            root = loader.load();
 
-			controller = loader.getController();
-			controller.peerTable.setItems(peers);
+            controller = loader.getController();
+            controller.peerTable.setItems(peers);
 
-		} catch (IOException e) {
-			log.error("Could not load debugger window fxml", e);
-		}
+        } catch (IOException e) {
+            log.error("Could not load debugger window fxml", e);
+        }
 
-		setUserAgentStylesheet(STYLESHEET_MODENA);
+        setUserAgentStylesheet(STYLESHEET_MODENA);
 
-		scene = new Scene(root, WIDTH, HEIGHT);
+        scene = new Scene(root, WIDTH, HEIGHT);
 
-		stage.setScene(scene);
-		stage.setTitle(String.format("FAF ICE adapter - Debugger - Build: %s", IceAdapter.VERSION));
+        stage.setScene(scene);
+        stage.setTitle(String.format("FAF ICE adapter - Debugger - Build: %s", IceAdapter.VERSION));
 //		stage.setOnCloseRequest(Event::consume);
 //		stage.show();
 
-		if(Debug.ENABLE_DEBUG_WINDOW) {
-			Executor.executeDelayed(Debug.DELAY_UI_MS, () -> runOnUIThread(stage::show));
-		}
+        if (Debug.ENABLE_DEBUG_WINDOW) {
+            Executor.executeDelayed(Debug.DELAY_UI_MS, () -> runOnUIThread(stage::show));
+        }
 
 //		new Thread(() -> Debug.debug.complete(this)).start();
-		log.info("Created debug window.");
+        log.info("Created debug window.");
 
-		if(Debug.ENABLE_INFO_WINDOW) {
-			Executor.executeDelayed(Debug.DELAY_UI_MS, () -> runOnUIThread(() -> new InfoWindow().init()));
-		}
-	}
+        if (Debug.ENABLE_INFO_WINDOW) {
+            Executor.executeDelayed(Debug.DELAY_UI_MS, () -> runOnUIThread(() -> new InfoWindow().init()));
+        }
+    }
 
-	public void showWindow() {
-		runOnUIThread(() -> stage.show());
-	}
+    public void showWindow() {
+        runOnUIThread(() -> stage.show());
+        initStaticVariables();
+    }
 
-	@Override
-	public void startupComplete() {
-		runOnUIThread(() -> {
-			controller.versionLabel.setText(String.format("Version: %s", IceAdapter.VERSION));
-			controller.userLabel.setText(String.format("User: %s(%d)", IceAdapter.login, IceAdapter.id));
-			controller.rpcPortLabel.setText(String.format("RPC_PORT: %d", IceAdapter.RPC_PORT));
-			controller.gpgnetPortLabel.setText(String.format("GPGNET_PORT: %d", IceAdapter.GPGNET_PORT));
-			controller.lobbyPortLabel.setText(String.format("LOBBY_PORT: %d", IceAdapter.LOBBY_PORT));
-		});
-	}
+    @Override
+    public void startupComplete() {
+        initStaticVariables();
+    }
 
-	@Override
-	public void rpcStarted(CompletableFuture<JJsonPeer> peerFuture) {
-		runOnUIThread(() -> {
-			controller.rpcServerStatus.setText("RPCServer: started");
-		});
-		peerFuture.thenAccept(peer -> runOnUIThread(() -> {
-			controller.rpcClientStatus.setText(String.format("RPCClient: %s", peer.getSocket().getInetAddress()));
-		}));
-	}
+    public void initStaticVariables() {
 
-	@Override
-	public void gpgnetStarted() {
-		runOnUIThread(() -> {
-			controller.gpgnetServerStatus.setText("GPGNetServer: started");
-		});
-	}
+        runOnUIThread(() -> {
+            controller.versionLabel.setText(String.format("Version: %s", IceAdapter.VERSION));
+            controller.userLabel.setText(String.format("User: %s(%d)", IceAdapter.login, IceAdapter.id));
+            controller.rpcPortLabel.setText(String.format("RPC_PORT: %d", IceAdapter.RPC_PORT));
+            controller.gpgnetPortLabel.setText(String.format("GPGNET_PORT: %d", IceAdapter.GPGNET_PORT));
+            controller.lobbyPortLabel.setText(String.format("LOBBY_PORT: %d", IceAdapter.LOBBY_PORT));
+        });
+    }
 
-	@Override
-	public void gpgnetConnectedDisconnected() {
-		runOnUIThread(() -> {
-			controller.gpgnetServerStatus.setText(String.format("GPGNetClient: %s", GPGNetServer.isConnected() ? "connected" : "-"));
-			gameStateChanged();
-		});
-	}
+    @Override
+    public void rpcStarted(CompletableFuture<JJsonPeer> peerFuture) {
+        runOnUIThread(() -> {
+            controller.rpcServerStatus.setText("RPCServer: started");
+        });
+        peerFuture.thenAccept(peer -> runOnUIThread(() -> {
+            controller.rpcClientStatus.setText(String.format("RPCClient: %s", peer.getSocket().getInetAddress()));
+        }));
+    }
 
-	@Override
-	public void gameStateChanged() {
-		runOnUIThread(() -> {
-			controller.gameState.setText(String.format("GameState: %s", GPGNetServer.getGameState().map(GameState::getName).orElse("-")));
-		});
-	}
+    @Override
+    public void gpgnetStarted() {
+        runOnUIThread(() -> {
+            controller.gpgnetServerStatus.setText("GPGNetServer: started");
+        });
+    }
 
-	@Override
-	public void connectToPeer(int id, String login, boolean localOffer) {
-		new Thread(() -> {
-			synchronized (peers) {
-				DebugPeer peer = new DebugPeer();
-				peer.id.set(id);
-				peer.login.set(login);
-				peer.localOffer.set(localOffer);
-				peers.add(peer);//Might callback into jfx
-			}
-		}).start();
-	}
+    @Override
+    public void gpgnetConnectedDisconnected() {
+        runOnUIThread(() -> {
+            controller.gpgnetServerStatus.setText(String.format("GPGNetClient: %s", GPGNetServer.isConnected() ? "connected" : "-"));
+            gameStateChanged();
+        });
+    }
 
-	@Override
-	public void disconnectFromPeer(int id) {
-		new Thread(() -> {
-			synchronized (peers) {
-				peers.removeIf(peer -> peer.id.get() == id);//Might callback into jfx
-			}
-		}).start();
-	}
+    @Override
+    public void gameStateChanged() {
+        runOnUIThread(() -> {
+            controller.gameState.setText(String.format("GameState: %s", GPGNetServer.getGameState().map(GameState::getName).orElse("-")));
+        });
+    }
 
-	@Override
-	public void peerStateChanged(Peer peer) {
-		new Thread(() -> {
-			synchronized (peers) {
-				peers.stream().filter(p -> p.id.get() == peer.getRemoteId()).forEach(p -> {
-					p.connected.set(peer.getIce().isConnected());
-					p.state.set(peer.getIce().getIceState().getMessage());
-					p.localCandidate.set(Optional.ofNullable(peer.getIce().getComponent()).map(Component::getSelectedPair).map(CandidatePair::getLocalCandidate).map(Candidate::getType).map(CandidateType::toString).orElse(""));
-					p.remoteCandidate.set(Optional.ofNullable(peer.getIce().getComponent()).map(Component::getSelectedPair).map(CandidatePair::getRemoteCandidate).map(Candidate::getType).map(CandidateType::toString).orElse(""));
-				});
-			}
-		}).start();
-	}
+    @Override
+    public void connectToPeer(int id, String login, boolean localOffer) {
+        new Thread(() -> {
+            synchronized (peers) {
+                DebugPeer peer = new DebugPeer();
+                peer.id.set(id);
+                peer.login.set(login);
+                peer.localOffer.set(localOffer);
+                peers.add(peer);//Might callback into jfx
+            }
+        }).start();
+    }
 
-	@Override
-	public void peerConnectivityUpdate(Peer peer) {
-		new Thread(() -> {
-			synchronized (peers) {
-				peers.stream().filter(p -> p.id.get() == peer.getRemoteId()).forEach(p -> {
-					p.averageRtt.set(Optional.ofNullable(peer.getIce().getConnectivityChecker()).map(PeerConnectivityCheckerModule::getAverageRTT).orElse(-1.0f).intValue());
-					p.lastReceived.set(Optional.ofNullable(peer.getIce().getConnectivityChecker()).map(PeerConnectivityCheckerModule::getLastPacketReceived).map(last -> System.currentTimeMillis() - last).orElse(-1L).intValue());
-				});
-			}
-		}).start();
-	}
+    @Override
+    public void disconnectFromPeer(int id) {
+        new Thread(() -> {
+            synchronized (peers) {
+                peers.removeIf(peer -> peer.id.get() == id);//Might callback into jfx
+            }
+        }).start();
+    }
 
-	private void runOnUIThread(Runnable runnable) {
-		if(Platform.isFxApplicationThread()) {
-			runnable.run();
-		} else {
-			Platform.runLater(runnable);
-		}
-	}
+    @Override
+    public void peerStateChanged(Peer peer) {
+        new Thread(() -> {
+            synchronized (peers) {
+                peers.stream().filter(p -> p.id.get() == peer.getRemoteId()).forEach(p -> {
+                    p.connected.set(peer.getIce().isConnected());
+                    p.state.set(peer.getIce().getIceState().getMessage());
+                    p.localCandidate.set(Optional.ofNullable(peer.getIce().getComponent()).map(Component::getSelectedPair).map(CandidatePair::getLocalCandidate).map(Candidate::getType).map(CandidateType::toString).orElse(""));
+                    p.remoteCandidate.set(Optional.ofNullable(peer.getIce().getComponent()).map(Component::getSelectedPair).map(CandidatePair::getRemoteCandidate).map(Candidate::getType).map(CandidateType::toString).orElse(""));
+                });
+            }
+        }).start();
+    }
 
-	public static void launchApplication() {
-		launch(DebugWindow.class, null);
-	}
+    @Override
+    public void peerConnectivityUpdate(Peer peer) {
+        new Thread(() -> {
+            synchronized (peers) {
+                peers.stream().filter(p -> p.id.get() == peer.getRemoteId()).forEach(p -> {
+                    p.averageRtt.set(Optional.ofNullable(peer.getIce().getConnectivityChecker()).map(PeerConnectivityCheckerModule::getAverageRTT).orElse(-1.0f).intValue());
+                    p.lastReceived.set(Optional.ofNullable(peer.getIce().getConnectivityChecker()).map(PeerConnectivityCheckerModule::getLastPacketReceived).map(last -> System.currentTimeMillis() - last).orElse(-1L).intValue());
+                });
+            }
+        }).start();
+    }
 
-	@NoArgsConstructor
-	@AllArgsConstructor
-	//@Getter //PropertyValueFactory will attempt to access fieldNameProperty(), then getFieldName() (expecting value, not property) and then isFieldName() methods
-	public static class DebugPeer {
-		public SimpleIntegerProperty id = new SimpleIntegerProperty(-1);
-		public SimpleStringProperty login = new SimpleStringProperty("");
-		public SimpleBooleanProperty localOffer = new SimpleBooleanProperty(false);
-		public SimpleBooleanProperty connected = new SimpleBooleanProperty(false);
-		public SimpleStringProperty state = new SimpleStringProperty("");
-		public SimpleIntegerProperty averageRtt = new SimpleIntegerProperty(-1);
-		public SimpleIntegerProperty lastReceived = new SimpleIntegerProperty(-1);
-		public SimpleStringProperty localCandidate = new SimpleStringProperty("");
-		public SimpleStringProperty remoteCandidate = new SimpleStringProperty("");
+    private void runOnUIThread(Runnable runnable) {
+        if (Platform.isFxApplicationThread()) {
+            runnable.run();
+        } else {
+            Platform.runLater(runnable);
+        }
+    }
 
-		public int getId() {
-			return id.get();
-		}
+    public static void launchApplication() {
+        launch(DebugWindow.class, null);
+    }
 
-		public SimpleIntegerProperty idProperty() {
-			return id;
-		}
+    @NoArgsConstructor
+    @AllArgsConstructor
+    //@Getter //PropertyValueFactory will attempt to access fieldNameProperty(), then getFieldName() (expecting value, not property) and then isFieldName() methods
+    public static class DebugPeer {
+        public SimpleIntegerProperty id = new SimpleIntegerProperty(-1);
+        public SimpleStringProperty login = new SimpleStringProperty("");
+        public SimpleBooleanProperty localOffer = new SimpleBooleanProperty(false);
+        public SimpleBooleanProperty connected = new SimpleBooleanProperty(false);
+        public SimpleStringProperty state = new SimpleStringProperty("");
+        public SimpleIntegerProperty averageRtt = new SimpleIntegerProperty(-1);
+        public SimpleIntegerProperty lastReceived = new SimpleIntegerProperty(-1);
+        public SimpleStringProperty localCandidate = new SimpleStringProperty("");
+        public SimpleStringProperty remoteCandidate = new SimpleStringProperty("");
 
-		public String getLogin() {
-			return login.get();
-		}
+        public int getId() {
+            return id.get();
+        }
 
-		public SimpleStringProperty loginProperty() {
-			return login;
-		}
+        public SimpleIntegerProperty idProperty() {
+            return id;
+        }
 
-		public boolean isLocalOffer() {
-			return localOffer.get();
-		}
+        public String getLogin() {
+            return login.get();
+        }
 
-		public SimpleBooleanProperty localOfferProperty() {
-			return localOffer;
-		}
+        public SimpleStringProperty loginProperty() {
+            return login;
+        }
 
-		public boolean isConnected() {
-			return connected.get();
-		}
+        public boolean isLocalOffer() {
+            return localOffer.get();
+        }
 
-		public SimpleBooleanProperty connectedProperty() {
-			return connected;
-		}
+        public SimpleBooleanProperty localOfferProperty() {
+            return localOffer;
+        }
 
-		public String getState() {
-			return state.get();
-		}
+        public boolean isConnected() {
+            return connected.get();
+        }
 
-		public SimpleStringProperty stateProperty() {
-			return state;
-		}
+        public SimpleBooleanProperty connectedProperty() {
+            return connected;
+        }
 
-		public double getAverageRtt() {
-			return averageRtt.get();
-		}
+        public String getState() {
+            return state.get();
+        }
 
-		public SimpleIntegerProperty averageRttProperty() {
-			return averageRtt;
-		}
+        public SimpleStringProperty stateProperty() {
+            return state;
+        }
 
-		public int getLastReceived() {
-			return lastReceived.get();
-		}
+        public double getAverageRtt() {
+            return averageRtt.get();
+        }
 
-		public SimpleIntegerProperty lastReceivedProperty() {
-			return lastReceived;
-		}
+        public SimpleIntegerProperty averageRttProperty() {
+            return averageRtt;
+        }
 
-		public String getLocalCandidate() {
-			return localCandidate.get();
-		}
+        public int getLastReceived() {
+            return lastReceived.get();
+        }
 
-		public SimpleStringProperty localCandidateProperty() {
-			return localCandidate;
-		}
+        public SimpleIntegerProperty lastReceivedProperty() {
+            return lastReceived;
+        }
 
-		public String getRemoteCandidate() {
-			return remoteCandidate.get();
-		}
+        public String getLocalCandidate() {
+            return localCandidate.get();
+        }
 
-		public SimpleStringProperty remoteCandidateProperty() {
-			return remoteCandidate;
-		}
-	}
+        public SimpleStringProperty localCandidateProperty() {
+            return localCandidate;
+        }
+
+        public String getRemoteCandidate() {
+            return remoteCandidate.get();
+        }
+
+        public SimpleStringProperty remoteCandidateProperty() {
+            return remoteCandidate;
+        }
+    }
 }
