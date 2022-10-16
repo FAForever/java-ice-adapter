@@ -3,7 +3,6 @@ package com.faforever.iceadapter;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
 @Getter
@@ -12,6 +11,10 @@ import picocli.CommandLine.Option;
 public class IceOptions {
     @Option(names = "--id", required = true, description = "set the ID of the local player")
     private int id;
+
+    // Will be set to required=true in the 3.3+ release series
+    @Option(names = "--game-id", required = false, description = "set the ID of the game")
+    private int gameId;
 
     @Option(names = "--login", required = true, description = "set the login of the local player e.g. \"Rhiza\"")
     private String login;
@@ -42,4 +45,7 @@ public class IceOptions {
 
     @Option(names = "--acceptable-latency", defaultValue = "250.0", description = "number of times to ping each turn server to determine latency")
     private double acceptableLatency;
+
+    @Option(names = "--telemetry-server", defaultValue = "wss://ice-telemetry.faforever.com", description = "Telemetry server to connect to")
+    private String telemetryServer;
 }
