@@ -3,4 +3,5 @@ include 'ice-adapter'
 include 'client'
 include 'server'
 include 'shared'
+include 'echo-server'
 

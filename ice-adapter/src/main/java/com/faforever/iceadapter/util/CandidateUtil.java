@@ -2,17 +2,23 @@ package com.faforever.iceadapter.util;
 
 import com.faforever.iceadapter.ice.CandidatePacket;
 import com.faforever.iceadapter.ice.CandidatesMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.*;
 
 import java.util.Collections;
 
+@Slf4j
 public class CandidateUtil {
 
     public static int candidateIDFactory = 0;
 
     public static CandidatesMessage packCandidates(int srcId, int destId, Agent agent, Component component, boolean allowHost, boolean allowReflexive, boolean allowRelay) {
+        if(! allowHost || ! allowReflexive || !allowRelay) {
+            log.info("Peer {}: Disallowing own candidates, host: {}, reflexive: {}, relay: {}", destId, allowHost, allowReflexive, allowRelay);
+        }
+
         CandidatesMessage localCandidatesMessage = new CandidatesMessage(srcId, destId, agent.getLocalPassword(), agent.getLocalUfrag());
 
         for (LocalCandidate localCandidate : component.getLocalCandidates()) {
@@ -51,6 +57,10 @@ public class CandidateUtil {
 
     public static void unpackCandidates(CandidatesMessage remoteCandidatesMessage, Agent agent, Component component, IceMediaStream mediaStream, boolean allowHost, boolean allowReflexive, boolean allowRelay) {
         Collections.sort(remoteCandidatesMessage.getCandidates());
+
+        if(! allowHost || ! allowReflexive || !allowRelay) {
+            log.info("Peer {}: Disallowing incoming candidates, host: {}, reflexive: {}, relay: {}", remoteCandidatesMessage.getSrcId(), allowHost, allowReflexive, allowRelay);
+        }
 
         //Set candidates
         mediaStream.setRemotePassword(remoteCandidatesMessage.getPassword());

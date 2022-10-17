@@ -1,7 +1,7 @@
 package com.faforever.iceadapter.ice;
 
 import com.faforever.iceadapter.IceAdapter;
-import com.faforever.iceadapter.util.PingWrapper;
+import com.faforever.iceadapter.util.latencyestimation.LatencyEstimator;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -92,7 +92,7 @@ public class GameSession {
                 new CacheLoader<String, CompletableFuture<OptionalDouble>>() {
                     @Override
                     public CompletableFuture<OptionalDouble> load(String host) throws Exception {
-                        return PingWrapper.getLatency(host, IceAdapter.PING_COUNT)
+                        return LatencyEstimator.getLatency(host)
                                 .thenApply(OptionalDouble::of)
                                 .exceptionally(ex -> OptionalDouble.empty());
                     }

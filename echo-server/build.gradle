@@ -1,0 +1,40 @@
+buildscript {
+    dependencies {
+        classpath group: 'de.dynamicfiles.projects.gradle.plugins', name: 'javafx-gradle-plugin', version: '8.8.2'
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'java-library'
+apply plugin: 'io.franzbecker.gradle-lombok'
+apply plugin: 'javafx-gradle-plugin'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+group 'Geosearchef'
+version = 'SNAPSHOT'
+
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+
+dependencies {
+    implementation "org.slf4j:slf4j-api:1.7.25"
+    implementation "ch.qos.logback:logback-classic:1.2.3"
+    implementation "ch.qos.logback:logback-core:1.2.3"
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.faforever.echoserver.EchoServer'
+    }
+}
