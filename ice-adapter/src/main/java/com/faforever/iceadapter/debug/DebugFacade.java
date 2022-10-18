@@ -4,6 +4,7 @@ import com.faforever.iceadapter.ice.Peer;
 import com.faforever.iceadapter.telemetry.CoturnServer;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -65,7 +66,7 @@ public class DebugFacade implements Debugger {
     }
 
     @Override
-    public void updateCoturnList(List<CoturnServer> servers) {
+    public void updateCoturnList(Collection<CoturnServer> servers) {
         debuggers.forEach(d -> d.updateCoturnList(servers));
     }
 }
