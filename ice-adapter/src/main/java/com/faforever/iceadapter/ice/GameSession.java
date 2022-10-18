@@ -1,6 +1,7 @@
 package com.faforever.iceadapter.ice;
 
 import com.faforever.iceadapter.IceAdapter;
+import com.faforever.iceadapter.telemetry.CoturnServer;
 import com.faforever.iceadapter.util.PingWrapper;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -11,7 +12,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 
@@ -26,7 +33,8 @@ public class GameSession {
 
     @Getter
     private Map<Integer, Peer> peers = new HashMap<>();
-    @Getter @Setter
+    @Getter
+    @Setter
     private volatile boolean gameEnded = false;
 
     public GameSession() {
@@ -78,6 +86,7 @@ public class GameSession {
     /**
      * Set ice servers (to be used for harvesting candidates)
      * Called by the client via jsonRPC
+     *
      * @param iceServersData
      */
     public static void setIceServers(List<Map<String, Object>> iceServersData) {
@@ -99,7 +108,9 @@ public class GameSession {
                 }
         );
 
-        for(Map<String, Object> iceServerData : iceServersData) {
+        List<CoturnServer> coturnServers = new ArrayList<>();
+
+        for (Map<String, Object> iceServerData : iceServersData) {
             IceServer iceServer = new IceServer();
 
             if (iceServerData.containsKey("username")) {
