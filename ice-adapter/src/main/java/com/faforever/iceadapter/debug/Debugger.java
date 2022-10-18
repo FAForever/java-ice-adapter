@@ -1,27 +1,32 @@
 package com.faforever.iceadapter.debug;
 
 import com.faforever.iceadapter.ice.Peer;
+import com.faforever.iceadapter.telemetry.CoturnServer;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface Debugger {
 
-	void startupComplete();
+    void startupComplete();
 
-	void rpcStarted(CompletableFuture<JJsonPeer> peerFuture);
+    void rpcStarted(CompletableFuture<JJsonPeer> peerFuture);
 
-	void gpgnetStarted();
+    void gpgnetStarted();
 
-	void gpgnetConnectedDisconnected();
+    void gpgnetConnectedDisconnected();
 
-	void gameStateChanged();
+    void gameStateChanged();
 
-	void connectToPeer(int id, String login, boolean localOffer);
+    void connectToPeer(int id, String login, boolean localOffer);
 
-	void disconnectFromPeer(int id);
+    void disconnectFromPeer(int id);
 
-	void peerStateChanged(Peer peer);
+    void peerStateChanged(Peer peer);
 
-	void peerConnectivityUpdate(Peer peer);
+    void peerConnectivityUpdate(Peer peer);
+
+    default void updateCoturnList(List<CoturnServer> servers) {
+    }
 }

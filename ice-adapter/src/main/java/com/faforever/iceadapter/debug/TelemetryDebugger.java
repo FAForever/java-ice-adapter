@@ -2,11 +2,18 @@ package com.faforever.iceadapter.debug;
 
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
-import com.faforever.iceadapter.gpgnet.GameState;
-import com.faforever.iceadapter.ice.IceState;
 import com.faforever.iceadapter.ice.Peer;
 import com.faforever.iceadapter.ice.PeerConnectivityCheckerModule;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.faforever.iceadapter.telemetry.ConnectToPeer;
+import com.faforever.iceadapter.telemetry.CoturnServer;
+import com.faforever.iceadapter.telemetry.DisconnectFromPeer;
+import com.faforever.iceadapter.telemetry.OutgoingMessageV1;
+import com.faforever.iceadapter.telemetry.RegisterAsPeer;
+import com.faforever.iceadapter.telemetry.UpdateCoturnList;
+import com.faforever.iceadapter.telemetry.UpdateGameState;
+import com.faforever.iceadapter.telemetry.UpdateGpgnetState;
+import com.faforever.iceadapter.telemetry.UpdatePeerConnectivity;
+import com.faforever.iceadapter.telemetry.UpdatePeerState;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.util.concurrent.RateLimiter;
@@ -14,7 +21,6 @@ import com.nbarraille.jjsonrpc.JJsonPeer;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.ice.Candidate;
 import org.ice4j.ice.CandidatePair;
-import org.ice4j.ice.CandidateType;
 import org.ice4j.ice.Component;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -29,44 +35,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "messageType")
-interface OutgoingMessageV1 {
-    UUID messageId();
-}
-
-record RegisterAsPeer(UUID messageId, String adapterVersion,
-                      String userName) implements OutgoingMessageV1 {
-}
-
-record CoturnServer(String region, String host, int port, Double averageRTT) {
-}
-
-record UpdateCoturnList(UUID messageId, String connectedHost,
-                        List<CoturnServer> knownServers) implements OutgoingMessageV1 {
-}
-
-record UpdateGameState(UUID messageId, GameState newState) implements OutgoingMessageV1 {
-}
-
-record UpdateGpgnetState(UUID messageId, String newState) implements OutgoingMessageV1 {
-}
-
-record ConnectToPeer(UUID messageId, int peerPlayerId, String peerName,
-                     boolean localOffer) implements OutgoingMessageV1 {
-}
-
-record DisconnectFromPeer(UUID messageId, int peerPlayerId) implements OutgoingMessageV1 {
-}
-
-record UpdatePeerState(
-        UUID messageId, int peerPlayerId, IceState iceState, CandidateType localCandidate,
-        CandidateType remoteCandidate) implements OutgoingMessageV1 {
-}
-
-record UpdatePeerConnectivity(UUID messageId, int peerPlayerId, Float averageRTT,
-                              Instant lastReceived) implements OutgoingMessageV1 {
-}
 
 @Slf4j
 public class TelemetryDebugger implements Debugger {
