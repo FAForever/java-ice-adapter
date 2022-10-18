@@ -15,10 +15,12 @@ import org.ice4j.TransportAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 
@@ -108,7 +110,7 @@ public class GameSession {
                 }
         );
 
-        List<CoturnServer> coturnServers = new ArrayList<>();
+        Set<CoturnServer> coturnServers = new HashSet<>();
 
         for (Map<String, Object> iceServerData : iceServersData) {
             IceServer iceServer = new IceServer();
@@ -143,10 +145,14 @@ public class GameSession {
                             if (IceAdapter.PING_COUNT > 0) {
                                 iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
                             }
+
+                            coturnServers.add(new CoturnServer("n/a", host, port, null));
                         });
             }
             iceServers.add(iceServer);
         }
+
+        debug().updateCoturnList(coturnServers);
 
         log.info("Ice Servers set, total addresses: {}",
                 iceServers.stream().mapToInt(s -> s.getStunAddresses().size() + s.getTurnAddresses().size()).sum());

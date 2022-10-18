@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
 import java.time.Instant;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -105,12 +105,6 @@ public class TelemetryDebugger implements Debugger {
                 UUID.randomUUID(),
                 "SNAPSHOT",
                 IceAdapter.login
-        ));
-
-        sendMessage(new UpdateCoturnList(
-                UUID.randomUUID(),
-                "faforever.com",
-                List.of(new CoturnServer("Europe", "faforever.com", 3478, null))
         ));
     }
 
@@ -196,6 +190,15 @@ public class TelemetryDebugger implements Debugger {
                         .map(PeerConnectivityCheckerModule::getLastPacketReceived)
                         .map(Instant::ofEpochMilli)
                         .orElse(null)
+        ));
+    }
+
+    @Override
+    public void updateCoturnList(Collection<CoturnServer> servers) {
+        sendMessage(new UpdateCoturnList(
+                UUID.randomUUID(),
+                servers.stream().map(CoturnServer::host).findFirst().orElse(null),
+                servers
         ));
     }
 }
