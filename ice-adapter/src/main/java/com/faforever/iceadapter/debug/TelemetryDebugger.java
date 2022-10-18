@@ -103,7 +103,7 @@ public class TelemetryDebugger implements Debugger {
 
         sendMessage(new RegisterAsPeer(
                 UUID.randomUUID(),
-                "SNAPSHOT",
+                IceAdapter.VERSION,
                 IceAdapter.login
         ));
     }
