@@ -139,7 +139,7 @@ public class PeerIceModule {
 
         int previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
         CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(IceAdapter.id, peer.getRemoteId(), agent, component, previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.ALLOW_HOST, previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.ALLOW_REFLEXIVE, IceAdapter.ALLOW_RELAY);
-        log.debug(getLogPrefix() + "Sending own candidates to {}, offered candidates: {}", peer.getRemoteId(), localCandidatesMessage.getCandidates().stream().map(it -> it.type().toString() + "(" + it.protocol() + ")").collect(Collectors.joining(", ")));
+        log.debug(getLogPrefix() + "Sending own candidates to {}, offered candidates: {}", peer.getRemoteId(), localCandidatesMessage.candidates().stream().map(it -> it.type().toString() + "(" + it.protocol() + ")").collect(Collectors.joining(", ")));
         setState(AWAITING_CANDIDATES);
         RPCService.onIceMsg(localCandidatesMessage);
 
@@ -216,7 +216,7 @@ public class PeerIceModule {
 
         //Start ICE async as it's blocking and this is the RPC thread
         new Thread(() -> {
-            log.debug(getLogPrefix() + "Got IceMsg for peer, offered candidates: {}", remoteCandidatesMessage.getCandidates().stream().map(it -> it.type().toString() + "(" + it.protocol() + ")").collect(Collectors.joining(", ")));
+            log.debug(getLogPrefix() + "Got IceMsg for peer, offered candidates: {}", remoteCandidatesMessage.candidates().stream().map(it -> it.type().toString() + "(" + it.protocol() + ")").collect(Collectors.joining(", ")));
 
             if (peer.isLocalOffer()) {
                 if (iceState != AWAITING_CANDIDATES) {

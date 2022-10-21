@@ -71,7 +71,7 @@ public class RPCService {
 
 	public static void onIceMsg(CandidatesMessage candidatesMessage) {
 		if (!skipRPCMessages) {
-			getPeerOrWait().sendNotification("onIceMsg", Arrays.asList(candidatesMessage.getSrcId(), candidatesMessage.getDestId(), gson.toJson(candidatesMessage)));
+			getPeerOrWait().sendNotification("onIceMsg", Arrays.asList(candidatesMessage.srcId(), candidatesMessage.destId(), gson.toJson(candidatesMessage)));
 		}
 	}
 

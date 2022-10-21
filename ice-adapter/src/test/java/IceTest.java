@@ -100,8 +100,8 @@ public class IceTest {
 
         //print candidates
         //may have to be done for multiple components
-        CandidatesMessage localCandidatesMessage = new CandidatesMessage(0, 0/*mocked*/, agent.getLocalPassword(), agent.getLocalUfrag());
         int candidateIDFactory = 0;
+        final List<CandidatePacket> candidatePackets = new ArrayList<>();
 
         for(LocalCandidate localCandidate : component.getLocalCandidates()) {
             String relAddr = null;
@@ -125,8 +125,12 @@ public class IceTest {
                     relPort
             );
 
-            localCandidatesMessage.getCandidates().add(candidatePacket);
+            candidatePackets.add(candidatePacket);
         }
+
+        Collections.sort(candidatePackets);
+
+        CandidatesMessage localCandidatesMessage = new CandidatesMessage(0, 0/*mocked*/, agent.getLocalPassword(), agent.getLocalUfrag(), candidatePackets);
 
         System.out.printf("------------------------------------\n%s\n------------------------------------\n", gson.toJson(localCandidatesMessage));
 
@@ -138,12 +142,10 @@ public class IceTest {
         out.flush();
         CandidatesMessage remoteCandidatesMessage = gson.fromJson(in.readUTF(), CandidatesMessage.class);
 
-        Collections.sort(remoteCandidatesMessage.getCandidates());
-
         //Set candidates
-        mediaStream.setRemotePassword(remoteCandidatesMessage.getPassword());
-        mediaStream.setRemoteUfrag(remoteCandidatesMessage.getUfrag());
-        for(CandidatePacket remoteCandidatePacket : remoteCandidatesMessage.getCandidates()) {
+        mediaStream.setRemotePassword(remoteCandidatesMessage.password());
+        mediaStream.setRemoteUfrag(remoteCandidatesMessage.ufrag());
+        for(CandidatePacket remoteCandidatePacket : remoteCandidatesMessage.candidates()) {
 
             if(remoteCandidatePacket.generation() == agent.getGeneration()
                     && remoteCandidatePacket.ip() != null && remoteCandidatePacket.port() > 0) {
