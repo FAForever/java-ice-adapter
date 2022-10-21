@@ -3,11 +3,11 @@ package com.faforever.iceadapter.ice;
 import lombok.Data;
 import org.ice4j.ice.CandidateType;
 
-@Data
 /**
  * Represents a candidate to be sent/received via IceMessage
  */
-public class CandidatePacket implements Comparable {
+@Data
+public class CandidatePacket implements Comparable<CandidatePacket> {
     private final String foundation;
     private final String protocol;
     private final long priority;
@@ -21,11 +21,7 @@ public class CandidatePacket implements Comparable {
     private int relPort;
 
     @Override
-    public int compareTo(Object o) {
-        if (o == null || !(o instanceof CandidateType)) {
-            return 0;
-        } else {
-            return (int) (((CandidatePacket)o).priority - this.priority);
-        }
+    public int compareTo(CandidatePacket o) {
+        return (int) (o.priority - this.priority);
     }
 }
