@@ -104,6 +104,13 @@ public class IceTest {
         int candidateIDFactory = 0;
 
         for(LocalCandidate localCandidate : component.getLocalCandidates()) {
+            String relAddr = null;
+            int relPort = 0;
+
+            if (localCandidate.getRelatedAddress() != null) {
+                relAddr = localCandidate.getRelatedAddress().getHostAddress();
+                relPort = localCandidate.getRelatedAddress().getPort();
+            }
 
             CandidatePacket candidatePacket = new CandidatePacket(
                     localCandidate.getFoundation(),
@@ -113,13 +120,10 @@ public class IceTest {
                     localCandidate.getTransportAddress().getPort(),
                     CandidateType.valueOf(localCandidate.getType().name()),
                     agent.getGeneration(),
-                    String.valueOf(candidateIDFactory++)
+                    String.valueOf(candidateIDFactory++),
+                    relAddr,
+                    relPort
             );
-
-            if(localCandidate.getRelatedAddress() != null) {
-                candidatePacket.setRelAddr(localCandidate.getRelatedAddress().getHostAddress());
-                candidatePacket.setRelPort(localCandidate.getRelatedAddress().getPort());
-            }
 
             localCandidatesMessage.getCandidates().add(candidatePacket);
         }
@@ -141,23 +145,23 @@ public class IceTest {
         mediaStream.setRemoteUfrag(remoteCandidatesMessage.getUfrag());
         for(CandidatePacket remoteCandidatePacket : remoteCandidatesMessage.getCandidates()) {
 
-            if(remoteCandidatePacket.getGeneration() == agent.getGeneration()
-                    && remoteCandidatePacket.getIp() != null && remoteCandidatePacket.getPort() > 0) {
+            if(remoteCandidatePacket.generation() == agent.getGeneration()
+                    && remoteCandidatePacket.ip() != null && remoteCandidatePacket.port() > 0) {
 
-                TransportAddress mainAddress = new TransportAddress(remoteCandidatePacket.getIp(), remoteCandidatePacket.getPort(), Transport.parse(remoteCandidatePacket.getProtocol().toLowerCase()));
+                TransportAddress mainAddress = new TransportAddress(remoteCandidatePacket.ip(), remoteCandidatePacket.port(), Transport.parse(remoteCandidatePacket.protocol().toLowerCase()));
 
                 RemoteCandidate relatedCandidate = null;
-                if(remoteCandidatePacket.getRelAddr() != null && remoteCandidatePacket.getRelPort() > 0) {
-                    TransportAddress relatedAddr = new TransportAddress(remoteCandidatePacket.getRelAddr(), remoteCandidatePacket.getRelPort(), Transport.parse(remoteCandidatePacket.getProtocol().toLowerCase()));
+                if(remoteCandidatePacket.relAddr() != null && remoteCandidatePacket.relPort() > 0) {
+                    TransportAddress relatedAddr = new TransportAddress(remoteCandidatePacket.relAddr(), remoteCandidatePacket.relPort(), Transport.parse(remoteCandidatePacket.protocol().toLowerCase()));
                     relatedCandidate = component.findRemoteCandidate(relatedAddr);
                 }
 
                 RemoteCandidate remoteCandidate = new RemoteCandidate(
                         mainAddress,
                         component,
-                        CandidateType.parse(remoteCandidatePacket.getType().toString()),
-                        remoteCandidatePacket.getFoundation(),
-                        remoteCandidatePacket.getPriority(),
+                        CandidateType.parse(remoteCandidatePacket.type().toString()),
+                        remoteCandidatePacket.foundation(),
+                        remoteCandidatePacket.priority(),
                         relatedCandidate
                 );
 

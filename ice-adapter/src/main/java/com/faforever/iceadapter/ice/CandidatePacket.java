@@ -1,25 +1,22 @@
 package com.faforever.iceadapter.ice;
 
-import lombok.Data;
 import org.ice4j.ice.CandidateType;
 
 /**
  * Represents a candidate to be sent/received via IceMessage
  */
-@Data
-public class CandidatePacket implements Comparable<CandidatePacket> {
-    private final String foundation;
-    private final String protocol;
-    private final long priority;
-    private final String ip;
-    private final int port;
-    private final CandidateType type;
-    private final int generation;
-    private final String id;
-
-    private String relAddr;
-    private int relPort;
-
+public record CandidatePacket(
+        String foundation,
+        String protocol,
+        long priority,
+        String ip,
+        int port,
+        CandidateType type,
+        int generation,
+        String id,
+        String relAddr,
+        int relPort
+) implements Comparable<CandidatePacket> {
     @Override
     public int compareTo(CandidatePacket o) {
         return (int) (o.priority - this.priority);
