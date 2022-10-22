@@ -3,11 +3,12 @@ package com.faforever.iceadapter;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
-@Data
-@AllArgsConstructor
 /**
  * See ICE adapter github page
  */
+@Data
+@AllArgsConstructor
+@Deprecated(forRemoval = true)
 public class IceStatus {
     private String version;
     private int ice_servers_size;
@@ -19,6 +20,7 @@ public class IceStatus {
 
     @Data
     @AllArgsConstructor
+    @Deprecated(forRemoval = true)
     public static class IceOptions {
         private int player_id;
         private String player_login;
@@ -28,6 +30,7 @@ public class IceStatus {
 
     @Data
     @AllArgsConstructor
+    @Deprecated(forRemoval = true)
     public static class IceGPGNetState {
         private int local_port;
         private boolean connected;
@@ -37,6 +40,7 @@ public class IceStatus {
 
     @Data
     @AllArgsConstructor
+    @Deprecated(forRemoval = true)
     public static class IceRelay {
 
         private int remote_player_id;
@@ -46,6 +50,7 @@ public class IceStatus {
 
         @Data
         @AllArgsConstructor
+        @Deprecated(forRemoval = true)
         public static class IceRelayICEState {
             private boolean offerer;
             private String state;

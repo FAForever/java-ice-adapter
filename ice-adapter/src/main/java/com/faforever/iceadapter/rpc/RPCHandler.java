@@ -84,7 +84,7 @@ public class RPCHandler {
         GameSession.setIceServers(iceServers);
     }
 
-    //TODO: this method is temporary and needs to be improved
+    @Deprecated(forRemoval = true)
     public String status() {
         IceStatus.IceGPGNetState gpgpnet = new IceStatus.IceGPGNetState(IceAdapter.GPGNET_PORT, GPGNetServer.isConnected(), GPGNetServer.getGameStateString(), "-");
 
