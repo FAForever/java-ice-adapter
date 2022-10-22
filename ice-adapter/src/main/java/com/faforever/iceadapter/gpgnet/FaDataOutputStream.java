@@ -15,62 +15,65 @@ import java.util.List;
  */
 public class FaDataOutputStream extends OutputStream {
 
-  public static final int FIELD_TYPE_INT = 0;
-  public static final int FIELD_TYPE_FOLLOWING_STRING = 2;
-  public static final int FIELD_TYPE_STRING = 1;
-  public static final char DELIMITER = '\b';
-  private final LittleEndianDataOutputStream outputStream;
-  private Charset charset;
+    public static final int FIELD_TYPE_INT = 0;
+    public static final int FIELD_TYPE_FOLLOWING_STRING = 2;
+    public static final int FIELD_TYPE_STRING = 1;
+    public static final char DELIMITER = '\b';
+    private final LittleEndianDataOutputStream outputStream;
+    private final Charset charset = StandardCharsets.UTF_8;
 
-  public FaDataOutputStream(OutputStream outputStream) {
-    this.outputStream = new LittleEndianDataOutputStream(new BufferedOutputStream(outputStream));
-    charset = StandardCharsets.UTF_8;
-  }
-
-  @Override
-  public void write(int b) throws IOException {
-    outputStream.write(b);
-  }
-
-  @Override
-  public void flush() throws IOException {
-    outputStream.flush();
-  }
-
-  public synchronized void writeArgs(List<Object> args) throws IOException {
-    writeInt(args.size());
-
-    for (Object arg : args) {
-      if (arg instanceof Double) {
-        writeByte(FIELD_TYPE_INT);
-        writeInt(((Double) arg).intValue());
-      } else if (arg instanceof Integer) {
-        writeByte(FIELD_TYPE_INT);
-        writeInt((int) arg);
-      } else if (arg instanceof String) {
-        String value = (String) arg;
-        writeByte(FIELD_TYPE_STRING);
-        writeString(value);
-      }
+    public FaDataOutputStream(OutputStream outputStream) {
+        this.outputStream = new LittleEndianDataOutputStream(new BufferedOutputStream(outputStream));
     }
-  }
 
-  public void writeInt(int value) throws IOException {
-    outputStream.writeInt(value);
-  }
+    @Override
+    public void write(int b) throws IOException {
+        outputStream.write(b);
+    }
 
-  public synchronized void writeByte(int b) throws IOException {
-    outputStream.writeByte(b);
-  }
+    @Override
+    public void flush() throws IOException {
+        outputStream.flush();
+    }
 
-  public synchronized void writeString(String string) throws IOException {
-  	outputStream.writeInt(string.length());
-    outputStream.write(string.getBytes(charset));
-  }
+    public synchronized void writeArgs(List<Object> args) throws IOException {
+        writeInt(args.size());
 
-  public synchronized void writeMessage(String header, Object... args) throws IOException {
-    writeString(header);
-    writeArgs(Arrays.asList(args));
-    outputStream.flush();
-  }
+        for (Object arg : args) {
+            if (arg instanceof Double d) {
+                writeByte(FIELD_TYPE_INT);
+                writeInt(d.intValue());
+            } else if (arg instanceof Integer i) {
+                writeByte(FIELD_TYPE_INT);
+                writeInt(i);
+            } else if (arg instanceof String value) {
+                writeByte(FIELD_TYPE_STRING);
+                writeString(value);
+            }
+        }
+    }
+
+    public void writeInt(int value) throws IOException {
+        outputStream.writeInt(value);
+    }
+
+    public synchronized void writeByte(int b) throws IOException {
+        outputStream.writeByte(b);
+    }
+
+    public synchronized void writeString(String string) throws IOException {
+        outputStream.writeInt(string.length());
+        outputStream.write(string.getBytes(charset));
+    }
+
+    public synchronized void writeMessage(String header, Object... args) throws IOException {
+        writeString(header);
+        writeArgs(Arrays.asList(args));
+        outputStream.flush();
+    }
+
+    @Override
+    public void close() throws IOException {
+        outputStream.close();
+    }
 }

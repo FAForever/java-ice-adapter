@@ -136,9 +136,8 @@ public class GPGNetServer {
         private void listenerThread() {
             log.debug("Listening for GPG messages");
             boolean triggerActive = false;//Prevents a race condition between this thread and the thread that has created this object and is now going to set GPGNetServer.currentClient
-            try {
-                FaDataInputStream gpgnetIn = new FaDataInputStream(socket.getInputStream());
-
+            try (var inputStream = socket.getInputStream();
+                 var gpgnetIn = new FaDataInputStream(inputStream)) {
                 while ((!triggerActive || GPGNetServer.currentClient == this) && !stopping) {
                     String command = gpgnetIn.readString();
                     List<Object> args = gpgnetIn.readChunks();

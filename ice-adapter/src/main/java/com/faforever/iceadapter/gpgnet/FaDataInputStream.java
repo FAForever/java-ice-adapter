@@ -15,57 +15,61 @@ import java.util.List;
  */
 public class FaDataInputStream extends InputStream {
 
-  private static final int MAX_CHUNK_SIZE = 10;
-  private static final int FIELD_TYPE_INT = 0;
+    private static final int MAX_CHUNK_SIZE = 10;
+    private static final int FIELD_TYPE_INT = 0;
 
-  private final LittleEndianDataInputStream inputStream;
-  private final Charset charset;
+    private final LittleEndianDataInputStream inputStream;
+    private final Charset charset = StandardCharsets.UTF_8;
 
-  public FaDataInputStream(InputStream inputStream) {
-    this.inputStream = new LittleEndianDataInputStream(new BufferedInputStream(inputStream));
-    charset = StandardCharsets.UTF_8;
-  }
-
-  public List<Object> readChunks() throws IOException {
-    int numberOfChunks = readInt();
-
-    if (numberOfChunks > MAX_CHUNK_SIZE) {
-      throw new IOException("Too many chunks: " + numberOfChunks);
+    public FaDataInputStream(InputStream inputStream) {
+        this.inputStream = new LittleEndianDataInputStream(new BufferedInputStream(inputStream));
     }
 
-    List<Object> chunks = new ArrayList<>(numberOfChunks);
+    public List<Object> readChunks() throws IOException {
+        int numberOfChunks = readInt();
 
-    for (int chunkNumber = 0; chunkNumber < numberOfChunks; chunkNumber++) {
-      int fieldType = read();
+        if (numberOfChunks > MAX_CHUNK_SIZE) {
+            throw new IOException("Too many chunks: " + numberOfChunks);
+        }
 
-      switch (fieldType) {
-        case FIELD_TYPE_INT:
-          chunks.add(readInt());
-          break;
+        List<Object> chunks = new ArrayList<>(numberOfChunks);
 
-        default:
-          // This could surely be optimized
-          chunks.add(readString().replace("/t", "\t").replace("/n", "\n"));
-      }
+        for (int chunkNumber = 0; chunkNumber < numberOfChunks; chunkNumber++) {
+            int fieldType = read();
+
+            switch (fieldType) {
+                case FIELD_TYPE_INT:
+                    chunks.add(readInt());
+                    break;
+
+                default:
+                    // This could surely be optimized
+                    chunks.add(readString().replace("/t", "\t").replace("/n", "\n"));
+            }
+        }
+
+        return chunks;
     }
 
-    return chunks;
-  }
+    public int readInt() throws IOException {
+        return inputStream.readInt();
+    }
 
-  public int readInt() throws IOException {
-    return inputStream.readInt();
-  }
+    @Override
+    public int read() throws IOException {
+        return inputStream.read();
+    }
 
-  @Override
-  public int read() throws IOException {
-    return inputStream.read();
-  }
+    public String readString() throws IOException {
+        int size = readInt();
 
-  public String readString() throws IOException {
-    int size = readInt();
+        byte[] buffer = new byte[size];
+        inputStream.readFully(buffer);
+        return new String(buffer, charset);
+    }
 
-    byte[] buffer = new byte[size];
-    inputStream.readFully(buffer);
-    return new String(buffer, charset);
-  }
+    @Override
+    public void close() throws IOException {
+        inputStream.close();
+    }
 }
