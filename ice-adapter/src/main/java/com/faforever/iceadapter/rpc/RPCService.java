@@ -1,6 +1,6 @@
 package com.faforever.iceadapter.rpc;
 
-import com.faforever.iceadapter.IceAdapter;
+import com.faforever.iceadapter.FafRpcCallbacks;
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.debug.InfoWindow;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
 
@@ -22,25 +21,24 @@ import static com.faforever.iceadapter.debug.Debug.debug;
  */
 @Slf4j
 public class RPCService {
+	private final Gson gson = new Gson();
 
-	private static Gson gson = new Gson();
+	private TcpServer tcpServer;
 
-	private static TcpServer tcpServer;
-	private static RPCHandler rpcHandler;
+	private volatile boolean skipRPCMessages = false;
 
-	private static volatile boolean skipRPCMessages = false;
+	public void init(int port, GPGNetServer gpgNetServer, FafRpcCallbacks callbacks) {
+		Debug.RPC_PORT = port;
+		log.info("Creating RPC server on port {}", port);
 
-	public static void init() {
-		log.info("Creating RPC server on port {}", IceAdapter.RPC_PORT);
-
-		rpcHandler = new RPCHandler();
-		tcpServer = new TcpServer(IceAdapter.RPC_PORT, rpcHandler);
+		RPCHandler rpcHandler = new RPCHandler(port, callbacks, gpgNetServer);
+		tcpServer = new TcpServer(port, rpcHandler);
 		tcpServer.start();
 
 		debug().rpcStarted(tcpServer.getFirstPeer());
 		tcpServer.getFirstPeer().thenAccept(firstPeer -> {
 			firstPeer.onConnectionLost(() -> {
-				GameState gameState = GPGNetServer.getGameState().orElse(null);
+				GameState gameState = gpgNetServer.getGameState().orElse(null);
 				if (gameState == GameState.LAUNCHING) {
 					skipRPCMessages = true;
 					log.warn("Lost connection to first RPC Peer. GameState: LAUNCHING, NOT STOPPING!");
@@ -51,37 +49,37 @@ public class RPCService {
 					InfoWindow.INSTANCE.show();
 				} else {
 					log.info("Lost connection to first RPC Peer. GameState: {}, Stopping adapter...", gameState.getName());
-					IceAdapter.close();
+					callbacks.close();
 				}
 			});
 		});
 	}
 
-	public static void onConnectionStateChanged(String newState) {
+	public void onConnectionStateChanged(String newState) {
 		if (!skipRPCMessages) {
 			getPeerOrWait().sendNotification("onConnectionStateChanged", Arrays.asList(newState));
 		}
 	}
 
-	public static void onGpgNetMessageReceived(String header, List<Object> chunks) {
+	public void onGpgNetMessageReceived(String header, List<Object> chunks) {
 		if (!skipRPCMessages) {
 			getPeerOrWait().sendNotification("onGpgNetMessageReceived", Arrays.asList(header, chunks));
 		}
 	}
 
-	public static void onIceMsg(CandidatesMessage candidatesMessage) {
+	public void onIceMsg(CandidatesMessage candidatesMessage) {
 		if (!skipRPCMessages) {
 			getPeerOrWait().sendNotification("onIceMsg", Arrays.asList(candidatesMessage.srcId(), candidatesMessage.destId(), gson.toJson(candidatesMessage)));
 		}
 	}
 
-	public static void onIceConnectionStateChanged(long localPlayerId, long remotePlayerId, String state) {
+	public void onIceConnectionStateChanged(long localPlayerId, long remotePlayerId, String state) {
 		if (!skipRPCMessages) {
 			getPeerOrWait().sendNotification("onIceConnectionStateChanged", Arrays.asList(localPlayerId, remotePlayerId, state));
 		}
 	}
 
-	public static void onConnected(long localPlayerId, long remotePlayerId, boolean connected) {
+	public void onConnected(long localPlayerId, long remotePlayerId, boolean connected) {
 		if (!skipRPCMessages) {
 			getPeerOrWait().sendNotification("onConnected", Arrays.asList(localPlayerId, remotePlayerId, connected));
 		}
@@ -93,7 +91,7 @@ public class RPCService {
 	 *
 	 * @return the currently connected peer (the client)
 	 */
-	public static JJsonPeer getPeerOrWait() {
+	public JJsonPeer getPeerOrWait() {
 		try {
 			return tcpServer.getFirstPeer().get();
 		} catch (Exception e) {
@@ -102,11 +100,7 @@ public class RPCService {
 		return null;
 	}
 
-	public static CompletableFuture<JJsonPeer> getPeerFuture() {
-		return tcpServer.getFirstPeer();
-	}
-
-	public static void close() {
+	public void close() {
 		tcpServer.stop();
 	}
 }

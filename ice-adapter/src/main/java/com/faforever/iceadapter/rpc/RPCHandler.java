@@ -1,5 +1,6 @@
 package com.faforever.iceadapter.rpc;
 
+import com.faforever.iceadapter.FafRpcCallbacks;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.IceStatus;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
@@ -8,6 +9,7 @@ import com.faforever.iceadapter.ice.CandidatesMessage;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.ice.Peer;
 import com.google.gson.Gson;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.Candidate;
@@ -24,32 +26,32 @@ import java.util.Optional;
  * Handles calls from JsonRPC (the client)
  */
 @Slf4j
+@RequiredArgsConstructor
 public class RPCHandler {
 
-    private Gson gson = new Gson();
-
-    public RPCHandler() {
-
-    }
+    private final Gson gson = new Gson();
+    private final int rpcPort;
+    private final FafRpcCallbacks callbacks;
+    private final GPGNetServer gpgNetServer;
 
     public void hostGame(String mapName) {
-        IceAdapter.onHostGame(mapName);
+        callbacks.onHostGame(mapName);
     }
 
     public void joinGame(String remotePlayerLogin, long remotePlayerId) {
-        IceAdapter.onJoinGame(remotePlayerLogin, (int) remotePlayerId);
+        callbacks.onJoinGame(remotePlayerLogin, (int) remotePlayerId);
     }
 
     public void connectToPeer(String remotePlayerLogin, long remotePlayerId, boolean offer) {
-        IceAdapter.onConnectToPeer(remotePlayerLogin, (int) remotePlayerId, offer);
+        callbacks.onConnectToPeer(remotePlayerLogin, (int) remotePlayerId, offer);
     }
 
     public void disconnectFromPeer(long remotePlayerId) {
-        IceAdapter.onDisconnectFromPeer((int) remotePlayerId);
+        callbacks.onDisconnectFromPeer((int) remotePlayerId);
     }
 
     public void setLobbyInitMode(String lobbyInitMode) {
-        GPGNetServer.lobbyInitMode = LobbyInitMode.getByName(lobbyInitMode);
+        gpgNetServer.setLobbyInitMode(LobbyInitMode.getByName(lobbyInitMode));
         log.debug("LobbyInitMode set to {}", lobbyInitMode);
     }
 
@@ -72,12 +74,8 @@ public class RPCHandler {
 		log.info("IceMsg received {}", msg);
     }
 
-    public void sendToGpgNet(String header, String... chunks) {
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
-                gpgNetClient.sendGpgnetMessage(header, chunks);
-            });
-        });
+    public void sendToGpgNet(String header, Object... args) {
+        callbacks.sendToGpgNet(header, args);
     }
 
     public void setIceServers(List<Map<String, Object>> iceServers) {
@@ -86,7 +84,7 @@ public class RPCHandler {
 
     //TODO: this method is temporary and needs to be improved
     public String status() {
-        IceStatus.IceGPGNetState gpgpnet = new IceStatus.IceGPGNetState(IceAdapter.GPGNET_PORT, GPGNetServer.isConnected(), GPGNetServer.getGameStateString(), "-");
+        IceStatus.IceGPGNetState gpgpnet = new IceStatus.IceGPGNetState(gpgNetServer.getGpgnetPort(), gpgNetServer.isConnected(), gpgNetServer.getGameStateString(), "-");
 
         List<IceStatus.IceRelay> relays = new ArrayList<>();
         GameSession gameSession = IceAdapter.gameSession;
@@ -116,9 +114,9 @@ public class RPCHandler {
         IceStatus status = new IceStatus(
                 IceAdapter.VERSION,
                 GameSession.getIceServers().stream().mapToInt(s -> s.getTurnAddresses().size() + s.getStunAddresses().size()).sum(),
-                IceAdapter.LOBBY_PORT,
-                GPGNetServer.lobbyInitMode.getName(),
-                new IceStatus.IceOptions(IceAdapter.id, IceAdapter.login, IceAdapter.RPC_PORT, IceAdapter.GPGNET_PORT),
+                gpgNetServer.getLobbyPort(),
+                gpgNetServer.getLobbyInitMode().getName(),
+                new IceStatus.IceOptions(IceAdapter.getId(), IceAdapter.getLogin(), rpcPort, gpgNetServer.getGpgnetPort()),
                 gpgpnet,
                 relays.toArray(new IceStatus.IceRelay[relays.size()])
         );
@@ -128,7 +126,7 @@ public class RPCHandler {
 
     public void quit() {
         log.warn("Close requested, stopping...");
-        IceAdapter.close();
+        callbacks.close();
     }
 
 }

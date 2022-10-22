@@ -16,6 +16,8 @@ public class Debug {
 	public static boolean ENABLE_INFO_WINDOW = false;
 	public static int DELAY_UI_MS = 0;//delays the launch of the user interface by X ms
 
+	public static int RPC_PORT;
+
 	private final static DebugFacade debugFacade = new DebugFacade();
 
 	public static void register(Debugger debugger) {
@@ -26,8 +28,9 @@ public class Debug {
 		debugFacade.remove(debugger);
 	}
 
+
 	public static void init() {
-		new TelemetryDebugger(IceAdapter.TELEMETRY_SERVER, IceAdapter.gameId, IceAdapter.id);
+		new TelemetryDebugger(IceAdapter.getTelemetryServer(), IceAdapter.getGameId(), IceAdapter.getId());
 
 		// Debugger window is started and set to debugFuture when either window is requested as the info window can be used to open the debug window
 		// This is not used anymore as the debug window is started and hidden in case it is requested via the tray icon

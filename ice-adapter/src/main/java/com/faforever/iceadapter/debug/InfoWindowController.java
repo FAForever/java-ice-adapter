@@ -1,7 +1,7 @@
 package com.faforever.iceadapter.debug;
 
 import com.faforever.iceadapter.IceAdapter;
-import com.faforever.iceadapter.util.TrayIcon;
+import com.faforever.iceadapter.util.TrayIconWrapper;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -39,9 +39,9 @@ public class InfoWindowController {
     @SneakyThrows
     public void onTelemetryWebUiClicked(ActionEvent actionEvent) {
         String url = "%s/app.html?gameId=%d&playerId=%d".formatted(
-                IceAdapter.TELEMETRY_SERVER.replaceFirst("ws", "http"),
-                IceAdapter.gameId,
-                IceAdapter.id
+                IceAdapter.getTelemetryServer().replaceFirst("ws", "http"),
+                IceAdapter.getGameId(),
+                IceAdapter.getId()
         );
 
         new Thread(() -> {
@@ -54,7 +54,7 @@ public class InfoWindowController {
     }
 
     public void onMinimizeToTrayClicked(ActionEvent actionEvent) {
-        if (TrayIcon.isTrayIconSupported() && InfoWindow.INSTANCE != null) {
+		if (TrayIconWrapper.isTrayIconSupported() && InfoWindow.INSTANCE != null) {
             InfoWindow.INSTANCE.minimize();
         }
     }
@@ -66,7 +66,7 @@ public class InfoWindowController {
         showTelemetryWebUiButton.setOnAction(this::onTelemetryWebUiClicked);
         minimizeToTray.setOnAction(this::onMinimizeToTrayClicked);
 
-        if (!TrayIcon.isTrayIconSupported()) {
+		if (!TrayIconWrapper.isTrayIconSupported()) {
             minimizeToTray.setVisible(false);
         }
     }

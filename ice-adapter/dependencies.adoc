@@ -1,0 +1,31 @@
+= Diagram of static class dependencies
+(only static method calls)
+
+["graphviz", "static-dependencies"]
+---------------------------------------------------------------------
+digraph dependencies {
+  IceAdapter -> Debug [label="debug"]
+  IceAdapter -> PeerIceModule [label="init()"]
+
+  GPGNetServer -> IceAdapter [label="gameSession()"]
+  GPGNetServer -> IceAdapter [label="<config>"]
+  GPGNetServer -> IceAdapter [label="onFAShutdown()"]
+  GPGNetServer -> Debug [label="debug"]
+  GPGNetServer -> GPGNetClient [label="getGameState()"]
+
+  RPCService -> InfoWindow [label="INSTANCE"]
+
+  TrayIconWrapper -> InfoWindow [label="INSTANCE"]
+  TrayIconWrapper -> Debug [label="ENABLE_INFO_WINDOW"]
+
+  RPCHandler -> IceAdapter [label="gameSession"]
+  RPCHandler -> IceAdapter [label="<config>"]
+  RPCHandler -> GPGNetServer [label="lobbyInitMode"]
+
+  PeerIceModule -> IceAdapter [label="gameSession"]
+
+  PeerConnectivityCheckerModule -> IceAdapter [label="gameSession"]
+
+  InfoWindowController -> TrayIconWrapper [label="isTrayIconSupported"]
+}
+---------------------------------------------------------------------
