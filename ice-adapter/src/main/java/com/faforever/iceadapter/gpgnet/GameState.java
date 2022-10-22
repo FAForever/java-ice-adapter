@@ -5,12 +5,12 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
 
-@Getter
-@RequiredArgsConstructor
 /**
  * GameState as sent by FA,
  ENDED was added by the FAF project
  */
+@Getter
+@RequiredArgsConstructor
 public enum GameState {
     NONE("None"),
     IDLE("Idle"),
@@ -21,6 +21,9 @@ public enum GameState {
     private final String name;
 
     public static GameState getByName(String name) {
-        return Arrays.stream(GameState.values()).filter(s -> s.getName().equals(name)).findFirst().orElse(null);
+        return Arrays.stream(GameState.values())
+                .filter(s -> s.getName().equals(name))
+                .findFirst()
+                .orElse(null);
     }
 }

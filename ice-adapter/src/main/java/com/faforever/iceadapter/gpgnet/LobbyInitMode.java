@@ -5,11 +5,11 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
 
-@Getter
-@RequiredArgsConstructor
 /**
  * Lobby init mode, set by the client via RPC, transmitted to game via CreateLobby
  */
+@Getter
+@RequiredArgsConstructor
 public enum LobbyInitMode {
     NORMAL("normal", 0), AUTO("auto", 1); //Normal = normal lobby, Auto = skip lobby screen (e.g. ranked)
 
@@ -17,7 +17,10 @@ public enum LobbyInitMode {
     private final int id;
 
     public static LobbyInitMode getByName(String name) {
-        return Arrays.stream(LobbyInitMode.values()).filter(s -> s.getName().equals(name)).findFirst().orElse(null);
+        return Arrays.stream(LobbyInitMode.values())
+                .filter(s -> s.getName().equals(name))
+                .findFirst()
+                .orElse(null);
     }
 }
 

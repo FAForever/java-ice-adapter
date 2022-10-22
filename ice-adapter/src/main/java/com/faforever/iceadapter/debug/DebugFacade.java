@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class DebugFacade implements Debugger {
-    private final List<Debugger> debuggers = new CopyOnWriteArrayList();
+    private final List<Debugger> debuggers = new CopyOnWriteArrayList<>();
 
     public void add(Debugger debugger) {
         debuggers.add(debugger);
