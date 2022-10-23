@@ -14,7 +14,6 @@ import org.ice4j.TransportAddress;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +21,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
@@ -34,7 +34,7 @@ import static com.faforever.iceadapter.debug.Debug.debug;
 public class GameSession {
 
     @Getter
-    private Map<Integer, Peer> peers = new HashMap<>();
+    private final Map<Integer, Peer> peers = new ConcurrentHashMap<>();
     @Getter
     @Setter
     private volatile boolean gameEnded = false;
@@ -49,24 +49,20 @@ public class GameSession {
      * @return the port the ice adapter will be listening/sending for FA
      */
     public int connectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer) {
-        synchronized (peers) {
-            Peer peer = new Peer(this, remotePlayerId, remotePlayerLogin, offer);
-            peers.put(remotePlayerId, peer);
-            debug().connectToPeer(remotePlayerId, remotePlayerLogin, offer);
-            return peer.getFaSocket().getLocalPort();
-        }
+        Peer peer = new Peer(this, remotePlayerId, remotePlayerLogin, offer);
+        peers.put(remotePlayerId, peer);
+        debug().connectToPeer(remotePlayerId, remotePlayerLogin, offer);
+        return peer.getFaSocket().getLocalPort();
     }
 
     /**
      * Disconnects from a peer (ICE)
      */
     public void disconnectFromPeer(int remotePlayerId) {
-        synchronized (peers) {
-            if (peers.containsKey(remotePlayerId)) {
-                peers.get(remotePlayerId).close();
-                peers.remove(remotePlayerId);
-                debug().disconnectFromPeer(remotePlayerId);
-            }
+        Peer removedPeer = peers.remove(remotePlayerId);
+        if (removedPeer != null) {
+            removedPeer.close();
+            debug().disconnectFromPeer(remotePlayerId);
         }
         //TODO: still testing connectivity and reporting disconnect via rpc, why???
         //TODO: still attempting to ICE
@@ -76,14 +72,12 @@ public class GameSession {
      * Stops the connection to all peers and all ice agents
      */
     public void close() {
-        synchronized (peers) {
-            peers.values().forEach(Peer::close);
-        }
+        peers.values().forEach(Peer::close);
+        peers.clear();
     }
 
-
     @Getter
-    private static final List<IceServer> iceServers = new ArrayList();
+    private static final List<IceServer> iceServers = new ArrayList<>();
 
     /**
      * Set ice servers (to be used for harvesting candidates)
