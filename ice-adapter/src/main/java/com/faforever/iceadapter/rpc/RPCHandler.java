@@ -7,7 +7,9 @@ import com.faforever.iceadapter.gpgnet.LobbyInitMode;
 import com.faforever.iceadapter.ice.CandidatesMessage;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.ice.Peer;
-import com.google.gson.Gson;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.Candidate;
@@ -15,6 +17,7 @@ import org.ice4j.ice.CandidatePair;
 import org.ice4j.ice.CandidateType;
 import org.ice4j.ice.Component;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +29,10 @@ import java.util.Optional;
 @Slf4j
 public class RPCHandler {
 
-    private Gson gson = new Gson();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public RPCHandler() {
-
+        objectMapper.registerModule(new JavaTimeModule());
     }
 
     public void hostGame(String mapName) {
@@ -60,8 +63,13 @@ public class RPCHandler {
         if (gameSession != null) {//This is highly unlikely, game session got created if JoinGame/HostGame came first
             Peer peer = gameSession.getPeers().get((int) remotePlayerId);
             if (peer != null) {//This is highly unlikely, peer is present if connectToPeer was called first
-                peer.getIce().onIceMessageReceived(gson.fromJson((String) msg, CandidatesMessage.class));
-                err = false;
+                try {
+                    peer.getIce().onIceMessageReceived(objectMapper.readValue((String) msg, CandidatesMessage.class));
+                    err = false;
+                } catch (IOException e) {
+                    log.error("Failed to parse iceMsg {}", msg, e);
+                    return;
+                }
             }
         }
 
@@ -85,6 +93,7 @@ public class RPCHandler {
     }
 
     @Deprecated(forRemoval = true)
+    @SneakyThrows
     public String status() {
         IceStatus.IceGPGNetState gpgpnet = new IceStatus.IceGPGNetState(IceAdapter.GPGNET_PORT, GPGNetServer.isConnected(), GPGNetServer.getGameStateString(), "-");
 
@@ -123,7 +132,7 @@ public class RPCHandler {
                 relays.toArray(new IceStatus.IceRelay[relays.size()])
         );
 
-        return gson.toJson(status);
+        return objectMapper.writeValueAsString(status);
     }
 
     public void quit() {

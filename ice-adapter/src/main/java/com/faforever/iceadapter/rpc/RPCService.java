@@ -6,7 +6,9 @@ import com.faforever.iceadapter.debug.InfoWindow;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.CandidatesMessage;
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 import com.nbarraille.jjsonrpc.TcpServer;
 import lombok.extern.slf4j.Slf4j;
@@ -23,12 +25,16 @@ import static com.faforever.iceadapter.debug.Debug.debug;
 @Slf4j
 public class RPCService {
 
-	private static Gson gson = new Gson();
+	private final static ObjectMapper objectMapper = new ObjectMapper();
 
 	private static TcpServer tcpServer;
 	private static RPCHandler rpcHandler;
 
 	private static volatile boolean skipRPCMessages = false;
+
+	static {
+		objectMapper.registerModule(new JavaTimeModule());
+	}
 
 	public static void init() {
 		log.info("Creating RPC server on port {}", IceAdapter.RPC_PORT);
@@ -71,7 +77,11 @@ public class RPCService {
 
 	public static void onIceMsg(CandidatesMessage candidatesMessage) {
 		if (!skipRPCMessages) {
-			getPeerOrWait().sendNotification("onIceMsg", Arrays.asList(candidatesMessage.srcId(), candidatesMessage.destId(), gson.toJson(candidatesMessage)));
+			try {
+				getPeerOrWait().sendNotification("onIceMsg", Arrays.asList(candidatesMessage.srcId(), candidatesMessage.destId(), objectMapper.writeValueAsString(candidatesMessage)));
+			} catch (JsonProcessingException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 

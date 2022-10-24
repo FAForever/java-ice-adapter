@@ -1,6 +1,7 @@
 import com.faforever.iceadapter.ice.CandidatePacket;
 import com.faforever.iceadapter.ice.CandidatesMessage;
-import com.google.gson.Gson;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -30,8 +31,11 @@ public class IceTest {
 //    private static final String COTURN_HOST = "vmrbg145.informatik.tu-muenchen.de";
 //    private static final String COTURN_KEY = "banana";
 
-    private static final Gson gson = new Gson();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    static {
+        objectMapper.registerModule(new JavaTimeModule());
+    }
 
     public static void main(String args[]) throws IOException {
         Scanner scan = new Scanner("false\n12345\n");
@@ -132,15 +136,15 @@ public class IceTest {
 
         CandidatesMessage localCandidatesMessage = new CandidatesMessage(0, 0/*mocked*/, agent.getLocalPassword(), agent.getLocalUfrag(), candidatePackets);
 
-        System.out.printf("------------------------------------\n%s\n------------------------------------\n", gson.toJson(localCandidatesMessage));
+        System.out.printf("------------------------------------\n%s\n------------------------------------\n", objectMapper.writeValueAsString(localCandidatesMessage));
 
         //read candidates
         Socket socket = new Socket("localhost", 49456);
         DataOutputStream out = new DataOutputStream(socket.getOutputStream());
         DataInputStream in = new DataInputStream(socket.getInputStream());
-        out.writeUTF(gson.toJson(localCandidatesMessage));
+        out.writeUTF(objectMapper.writeValueAsString(localCandidatesMessage));
         out.flush();
-        CandidatesMessage remoteCandidatesMessage = gson.fromJson(in.readUTF(), CandidatesMessage.class);
+        CandidatesMessage remoteCandidatesMessage = objectMapper.readValue(in.readUTF(), CandidatesMessage.class);
 
         //Set candidates
         mediaStream.setRemotePassword(remoteCandidatesMessage.password());
@@ -168,7 +172,7 @@ public class IceTest {
                 );
 
                 if(remoteCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE)) //DEBUGGING: turn only
-                component.addRemoteCandidate(remoteCandidate);
+                    component.addRemoteCandidate(remoteCandidate);
             }
         }
 
