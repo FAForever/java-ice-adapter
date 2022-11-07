@@ -64,35 +64,10 @@ jobs:
           echo ::set-output name=NOJFX_JAR::${NOJFX_JAR}
           echo ::set-output name=NOJFX_JAR_NAME::${NOJFX_JAR_NAME}
 
-      - name: Upload NoJFX Files
-        id: upload-nojfx
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Files to Release
+        id: upload-files
+        uses: AButler/upload-release-assets@v2
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.artifact_paths.outputs.NOJFX_JAR }}
-          asset_name: ${{ steps.artifact_paths.outputs.NOJFX_JAR_NAME }}
-          asset_content_type: application/java-archive
-
-      - name: Upload Linux Files
-        id: upload-linux
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.artifact_paths.outputs.LINUX_JAR }}
-          asset_name: ${{ steps.artifact_paths.outputs.LINUX_JAR_NAME }}
-          asset_content_type: application/java-archive
-
-      - name: Upload Windows zip
-        id: upload-zip
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.artifact_paths.outputs.WINDOWS_JAR }}
-          asset_name: ${{ steps.artifact_paths.outputs.WINDOWS_JAR_NAME }}
-          asset_content_type: application/java-archive
+          files: ${{ steps.artifact_paths.outputs.NOJFX_JAR }};${{ steps.artifact_paths.outputs.LINUX_JAR }};${{ steps.artifact_paths.outputs.WINDOWS_JAR }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          release-tag: ${{ github.event.inputs.version }}
