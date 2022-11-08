@@ -18,8 +18,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -44,8 +42,7 @@ jobs:
         id: create_release
         uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ github.event.inputs.version }}
-          release_name: ${{ github.event.inputs.version }}
+          tag: ${{ github.event.inputs.version }}
           draft: true
           prerelease: true
           generateReleaseNotes: true
