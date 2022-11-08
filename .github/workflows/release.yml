@@ -37,37 +37,16 @@ jobs:
         run: |
           ./gradlew -Pversion="${{ github.event.inputs.version }}" -PjavafxPlatform=linux -PjavafxClasspath=compileOnly --stacktrace :ice-adapter:shadowJar
 
+
       - name: Create Draft Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1
         with:
           tag_name: ${{ github.event.inputs.version }}
           release_name: ${{ github.event.inputs.version }}
           draft: true
           prerelease: true
-
-      - name: Get Artifact Paths
-        id: artifact_paths
-        run: |
-          LINUX_JAR=$(ls ice-adapter/build/libs/faf-ice-adapter-*-linux.jar | head -n 1)
-          LINUX_JAR_NAME=$(basename $LINUX_JAR)
-          WINDOWS_JAR=$(ls ice-adapter/build/libs/faf-ice-adapter-*-win.jar | head -n 1)
-          WINDOWS_JAR_NAME=$(basename $WINDOWS_JAR)
-          NOJFX_JAR=$(ls ice-adapter/build/libs/faf-ice-adapter-*-nojfx.jar | head -n 1)
-          NOJFX_JAR_NAME=$(basename $NOJFX_JAR)
-          echo ::set-output name=LINUX_JAR::${LINUX_JAR}
-          echo ::set-output name=LINUX_JAR_NAME::${LINUX_JAR_NAME}
-          echo ::set-output name=WINDOWS_JAR::${WINDOWS_JAR}
-          echo ::set-output name=WINDOWS_JAR_NAME::${WINDOWS_JAR_NAME}
-          echo ::set-output name=NOJFX_JAR::${NOJFX_JAR}
-          echo ::set-output name=NOJFX_JAR_NAME::${NOJFX_JAR_NAME}
-
-      - name: Upload Files to Release
-        id: upload-files
-        uses: AButler/upload-release-assets@v2.0.2
-        with:
-          files: ${{ steps.artifact_paths.outputs.NOJFX_JAR }};${{ steps.artifact_paths.outputs.LINUX_JAR }};${{ steps.artifact_paths.outputs.WINDOWS_JAR }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ github.event.inputs.version }}
+          generateReleaseNotes: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: ice-adapter/build/libs/faf-ice-adapter-*.jar
+          
