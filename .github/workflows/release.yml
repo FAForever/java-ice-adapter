@@ -42,6 +42,7 @@ jobs:
         id: create_release
         uses: ncipollo/release-action@v1
         with:
+          commit: ${{ github.sha }}
           tag: ${{ github.event.inputs.version }}
           draft: true
           prerelease: true
