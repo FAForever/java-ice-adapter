@@ -12,17 +12,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
 
@@ -33,6 +35,9 @@ import static com.faforever.iceadapter.debug.Debug.debug;
 @Slf4j
 public class GameSession {
 
+    private static final String STUN = "stun";
+    private static final String TURN = "turn";
+    private static final Set<String> VALID_PROTOCOLS = Set.of(STUN, TURN);
     @Getter
     private final Map<Integer, Peer> peers = new ConcurrentHashMap<>();
     @Getter
@@ -82,8 +87,6 @@ public class GameSession {
     /**
      * Set ice servers (to be used for harvesting candidates)
      * Called by the client via jsonRPC
-     *
-     * @param iceServersData
      */
     public static void setIceServers(List<Map<String, Object>> iceServersData) {
         GameSession.iceServers.clear();
@@ -94,15 +97,15 @@ public class GameSession {
 
         // For caching RTT to a given host (the same host can appear in multiple urls)
         LoadingCache<String, CompletableFuture<OptionalDouble>> hostRTTCache = CacheBuilder.newBuilder().build(
-                new CacheLoader<String, CompletableFuture<OptionalDouble>>() {
+                new CacheLoader<>() {
                     @Override
-                    public CompletableFuture<OptionalDouble> load(String host) throws Exception {
+                    public CompletableFuture<OptionalDouble> load(String host) {
                         return PingWrapper.getLatency(host, IceAdapter.PING_COUNT)
-                                .thenApply(OptionalDouble::of)
-                                .exceptionally(ex -> OptionalDouble.empty());
+                                          .thenApply(OptionalDouble::of)
+                                          .exceptionally(ex -> OptionalDouble.empty());
                     }
                 }
-        );
+                                                                                                              );
 
         Set<CoturnServer> coturnServers = new HashSet<>();
 
@@ -126,29 +129,53 @@ public class GameSession {
                 }
 
                 urls.stream()
-                        .map(IceServer.urlPattern::matcher)
-                        .filter(Matcher::matches)
-                        .forEach(matcher -> {
-                            String host = matcher.group("host");
-                            int port = Optional.ofNullable(matcher.group("port")).map(Integer::parseInt).orElse(3478);
-                            Transport transport = Optional.ofNullable(matcher.group("transport")).map(Transport::parse).orElse(Transport.UDP);
+                    .map(stringUrl -> {
+                        try {
+                            return new URL(stringUrl);
+                        } catch (Exception e) {
+                            log.warn("Invalid ICE server URL: {}", stringUrl);
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .filter(url -> VALID_PROTOCOLS.contains(url.getProtocol()))
+                    .forEach(url -> {
+                        String host = url.getHost();
+                        int port = url.getPort() == -1 ? 3478 : url.getPort();
+                        Transport transport = Optional.ofNullable(url.getQuery())
+                                                      .stream()
+                                                      .flatMap(query -> Arrays.stream(query.split("&")))
+                                                      .map(param -> param.split("="))
+                                                      .filter(param -> param.length == 2 &&
+                                                                       param[0].equals("transport"))
+                                                      .findFirst()
+                                                      .map(param -> param[1])
+                                                      .map(Transport::parse)
+                                                      .orElse(Transport.UDP);
 
-                            TransportAddress address = new TransportAddress(host, port, transport);
-                            (matcher.group("protocol").equals("stun") ? iceServer.getStunAddresses() : iceServer.getTurnAddresses()).add(address);
+                        TransportAddress address = new TransportAddress(host, port, transport);
+                        switch (url.getProtocol()) {
+                            case STUN -> iceServer.getStunAddresses().add(address);
+                            case TURN -> iceServer.getTurnAddresses().add(address);
+                            default -> log.warn("Invalid ICE server URL: {}", url);
+                        }
 
-                            if (IceAdapter.PING_COUNT > 0) {
-                                iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
-                            }
+                        if (IceAdapter.PING_COUNT > 0) {
+                            iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
+                        }
 
-                            coturnServers.add(new CoturnServer("n/a", host, port, null));
-                        });
+                        coturnServers.add(new CoturnServer("n/a", host, port, null));
+                    });
             }
             iceServers.add(iceServer);
         }
 
         debug().updateCoturnList(coturnServers);
 
-        log.info("Ice Servers set, total addresses: {}",
-                iceServers.stream().mapToInt(s -> s.getStunAddresses().size() + s.getTurnAddresses().size()).sum());
+        log.info("Ice Servers set, total addresses: {}", iceServers.stream()
+                                                                   .mapMultiToInt((iceServer, consumer) -> {
+                                                                       consumer.accept(iceServer.getStunAddresses().size());
+                                                                       consumer.accept(iceServer.getTurnAddresses().size());
+                                                                   }).sum());
     }
 }
