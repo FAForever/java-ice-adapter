@@ -37,7 +37,6 @@ public class GameSession {
 
     private static final String STUN = "stun";
     private static final String TURN = "turn";
-    private static final Set<String> VALID_PROTOCOLS = Set.of(STUN, TURN);
     @Getter
     private final Map<Integer, Peer> peers = new ConcurrentHashMap<>();
     @Getter
@@ -138,7 +137,6 @@ public class GameSession {
                         }
                     })
                     .filter(Objects::nonNull)
-                    .filter(url -> VALID_PROTOCOLS.contains(url.getProtocol()))
                     .forEach(url -> {
                         String host = url.getHost();
                         int port = url.getPort() == -1 ? 3478 : url.getPort();
@@ -157,7 +155,7 @@ public class GameSession {
                         switch (url.getProtocol()) {
                             case STUN -> iceServer.getStunAddresses().add(address);
                             case TURN -> iceServer.getTurnAddresses().add(address);
-                            default -> log.warn("Invalid ICE server URL: {}", url);
+                            default -> log.warn("Invalid ICE server protocol: {}", url);
                         }
 
                         if (IceAdapter.PING_COUNT > 0) {
@@ -167,6 +165,7 @@ public class GameSession {
                         coturnServers.add(new CoturnServer("n/a", host, port, null));
                     });
             }
+
             iceServers.add(iceServer);
         }
 
