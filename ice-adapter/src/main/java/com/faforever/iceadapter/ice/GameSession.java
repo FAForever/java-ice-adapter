@@ -95,16 +95,15 @@ public class GameSession {
         }
 
         // For caching RTT to a given host (the same host can appear in multiple urls)
-        LoadingCache<String, CompletableFuture<OptionalDouble>> hostRTTCache = CacheBuilder.newBuilder().build(
-                new CacheLoader<>() {
-                    @Override
-                    public CompletableFuture<OptionalDouble> load(String host) {
-                        return PingWrapper.getLatency(host, IceAdapter.PING_COUNT)
-                                          .thenApply(OptionalDouble::of)
-                                          .exceptionally(ex -> OptionalDouble.empty());
-                    }
-                }
-                                                                                                              );
+        LoadingCache<String, CompletableFuture<OptionalDouble>> hostRTTCache = CacheBuilder.newBuilder()
+                                                                                           .build(new CacheLoader<>() {
+                                                                                               @Override
+                                                                                               public CompletableFuture<OptionalDouble> load(String host) {
+                                                                                                   return PingWrapper.getLatency(host, IceAdapter.PING_COUNT)
+                                                                                                                     .thenApply(OptionalDouble::of)
+                                                                                                                     .exceptionally(ex -> OptionalDouble.empty());
+                                                                                               }
+                                                                                           });
 
         Set<CoturnServer> coturnServers = new HashSet<>();
 
@@ -127,43 +126,40 @@ public class GameSession {
                     urls = Collections.singletonList((String) iceServerData.get("url"));
                 }
 
-                urls.stream()
-                    .map(stringUrl -> {
-                        try {
-                            return new URL(stringUrl);
-                        } catch (Exception e) {
-                            log.warn("Invalid ICE server URL: {}", stringUrl);
-                            return null;
-                        }
-                    })
-                    .filter(Objects::nonNull)
-                    .forEach(url -> {
-                        String host = url.getHost();
-                        int port = url.getPort() == -1 ? 3478 : url.getPort();
-                        Transport transport = Optional.ofNullable(url.getQuery())
-                                                      .stream()
-                                                      .flatMap(query -> Arrays.stream(query.split("&")))
-                                                      .map(param -> param.split("="))
-                                                      .filter(param -> param.length == 2 &&
-                                                                       param[0].equals("transport"))
-                                                      .findFirst()
-                                                      .map(param -> param[1])
-                                                      .map(Transport::parse)
-                                                      .orElse(Transport.UDP);
+                urls.stream().map(stringUrl -> {
+                    try {
+                        return new URL(stringUrl);
+                    } catch (Exception e) {
+                        log.warn("Invalid ICE server URL: {}", stringUrl);
+                        return null;
+                    }
+                }).filter(Objects::nonNull).forEach(url -> {
+                    String host = url.getHost();
+                    int port = url.getPort() == -1 ? 3478 : url.getPort();
+                    Transport transport = Optional.ofNullable(url.getQuery())
+                                                  .stream()
+                                                  .flatMap(query -> Arrays.stream(query.split("&")))
+                                                  .map(param -> param.split("="))
+                                                  .filter(param -> param.length == 2)
+                                                  .filter(param -> param[0].equals("transport"))
+                                                  .map(param -> param[1])
+                                                  .map(Transport::parse)
+                                                  .findFirst()
+                                                  .orElse(Transport.UDP);
 
-                        TransportAddress address = new TransportAddress(host, port, transport);
-                        switch (url.getProtocol()) {
-                            case STUN -> iceServer.getStunAddresses().add(address);
-                            case TURN -> iceServer.getTurnAddresses().add(address);
-                            default -> log.warn("Invalid ICE server protocol: {}", url);
-                        }
+                    TransportAddress address = new TransportAddress(host, port, transport);
+                    switch (url.getProtocol()) {
+                        case STUN -> iceServer.getStunAddresses().add(address);
+                        case TURN -> iceServer.getTurnAddresses().add(address);
+                        default -> log.warn("Invalid ICE server protocol: {}", url);
+                    }
 
-                        if (IceAdapter.PING_COUNT > 0) {
-                            iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
-                        }
+                    if (IceAdapter.PING_COUNT > 0) {
+                        iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
+                    }
 
-                        coturnServers.add(new CoturnServer("n/a", host, port, null));
-                    });
+                    coturnServers.add(new CoturnServer("n/a", host, port, null));
+                });
             }
 
             iceServers.add(iceServer);
@@ -171,10 +167,9 @@ public class GameSession {
 
         debug().updateCoturnList(coturnServers);
 
-        log.info("Ice Servers set, total addresses: {}", iceServers.stream()
-                                                                   .mapMultiToInt((iceServer, consumer) -> {
-                                                                       consumer.accept(iceServer.getStunAddresses().size());
-                                                                       consumer.accept(iceServer.getTurnAddresses().size());
-                                                                   }).sum());
+        log.info("Ice Servers set, total addresses: {}", iceServers.stream().mapMultiToInt((iceServer, consumer) -> {
+            consumer.accept(iceServer.getStunAddresses().size());
+            consumer.accept(iceServer.getTurnAddresses().size());
+        }).sum());
     }
 }
