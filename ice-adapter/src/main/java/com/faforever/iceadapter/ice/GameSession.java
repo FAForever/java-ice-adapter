@@ -167,9 +167,10 @@ public class GameSession {
 
         debug().updateCoturnList(coturnServers);
 
-        log.info("Ice Servers set, total addresses: {}", iceServers.stream().mapMultiToInt((iceServer, consumer) -> {
-            consumer.accept(iceServer.getStunAddresses().size());
-            consumer.accept(iceServer.getTurnAddresses().size());
-        }).sum());
+        log.info("Ice Servers set, total addresses: {}",
+                 iceServers.stream()
+                           .mapToInt(iceServer -> iceServer.getStunAddresses().size() +
+                                                  iceServer.getTurnAddresses().size())
+                           .sum());
     }
 }
