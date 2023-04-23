@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
@@ -36,7 +37,7 @@ public class PeerIceModule {
     private static final int FORCE_SRFLX_COUNT = 1;
     private static final int FORCE_RELAY_COUNT = 2;
 
-    private Peer peer;
+    private final Peer peer;
 
     private Agent agent;
     private IceMediaStream mediaStream;
@@ -53,6 +54,8 @@ public class PeerIceModule {
 
     //A list of the timestamps of initiated connectivity attempts, used to detect if relay/srflx should be forced
     private final List<Long> connectivityAttemptTimes = new ArrayList<>();
+    //How often have we been waiting for a response to local candidates/offer
+    private final AtomicInteger awaitingCandidatesEventId = new AtomicInteger(0);
 
     public PeerIceModule(Peer peer) {
         this.peer = peer;
@@ -108,7 +111,7 @@ public class PeerIceModule {
                         .forEach(agent::addCandidateHarvester)
         );
 
-        CompletableFuture gatheringFuture = CompletableFuture.runAsync(() -> {
+        CompletableFuture<Void> gatheringFuture = CompletableFuture.runAsync(() -> {
             try {
                 component = agent.createComponent(mediaStream, Transport.UDP, MINIMUM_PORT + (int) (Math.random() * 999.0), MINIMUM_PORT, MINIMUM_PORT + 1000);
             } catch (IOException e) {
@@ -144,20 +147,17 @@ public class PeerIceModule {
         RPCService.onIceMsg(localCandidatesMessage);
 
         //Make sure to abort the connection process and reinitiate when we haven't received an answer to our offer in 6 seconds, candidate packet was probably lost
-        final int currentacei = ++awaitingCandidatesEventId;
+        final int currentAwaitingCandidatesEventId = awaitingCandidatesEventId.incrementAndGet();
         Executor.executeDelayed(6000, () -> {
             if(peer.isClosing()) {
                 log.warn(getLogPrefix() + "Peer {} not connected anymore, aborting reinitiation of ICE", peer.getRemoteId());
                 return;
             }
-            if (iceState == AWAITING_CANDIDATES && currentacei == awaitingCandidatesEventId) {
+            if (iceState == AWAITING_CANDIDATES && currentAwaitingCandidatesEventId == awaitingCandidatesEventId.get()) {
                 onConnectionLost();
             }
         });
     }
-
-    //How often have we been waiting for a response to local candidates/offer
-    private volatile int awaitingCandidatesEventId = 0;
 
     private List<IceServer> getViableIceServers() {
         List<IceServer> allIceServers = GameSession.getIceServers();
@@ -168,7 +168,7 @@ public class PeerIceModule {
         List<IceServer> fafIceServers = allIceServers.stream()
                 .filter(server -> server.getTurnAddresses().stream()
                         .anyMatch(transportAddress -> transportAddress.getHostString().contains("faforever.com")))
-                .collect(Collectors.toList());
+                .toList();
         // Try official servers first
         List<IceServer> viableIceServers = fafIceServers.stream()
                 .filter(IceServer::hasAcceptableLatency)
@@ -195,12 +195,13 @@ public class PeerIceModule {
             log.info("Using closest ice server: {}", closestIceServer.get().getTurnAddresses().stream().map(TransportAddress::toString).collect(Collectors.joining(", ")));
             viableIceServers.add(closestIceServer.get());
         }
+
         if (!viableIceServers.isEmpty()) {
             log.info("Using all reachable ice servers: {}", viableIceServers.stream().map(it -> "[" + it.getTurnAddresses().stream().map(TransportAddress::toString).collect(Collectors.joining(", ")) + "]").collect(Collectors.joining(", ")));
             return viableIceServers;
         }
 
-        log.info("Using all ice servers: {}", viableIceServers.stream().map(it -> "[" + it.getTurnAddresses().stream().map(TransportAddress::toString).collect(Collectors.joining(", ")) + "]").collect(Collectors.joining(", ")));
+        log.info("Using all ice servers: {}", allIceServers.stream().map(it -> "[" + it.getTurnAddresses().stream().map(TransportAddress::toString).collect(Collectors.joining(", ")) + "]").collect(Collectors.joining(", ")));
         return allIceServers;
     }
 
@@ -373,7 +374,7 @@ public class PeerIceModule {
      * @param faData
      * @param length
      */
-    void onFaDataReceived(byte faData[], int length) {
+    void onFaDataReceived(byte[] faData, int length) {
         byte[] data = new byte[length + 1];
         data[0] = 'd';
         System.arraycopy(faData, 0, data, 1, length);
@@ -407,7 +408,7 @@ public class PeerIceModule {
         log.debug(getLogPrefix() + "Now forwarding data from ICE to FA for peer");
         Component localComponent = component;
 
-        byte data[] = new byte[65536];//64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
+        byte[] data = new byte[65536];//64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
         while (IceAdapter.running && IceAdapter.gameSession == peer.getGameSession()) {
             try {
                 DatagramPacket packet = new DatagramPacket(data, data.length);
@@ -447,12 +448,10 @@ public class PeerIceModule {
         if(turnRefreshModule != null) {
             turnRefreshModule.close();
         }
-        if(connectivityChecker != null) {
-            connectivityChecker.stop();
-        }
         if(agent != null) {
             agent.free();
         }
+        connectivityChecker.stop();
     }
 
     public int getConnectivityAttempsInThePast(final long millis) {
