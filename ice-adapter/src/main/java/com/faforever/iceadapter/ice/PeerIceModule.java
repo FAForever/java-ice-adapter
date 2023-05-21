@@ -113,7 +113,7 @@ public class PeerIceModule {
 
         CompletableFuture<Void> gatheringFuture = CompletableFuture.runAsync(() -> {
             try {
-                component = agent.createComponent(mediaStream, Transport.UDP, MINIMUM_PORT + (int) (Math.random() * 999.0), MINIMUM_PORT, MINIMUM_PORT + 1000);
+                component = agent.createComponent(mediaStream,MINIMUM_PORT + (int) (Math.random() * 999.0), MINIMUM_PORT, MINIMUM_PORT + 1000);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

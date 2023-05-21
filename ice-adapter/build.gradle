@@ -29,13 +29,10 @@ dependencies {
     annotationProcessor("info.picocli:picocli-codegen:$picocliVersion")
     implementation("info.picocli:picocli:$picocliVersion")
 
-//    implementation "org.jitsi:ice4j:1.0"
-//    implementation 'com.github.jitsi:ice4j:59693a4894'
-    implementation("com.github.Geosearchef:ice4j:52c8e4bcef")
+    implementation("org.jitsi:ice4j:3.0-66-g1c60acc")
     implementation("com.github.faforever:JJsonRpc:37669e0fed")
     implementation("com.google.guava:guava:$guavaVersion")
     implementation("org.slf4j:slf4j-api:1.7.36")
-//    implementation "org.slf4j:slf4j-simple:1.7.25"
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("ch.qos.logback:logback-core:$logbackVersion")
     implementation("org.java-websocket:Java-WebSocket:1.5.3")
