@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -128,15 +128,15 @@ public class GameSession {
 
                 urls.stream().map(stringUrl -> {
                     try {
-                        return new URL(stringUrl);
+                        return new URI(stringUrl);
                     } catch (Exception e) {
-                        log.warn("Invalid ICE server URL: {}", stringUrl);
+                        log.warn("Invalid ICE server URI: {}", stringUrl);
                         return null;
                     }
-                }).filter(Objects::nonNull).forEach(url -> {
-                    String host = url.getHost();
-                    int port = url.getPort() == -1 ? 3478 : url.getPort();
-                    Transport transport = Optional.ofNullable(url.getQuery())
+                }).filter(Objects::nonNull).forEach(uri -> {
+                    String host = uri.getHost();
+                    int port = uri.getPort() == -1 ? 3478 : uri.getPort();
+                    Transport transport = Optional.ofNullable(uri.getQuery())
                                                   .stream()
                                                   .flatMap(query -> Arrays.stream(query.split("&")))
                                                   .map(param -> param.split("="))
@@ -148,10 +148,10 @@ public class GameSession {
                                                   .orElse(Transport.UDP);
 
                     TransportAddress address = new TransportAddress(host, port, transport);
-                    switch (url.getProtocol()) {
+                    switch (uri.getScheme()) {
                         case STUN -> iceServer.getStunAddresses().add(address);
                         case TURN -> iceServer.getTurnAddresses().add(address);
-                        default -> log.warn("Invalid ICE server protocol: {}", url);
+                        default -> log.warn("Invalid ICE server protocol: {}", uri);
                     }
 
                     if (IceAdapter.PING_COUNT > 0) {
