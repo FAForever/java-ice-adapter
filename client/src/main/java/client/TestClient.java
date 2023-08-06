@@ -65,7 +65,7 @@ public class TestClient {
 			if(forgedAlliance != null) {
 				forgedAlliance.getPeers().forEach(p -> {
 					synchronized (p) {
-						p.setLatencies(new LinkedList<>());
+						p.clearLatencyHistory();
 					}
 				});
 			}

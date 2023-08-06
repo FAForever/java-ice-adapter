@@ -10,10 +10,10 @@ public class IceStatus {
 	private String init_mode;
 	private IceOptions options;
 	private IceGPGNetState gpgpnet;
-	private IceRelay relays[];
+	private IceRelay[] relays;
 
 	@Data
-	public class IceOptions {
+	public static class IceOptions {
 		private int player_id;
 		private String player_login;
 		private int rpc_port;
@@ -21,7 +21,7 @@ public class IceStatus {
 	}
 
 	@Data
-	public class IceGPGNetState {
+	public static class IceGPGNetState {
 		private int local_port;
 		private boolean connected;
 		private String game_state;
@@ -29,7 +29,7 @@ public class IceStatus {
 	}
 
 	@Data
-	public class IceRelay {
+	public static class IceRelay {
 
 		private int remote_player_id;
 		private String remote_player_login;
@@ -37,7 +37,7 @@ public class IceStatus {
 		private IceRelayICEState ice;
 
 		@Data
-		public class IceRelayICEState {
+		public static class IceRelayICEState {
 			private boolean offerer;
 			private String state;
 			private String gathering_state;
