@@ -10,9 +10,7 @@ import com.faforever.iceadapter.util.TrayIcon;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 
-import java.util.Arrays;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
 @CommandLine.Command(name = "faf-ice-adapter", mixinStandardHelpOptions = true, usageHelpAutoWidth = true,
@@ -47,7 +45,6 @@ public class IceAdapter implements Callable<Integer> {
     public static void main(String[] args) {
         new CommandLine(new IceAdapter()).execute(args);
     }
-
 
     @Override
     public Integer call() {
@@ -170,7 +167,7 @@ public class IceAdapter implements Callable<Integer> {
 
     /**
      * Read command line arguments and set global, constant values
-     * @param arguments The arguments to be read
+     * @param iceOptions The arguments to be read
      */
     public static void loadOptions(IceOptions iceOptions) {
         TELEMETRY_SERVER = iceOptions.getTelemetryServer();

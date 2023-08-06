@@ -94,6 +94,7 @@ public class TelemetryDebugger implements Debugger {
     public void startupComplete() {
         try {
             if (!websocketClient.connectBlocking()) {
+                Debug.remove(this);
                 return;
             }
         } catch (InterruptedException e) {
