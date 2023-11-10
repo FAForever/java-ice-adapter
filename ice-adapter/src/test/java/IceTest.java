@@ -96,7 +96,7 @@ public class IceTest {
         int preferredPort = scan.nextInt();
 
         IceMediaStream mediaStream = agent.createMediaStream("mainStream");
-        Component component = agent.createComponent(mediaStream, Transport.UDP, preferredPort, preferredPort, preferredPort + 100);
+        Component component = agent.createComponent(mediaStream, preferredPort, preferredPort, preferredPort + 100);
 
         //------------------------------------------------------------
         //agent done
