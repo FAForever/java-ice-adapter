@@ -106,10 +106,10 @@ public class PeerIceModule {
         List<IceServer> iceServers = getViableIceServers();
 
         iceServers.stream().flatMap(s -> s.getStunAddresses().stream()).map(StunCandidateHarvester::new).forEach(agent::addCandidateHarvester);
-        iceServers.forEach(iceServer ->
-                iceServer.getTurnAddresses().stream().map(a -> new TurnCandidateHarvester(a, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential())))
-                        .forEach(agent::addCandidateHarvester)
-        );
+//        iceServers.forEach(iceServer ->
+//                iceServer.getTurnAddresses().stream().map(a -> new TurnCandidateHarvester(a, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential())))
+//                        .forEach(agent::addCandidateHarvester)
+//        );
 
         CompletableFuture<Void> gatheringFuture = CompletableFuture.runAsync(() -> {
             try {
