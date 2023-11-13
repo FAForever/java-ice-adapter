@@ -16,3 +16,15 @@ jobs:
         run: chmod +x ./gradlew
       - name: Run Checks
         run: ./gradlew --stacktrace -PjavafxPlatform=linux build
+  run-infer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+            fetch-depth: 0
+      - name : run infer action
+        uses: docker://ghcr.io/martinwitt/infer-train:master
+        with:
+            build-command: "./gradlew --stacktrace -PjavafxPlatform=linux build"
+            use-annotations: "true"
