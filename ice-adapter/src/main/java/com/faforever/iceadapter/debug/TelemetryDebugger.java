@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.util.concurrent.RateLimiter;
 import com.nbarraille.jjsonrpc.JJsonPeer;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.ice.Candidate;
 import org.ice4j.ice.CandidatePair;
@@ -33,8 +34,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @Slf4j
 public class TelemetryDebugger implements Debugger {
@@ -42,6 +45,9 @@ public class TelemetryDebugger implements Debugger {
     private final ObjectMapper objectMapper;
 
     private final Map<Integer, RateLimiter> peerRateLimiter = new ConcurrentHashMap<>();
+    private final BlockingQueue<OutgoingMessageV1> messageQueue = new LinkedBlockingQueue<>();
+
+    private final Thread sendingLoopThread;
 
     public TelemetryDebugger(String telemetryServer, int gameId, int playerId) {
         Debug.register(this);
@@ -79,14 +85,38 @@ public class TelemetryDebugger implements Debugger {
 
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
+
+        sendingLoopThread = new Thread(this::sendingLoop, "sendingLoop");
+        sendingLoopThread.setUncaughtExceptionHandler((t, e) -> log.error("Thread sendingLoop crashed unexpectedly", e));
+        sendingLoopThread.start();
     }
 
     private void sendMessage(OutgoingMessageV1 message) {
         try {
-            String json = objectMapper.writeValueAsString(message);
-            websocketClient.send(json);
-        } catch (IOException e) {
-            log.error("Error on serialising message object: {}", message, e);
+            messageQueue.put(message);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @SneakyThrows
+    private void sendingLoop() {
+        while (true) {
+            var message = messageQueue.take();
+            try {
+                String json = objectMapper.writeValueAsString(message);
+
+                if(websocketClient.isClosed()) {
+                    log.warn("Telemetry websocket is closed");
+                    websocketClient.reconnectBlocking();
+                    log.info("Telemetry websocket reconnected");
+                }
+
+                log.trace("Sending telemetry message: {}", json);
+                websocketClient.send(json);
+            } catch (Exception e) {
+                log.error("Error on sending message object: {}", message, e);
+            }
         }
     }
 
