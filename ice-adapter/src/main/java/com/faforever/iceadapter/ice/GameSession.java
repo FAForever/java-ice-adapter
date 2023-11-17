@@ -76,6 +76,7 @@ public class GameSession {
      * Stops the connection to all peers and all ice agents
      */
     public void close() {
+        log.info("Closing gameSession");
         peers.values().forEach(Peer::close);
         peers.clear();
     }

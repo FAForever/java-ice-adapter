@@ -39,8 +39,13 @@ public class PeerConnectivityCheckerModule {
         averageRTT = 0.0f;
         lastPacketReceived = System.currentTimeMillis();
 
-        checkerThread = new Thread(this::checkerThread);
+        checkerThread = new Thread(this::checkerThread, getThreadName());
+        checkerThread.setUncaughtExceptionHandler((t, e) -> log.error("Thread {} crashed unexpectedly", t.getName(), e));
         checkerThread.start();
+    }
+
+    private String getThreadName() {
+        return "connectivityChecker-"+ice.getPeer().getRemoteId();
     }
 
     synchronized void stop() {
@@ -82,6 +87,8 @@ public class PeerConnectivityCheckerModule {
 
     private void checkerThread() {
         while (running) {
+            log.trace("Running connectivity checker");
+
             byte[] data = new byte[9];
             data[0] = 'e';
 
@@ -104,5 +111,7 @@ public class PeerConnectivityCheckerModule {
                 return;
             }
         }
+
+        log.info(getThreadName()+" stopped gracefully");
     }
 }

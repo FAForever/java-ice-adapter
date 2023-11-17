@@ -94,6 +94,8 @@ public class Peer {
             return;
         }
 
+        log.info("Closing peer for player {}", getRemoteId());
+
         closing = true;
         if(faSocket != null) {
             faSocket.close();
