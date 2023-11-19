@@ -91,6 +91,10 @@ public class PeerIceModule {
      * Creates an agent and media stream for handling the ICE
      */
     private void createAgent() {
+        if(agent != null) {
+            agent.free();
+        }
+
         agent = new Agent();
         agent.setControlling(peer.isLocalOffer());
 
