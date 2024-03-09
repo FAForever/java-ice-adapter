@@ -69,7 +69,7 @@ public class PeerConnectivityCheckerModule {
      */
     void echoReceived(byte[] data, int offset, int length) {
         if (length != 9) {
-            log.warn("Received echo of wrong length, length: {}", length);
+            log.trace("Received echo of wrong length, length: {}", length);
         }
 
         int rtt = (int) (System.currentTimeMillis() - Longs.fromByteArray(Arrays.copyOfRange(data, offset + 1, length)));
