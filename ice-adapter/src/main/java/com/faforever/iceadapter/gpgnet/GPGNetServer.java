@@ -238,8 +238,8 @@ public class GPGNetServer {
      */
     public static void close() {
         if (currentClient != null) {
-            currentClient = null;
             currentClient.close();
+            currentClient = null;
             clientFuture = new CompletableFuture<>();
         }
 
