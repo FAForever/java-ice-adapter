@@ -43,7 +43,9 @@ public class IceAdapter implements Callable<Integer> {
     public static volatile GameSession gameSession;
 
     public static void main(String[] args) {
-        new CommandLine(new IceAdapter()).execute(args);
+        new CommandLine(new IceAdapter())
+                .setUnmatchedArgumentsAllowed(true)
+                .execute(args);
     }
 
     @Override
