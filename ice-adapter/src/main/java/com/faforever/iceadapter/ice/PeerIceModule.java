@@ -279,24 +279,9 @@ public class PeerIceModule {
      * Will then reinitiate ICE
      */
     public synchronized void onConnectionLost() {
-        if(peer.isClosing()) {
-            log.warn(getLogPrefix() + "Peer not connected anymore, aborting onConnectionLost of ICE");
-            return;
-        }
-
-        if(peer.getGameSession().isGameEnded()) {
-            log.warn("GAME ENDED, ABORTING onConnectionLost of ICE for peer " + getLogPrefix());
-            return;
-        }
-
-        if (iceState == DISCONNECTED) {
-            return;//TODO: will this kill the life cycle?
-        }
-
         IceState previousState = getIceState();
 
         if (listenerThread != null) {
-//            listenerThread.stop();//TODO what if cancelled during sending TO FA???
             listenerThread.interrupt();
             listenerThread = null;
         }
@@ -324,6 +309,21 @@ public class PeerIceModule {
         }
 
         debug().peerStateChanged(this.peer);
+
+        if(peer.isClosing()) {
+            log.warn(getLogPrefix() + "Peer not connected anymore, aborting onConnectionLost of ICE");
+            return;
+        }
+
+        if(peer.getGameSession().isGameEnded()) {
+            log.warn(getLogPrefix() + "GAME ENDED, ABORTING onConnectionLost of ICE for peer ");
+            return;
+        }
+
+        if (iceState == DISCONNECTED) {
+            log.warn(getLogPrefix() + "Lost connection, albeit already in ice state disconnected");
+            return;//TODO: will this kill the life cycle?
+        }
 
         if (previousState == CONNECTED) {
             TrayIcon.showMessage("Reconnecting to " + this.peer.getRemoteLogin() + " (connection lost)");
