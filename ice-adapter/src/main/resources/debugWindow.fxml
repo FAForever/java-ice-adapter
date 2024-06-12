@@ -62,6 +62,7 @@
                     <TableColumn fx:id="offerColumn" prefWidth="100.0" text="localOffer" />
                     <TableColumn fx:id="rttColumn" prefWidth="100.0" text="average rtt" />
                     <TableColumn fx:id="lastColumn" prefWidth="100.0" text="last recv" />
+                    <TableColumn fx:id="echosRcvColumn" prefWidth="100.0" text="echos recv" />
                 </columns>
             </TableView>
 
