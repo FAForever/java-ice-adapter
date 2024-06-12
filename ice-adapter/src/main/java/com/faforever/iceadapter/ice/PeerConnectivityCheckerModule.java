@@ -23,6 +23,7 @@ public class PeerConnectivityCheckerModule {
 
     @Getter private float averageRTT = 0.0f;
     @Getter private long lastPacketReceived;
+    @Getter private long echosReceived = 0;
 
     public PeerConnectivityCheckerModule(PeerIceModule ice) {
         this.ice = ice;
@@ -56,7 +57,7 @@ public class PeerConnectivityCheckerModule {
         running = false;
 
         if (checkerThread != null) {
-            checkerThread.stop();
+            checkerThread.interrupt();
             checkerThread = null;
         }
     }
@@ -68,6 +69,8 @@ public class PeerConnectivityCheckerModule {
      * @param length
      */
     void echoReceived(byte[] data, int offset, int length) {
+        echosReceived++;
+
         if (length != 9) {
             log.trace("Received echo of wrong length, length: {}", length);
         }
@@ -86,7 +89,7 @@ public class PeerConnectivityCheckerModule {
     }
 
     private void checkerThread() {
-        while (running) {
+        while (!Thread.currentThread().isInterrupted()) {
             log.trace("Running connectivity checker");
 
             byte[] data = new byte[9];
@@ -102,7 +105,9 @@ public class PeerConnectivityCheckerModule {
             try {
                 Thread.sleep(ECHO_INTERVAL);
             } catch (InterruptedException e) {
-                log.warn("Sleeping checkerThread was interrupted");
+                log.warn("{} (sleeping checkerThread) was interrupted", Thread.currentThread().getName());
+                Thread.currentThread().interrupt();
+                return;
             }
 
             if (System.currentTimeMillis() - lastPacketReceived > 10000) {
@@ -112,6 +117,6 @@ public class PeerConnectivityCheckerModule {
             }
         }
 
-        log.info(getThreadName()+" stopped gracefully");
+        log.info("{} stopped gracefully", Thread.currentThread().getName());
     }
 }
