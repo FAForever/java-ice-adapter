@@ -177,14 +177,16 @@ public class DebugWindow extends Application implements Debugger {
 
     @Override
     public void peerConnectivityUpdate(Peer peer) {
-        new Thread(() -> {
+        runOnUIThread(() -> {
             synchronized (peers) {
                 peers.stream().filter(p -> p.id.get() == peer.getRemoteId()).forEach(p -> {
-                    p.averageRtt.set(Optional.ofNullable(peer.getIce().getConnectivityChecker()).map(PeerConnectivityCheckerModule::getAverageRTT).orElse(-1.0f).intValue());
-                    p.lastReceived.set(Optional.ofNullable(peer.getIce().getConnectivityChecker()).map(PeerConnectivityCheckerModule::getLastPacketReceived).map(last -> System.currentTimeMillis() - last).orElse(-1L).intValue());
+                    Optional<PeerConnectivityCheckerModule> connectivityChecker = Optional.ofNullable(peer.getIce().getConnectivityChecker());
+                    p.averageRtt.set(connectivityChecker.map(PeerConnectivityCheckerModule::getAverageRTT).orElse(-1.0f).intValue());
+                    p.lastReceived.set(connectivityChecker.map(PeerConnectivityCheckerModule::getLastPacketReceived).map(last -> System.currentTimeMillis() - last).orElse(-1L).intValue());
+                    p.echosReceived.set(connectivityChecker.map(PeerConnectivityCheckerModule::getEchosReceived).orElse(-1L).intValue());
                 });
             }
-        }).start();
+        });
     }
 
     private void runOnUIThread(Runnable runnable) {
@@ -210,6 +212,7 @@ public class DebugWindow extends Application implements Debugger {
         public SimpleStringProperty state = new SimpleStringProperty("");
         public SimpleIntegerProperty averageRtt = new SimpleIntegerProperty(-1);
         public SimpleIntegerProperty lastReceived = new SimpleIntegerProperty(-1);
+        public SimpleIntegerProperty echosReceived = new SimpleIntegerProperty(-1);
         public SimpleStringProperty localCandidate = new SimpleStringProperty("");
         public SimpleStringProperty remoteCandidate = new SimpleStringProperty("");
 
