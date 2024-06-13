@@ -63,6 +63,7 @@
                     <TableColumn fx:id="rttColumn" prefWidth="100.0" text="average rtt" />
                     <TableColumn fx:id="lastColumn" prefWidth="100.0" text="last recv" />
                     <TableColumn fx:id="echosRcvColumn" prefWidth="100.0" text="echos recv" />
+                    <TableColumn fx:id="invalidEchosRcvColumn" prefWidth="100.0" text="invalid echos recv" />
                 </columns>
             </TableView>
 
