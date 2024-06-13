@@ -184,6 +184,7 @@ public class DebugWindow extends Application implements Debugger {
                     p.averageRtt.set(connectivityChecker.map(PeerConnectivityCheckerModule::getAverageRTT).orElse(-1.0f).intValue());
                     p.lastReceived.set(connectivityChecker.map(PeerConnectivityCheckerModule::getLastPacketReceived).map(last -> System.currentTimeMillis() - last).orElse(-1L).intValue());
                     p.echosReceived.set(connectivityChecker.map(PeerConnectivityCheckerModule::getEchosReceived).orElse(-1L).intValue());
+                    p.echosReceived.set(connectivityChecker.map(PeerConnectivityCheckerModule::getEchosReceived).orElse(-1L).intValue());
                 });
             }
         });
@@ -213,6 +214,7 @@ public class DebugWindow extends Application implements Debugger {
         public SimpleIntegerProperty averageRtt = new SimpleIntegerProperty(-1);
         public SimpleIntegerProperty lastReceived = new SimpleIntegerProperty(-1);
         public SimpleIntegerProperty echosReceived = new SimpleIntegerProperty(-1);
+        public SimpleIntegerProperty invalidEchosReceived = new SimpleIntegerProperty(-1);
         public SimpleStringProperty localCandidate = new SimpleStringProperty("");
         public SimpleStringProperty remoteCandidate = new SimpleStringProperty("");
 
@@ -276,7 +278,13 @@ public class DebugWindow extends Application implements Debugger {
             return echosReceived.get();
         }
 
+        public int getInvalidEchosReceived() {
+            return invalidEchosReceived.get();
+        }
+
         public SimpleIntegerProperty echosReceivedProperty() { return echosReceived; }
+
+        public SimpleIntegerProperty invalidEchosReceivedProperty() { return invalidEchosReceived; }
 
         public String getLocalCandidate() {
             return localCandidate.get();

@@ -24,6 +24,7 @@ public class PeerConnectivityCheckerModule {
     @Getter private float averageRTT = 0.0f;
     @Getter private long lastPacketReceived;
     @Getter private long echosReceived = 0;
+    @Getter private long invalidEchosReceived = 0;
 
     public PeerConnectivityCheckerModule(PeerIceModule ice) {
         this.ice = ice;
@@ -73,6 +74,7 @@ public class PeerConnectivityCheckerModule {
 
         if (length != 9) {
             log.trace("Received echo of wrong length, length: {}", length);
+            invalidEchosReceived++;
         }
 
         int rtt = (int) (System.currentTimeMillis() - Longs.fromByteArray(Arrays.copyOfRange(data, offset + 1, length)));

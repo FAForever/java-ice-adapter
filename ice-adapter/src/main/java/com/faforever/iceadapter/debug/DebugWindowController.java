@@ -37,6 +37,7 @@ public class DebugWindowController {
 	public TableColumn rttColumn;
 	public TableColumn lastColumn;
 	public TableColumn echosRcvColumn;
+	public TableColumn invalidEchosRcvColumn;
 	public TableColumn localCandColumn;
 	public TableColumn remoteCandColumn;
 
@@ -66,6 +67,7 @@ public class DebugWindowController {
 		rttColumn.setCellValueFactory(new PropertyValueFactory<>("averageRtt"));
 		lastColumn.setCellValueFactory(new PropertyValueFactory<>("lastReceived"));
 		echosRcvColumn.setCellValueFactory(new PropertyValueFactory<>("echosReceived"));
+		invalidEchosRcvColumn.setCellValueFactory(new PropertyValueFactory<>("invalidEchosReceived"));
 		localCandColumn.setCellValueFactory(new PropertyValueFactory<>("localCandidate"));
 		remoteCandColumn.setCellValueFactory(new PropertyValueFactory<>("remoteCandidate"));
 
