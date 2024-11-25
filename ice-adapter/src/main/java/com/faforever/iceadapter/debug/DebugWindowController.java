@@ -1,12 +1,16 @@
 package com.faforever.iceadapter.debug;
 
+import com.faforever.iceadapter.IceAdapter;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
+import javafx.util.Callback;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
+
+import java.util.Objects;
 
 
 @Slf4j
@@ -33,6 +37,7 @@ public class DebugWindowController {
 	public TableColumn loginColumn;
 	public TableColumn offerColumn;
 	public TableColumn connectedColumn;
+	public TableColumn buttonReconnect;
 	public TableColumn stateColumn;
 	public TableColumn rttColumn;
 	public TableColumn lastColumn;
@@ -49,6 +54,12 @@ public class DebugWindowController {
 
 	public void onKillAdapterClicked(ActionEvent actionEvent) {
 		System.exit(337);
+	}
+
+	public void reconnectToPeer(DebugWindow.DebugPeer peer) {
+		if (Objects.nonNull(peer)) {
+			new Thread(() -> IceAdapter.gameSession.reconnectToPeer(peer.getId())).start();
+		}
 	}
 
 	@FXML
@@ -70,6 +81,30 @@ public class DebugWindowController {
 		invalidEchosRcvColumn.setCellValueFactory(new PropertyValueFactory<>("invalidEchosReceived"));
 		localCandColumn.setCellValueFactory(new PropertyValueFactory<>("localCandidate"));
 		remoteCandColumn.setCellValueFactory(new PropertyValueFactory<>("remoteCandidate"));
+
+		buttonReconnect.setCellFactory(new Callback<TableColumn, TableCell>() {
+			@Override
+			public TableCell<DebugWindow.DebugPeer, DebugWindow.DebugPeer> call(TableColumn param) {
+				return new TableCell<>() {
+					final Button btn = new Button("reconnect");
+
+					@Override
+					protected void updateItem(DebugWindow.DebugPeer item, boolean empty) {
+						super.updateItem(item, empty);
+						setText(null);
+						if (empty) {
+							setGraphic(null);
+						} else {
+							btn.setOnAction(event -> {
+								DebugWindow.DebugPeer peer = getTableRow().getItem();
+								reconnectToPeer(peer);
+							});
+							setGraphic(btn);
+						}
+					}
+				};
+			}
+		});
 
 		killAdapterButton.setOnAction(this::onKillAdapterClicked);
 	}

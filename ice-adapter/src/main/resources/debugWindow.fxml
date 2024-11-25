@@ -56,6 +56,7 @@
                     <TableColumn fx:id="idColumn" prefWidth="40.0" text="id" />
                     <TableColumn fx:id="loginColumn" prefWidth="150.0" text="login" />
                     <TableColumn fx:id="connectedColumn" prefWidth="90.0" text="connected" />
+                    <TableColumn fx:id="buttonReconnect" prefWidth="90.0" text="reconnect"/>
                     <TableColumn fx:id="localCandColumn" prefWidth="70.0" text="local" />
                     <TableColumn fx:id="remoteCandColumn" prefWidth="70.0" text="remote" />
                     <TableColumn fx:id="stateColumn" prefWidth="100.0" text="state" />

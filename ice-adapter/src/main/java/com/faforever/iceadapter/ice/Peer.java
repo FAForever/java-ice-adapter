@@ -19,19 +19,23 @@ public class Peer {
     private final int remoteId;
     private final String remoteLogin;
     private final boolean localOffer;//Do we offer or are we waiting for a remote offer
+    private final int preferredPort;
 
-    private PeerIceModule ice = new PeerIceModule(this);
+    public volatile boolean closing = false;
+
+    private final PeerIceModule ice = new PeerIceModule(this);
     private DatagramSocket faSocket;//Socket on which we are listening for FA / sending data to FA
 
-    public Peer(GameSession gameSession, int remoteId, String remoteLogin, boolean localOffer) {
+    public Peer(GameSession gameSession, int remoteId, String remoteLogin, boolean localOffer, int preferredPort) {
         this.gameSession = gameSession;
         this.remoteId = remoteId;
         this.remoteLogin = remoteLogin;
         this.localOffer = localOffer;
+        this.preferredPort = preferredPort;
 
-        log.debug("Peer created: {}, {}, localOffer: {}", remoteId, remoteLogin, String.valueOf(localOffer));
+        log.debug("Peer created: {}, localOffer: {}, preferredPort: {}", getPeerIdentifier(), String.valueOf(localOffer), preferredPort);
 
-        initForwarding();
+        initForwarding(preferredPort);
 
         if (localOffer) {
             new Thread(ice::initiateIce).start();
@@ -41,9 +45,9 @@ public class Peer {
     /**
      * Starts waiting for data from FA
      */
-    private void initForwarding() {
+    private void initForwarding(int port) {
         try {
-            faSocket = new DatagramSocket(0);
+            faSocket = new DatagramSocket(port);
         } catch (SocketException e) {
             log.error("Could not create socket for peer: {}", getPeerIdentifier(), e);
         }
@@ -65,8 +69,11 @@ public class Peer {
             faSocket.send(packet);
         } catch (UnknownHostException e) {
         } catch (IOException e) {
-            log.error("Error while writing to local FA as peer (probably disconnecting from peer) " + getPeerIdentifier(), e);
-            return;
+            if (closing) {
+                log.debug("Ignoring error the send packet because the connection was closed {}", getPeerIdentifier());
+            } else {
+                log.error("Error while writing to local FA as peer (probably disconnecting from peer) {}", getPeerIdentifier(), e);
+            }
         }
     }
 
@@ -81,29 +88,30 @@ public class Peer {
                 faSocket.receive(packet);
                 ice.onFaDataReceived(data, packet.getLength());
             } catch (IOException e) {
-                log.debug("Error while reading from local FA as peer (probably disconnecting from peer) " + getPeerIdentifier(), e);
+                if (closing) {
+                    log.debug("Ignoring error the receive packet because the connection was closed as peer {}", getPeerIdentifier());
+                } else {
+                    log.debug("Error while reading from local FA as peer (probably disconnecting from peer) {}", getPeerIdentifier(), e);
+                }
                 return;
             }
         }
         log.debug("No longer listening for messages from FA");
     }
 
-    public volatile boolean closing = false;
     public void close() {
         if(closing) {
             return;
         }
 
-        log.info("Closing peer for player {}", getRemoteId());
+        log.info("Closing peer for player {}", getPeerIdentifier());
 
         closing = true;
         if(faSocket != null) {
             faSocket.close();
         }
 
-        if(ice != null) {
-            ice.close();
-        }
+        ice.close();
     }
 
     /**

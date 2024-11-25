@@ -92,7 +92,7 @@ public class IceAdapter implements Callable<Integer> {
     public static void onJoinGame(String remotePlayerLogin, int remotePlayerId) {
         log.info("onJoinGame {} {}", remotePlayerId, remotePlayerLogin);
         createGameSession();
-        int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, false);
+        int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, false, 0);
 
         GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
             gpgNetClient.getLobbyFuture().thenRun(() -> {
@@ -108,7 +108,7 @@ public class IceAdapter implements Callable<Integer> {
         }
 
         log.info("onConnectToPeer {} {}, offer: {}", remotePlayerId, remotePlayerLogin, String.valueOf(offer));
-        int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, offer);
+        int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, offer, 0);
 
         GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
             gpgNetClient.getLobbyFuture().thenRun(() -> {
