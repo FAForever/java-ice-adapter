@@ -52,8 +52,8 @@ public class GameSession {
      *
      * @return the port the ice adapter will be listening/sending for FA
      */
-    public int connectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer) {
-        Peer peer = new Peer(this, remotePlayerId, remotePlayerLogin, offer);
+    public int connectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer, int preferredPort) {
+        Peer peer = new Peer(this, remotePlayerId, remotePlayerLogin, offer, preferredPort);
         peers.put(remotePlayerId, peer);
         debug().connectToPeer(remotePlayerId, remotePlayerLogin, offer);
         return peer.getFaSocket().getLocalPort();
@@ -70,6 +70,23 @@ public class GameSession {
         }
         //TODO: still testing connectivity and reporting disconnect via rpc, why???
         //TODO: still attempting to ICE
+    }
+
+    /**
+     * Does a manual {@link #disconnectFromPeer} and {@link #connectToPeer}.
+     * Uses the same port that was on the previous connection.
+     */
+    public void reconnectToPeer(Integer remotePlayerId) {
+        Peer reconnectPeer = peers.get(remotePlayerId);
+        if (Objects.nonNull(reconnectPeer)) {
+            String remotePlayerLogin = reconnectPeer.getRemoteLogin();
+            boolean offer = reconnectPeer.isLocalOffer();
+            int port = reconnectPeer.getFaSocket()
+                    .getLocalPort();
+
+            disconnectFromPeer(remotePlayerId);
+            connectToPeer(remotePlayerLogin, remotePlayerId, offer, port);
+        }
     }
 
     /**
