@@ -43,7 +43,7 @@ public class DebugWindow extends Application implements Debugger {
     private static final int WIDTH = 1200;
     private static final int HEIGHT = 700;
 
-    private ObservableList<DebugPeer> peers = FXCollections.observableArrayList();
+    private final ObservableList<DebugPeer> peers = FXCollections.observableArrayList();
 
 
     @Override
@@ -89,6 +89,7 @@ public class DebugWindow extends Application implements Debugger {
     public void showWindow() {
         runOnUIThread(() -> stage.show());
         initStaticVariables();
+        initPeers();
     }
 
     @Override
@@ -104,6 +105,20 @@ public class DebugWindow extends Application implements Debugger {
             controller.rpcPortLabel.setText(String.format("RPC_PORT: %d", IceAdapter.RPC_PORT));
             controller.gpgnetPortLabel.setText(String.format("GPGNET_PORT: %d", IceAdapter.GPGNET_PORT));
             controller.lobbyPortLabel.setText(String.format("LOBBY_PORT: %d", IceAdapter.LOBBY_PORT));
+        });
+    }
+
+    public void initPeers() {
+        runOnUIThread(() -> {
+            synchronized (peers) {
+                peers.clear();
+                for (Peer peer : IceAdapter.gameSession.getPeers().values()) {
+                    DebugPeer p = new DebugPeer(peer);
+                    p.stateChangedUpdate(peer);
+                    p.connectivityUpdate(peer);
+                    peers.add(p);
+                }
+            }
         });
     }
 
@@ -143,11 +158,7 @@ public class DebugWindow extends Application implements Debugger {
     public void connectToPeer(int id, String login, boolean localOffer) {
         new Thread(() -> {
             synchronized (peers) {
-                DebugPeer peer = new DebugPeer();
-                peer.id.set(id);
-                peer.login.set(login);
-                peer.localOffer.set(localOffer);
-                peers.add(peer);//Might callback into jfx
+                peers.add(new DebugPeer(id, login, localOffer));//Might callback into jfx
             }
         }).start();
     }
@@ -166,10 +177,7 @@ public class DebugWindow extends Application implements Debugger {
         new Thread(() -> {
             synchronized (peers) {
                 peers.stream().filter(p -> p.id.get() == peer.getRemoteId()).forEach(p -> {
-                    p.connected.set(peer.getIce().isConnected());
-                    p.state.set(peer.getIce().getIceState().getMessage());
-                    p.localCandidate.set(Optional.ofNullable(peer.getIce().getComponent()).map(Component::getSelectedPair).map(CandidatePair::getLocalCandidate).map(Candidate::getType).map(CandidateType::toString).orElse(""));
-                    p.remoteCandidate.set(Optional.ofNullable(peer.getIce().getComponent()).map(Component::getSelectedPair).map(CandidatePair::getRemoteCandidate).map(Candidate::getType).map(CandidateType::toString).orElse(""));
+                    p.stateChangedUpdate(peer);
                 });
             }
         }).start();
@@ -180,11 +188,7 @@ public class DebugWindow extends Application implements Debugger {
         runOnUIThread(() -> {
             synchronized (peers) {
                 peers.stream().filter(p -> p.id.get() == peer.getRemoteId()).forEach(p -> {
-                    Optional<PeerConnectivityCheckerModule> connectivityChecker = Optional.ofNullable(peer.getIce().getConnectivityChecker());
-                    p.averageRtt.set(connectivityChecker.map(PeerConnectivityCheckerModule::getAverageRTT).orElse(-1.0f).intValue());
-                    p.lastReceived.set(connectivityChecker.map(PeerConnectivityCheckerModule::getLastPacketReceived).map(last -> System.currentTimeMillis() - last).orElse(-1L).intValue());
-                    p.echosReceived.set(connectivityChecker.map(PeerConnectivityCheckerModule::getEchosReceived).orElse(-1L).intValue());
-                    p.echosReceived.set(connectivityChecker.map(PeerConnectivityCheckerModule::getEchosReceived).orElse(-1L).intValue());
+                    p.connectivityUpdate(peer);
                 });
             }
         });
@@ -217,6 +221,16 @@ public class DebugWindow extends Application implements Debugger {
         public SimpleIntegerProperty invalidEchosReceived = new SimpleIntegerProperty(-1);
         public SimpleStringProperty localCandidate = new SimpleStringProperty("");
         public SimpleStringProperty remoteCandidate = new SimpleStringProperty("");
+
+        public DebugPeer(Peer peer) {
+            this(peer.getRemoteId(), peer.getRemoteLogin(), peer.isLocalOffer());
+        }
+
+        public DebugPeer(int id, String login, boolean localOffer) {
+            this.id.set(id);
+            this.login.set(login);
+            this.localOffer.set(localOffer);
+        }
 
         public int getId() {
             return id.get();
@@ -300,6 +314,21 @@ public class DebugWindow extends Application implements Debugger {
 
         public SimpleStringProperty remoteCandidateProperty() {
             return remoteCandidate;
+        }
+
+        public void stateChangedUpdate(Peer peer) {
+            connected.set(peer.getIce().isConnected());
+            state.set(peer.getIce().getIceState().getMessage());
+            localCandidate.set(Optional.ofNullable(peer.getIce().getComponent()).map(Component::getSelectedPair).map(CandidatePair::getLocalCandidate).map(Candidate::getType).map(CandidateType::toString).orElse(""));
+            remoteCandidate.set(Optional.ofNullable(peer.getIce().getComponent()).map(Component::getSelectedPair).map(CandidatePair::getRemoteCandidate).map(Candidate::getType).map(CandidateType::toString).orElse(""));
+        }
+
+        public void connectivityUpdate(Peer peer) {
+            Optional<PeerConnectivityCheckerModule> connectivityChecker = Optional.ofNullable(peer.getIce().getConnectivityChecker());
+            averageRtt.set(connectivityChecker.map(PeerConnectivityCheckerModule::getAverageRTT).orElse(-1.0f).intValue());
+            lastReceived.set(connectivityChecker.map(PeerConnectivityCheckerModule::getLastPacketReceived).map(last -> System.currentTimeMillis() - last).orElse(-1L).intValue());
+            echosReceived.set(connectivityChecker.map(PeerConnectivityCheckerModule::getEchosReceived).orElse(-1L).intValue());
+            echosReceived.set(connectivityChecker.map(PeerConnectivityCheckerModule::getEchosReceived).orElse(-1L).intValue());
         }
     }
 }
