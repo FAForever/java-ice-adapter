@@ -1,15 +1,13 @@
 package com.faforever.iceadapter.util;
 
 import com.google.common.io.CharStreams;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import lombok.extern.slf4j.Slf4j;
 
 /*
  * A wrapper around calling the system `ping` executable to query the latency of a host.
@@ -17,7 +15,8 @@ import java.util.regex.Pattern;
 @Slf4j
 public class PingWrapper {
     static final Pattern WINDOWS_OUTPUT_PATTERN = Pattern.compile("Average = (\\d+)ms", Pattern.MULTILINE);
-    static final Pattern GNU_OUTPUT_PATTERN = Pattern.compile("min/avg/max/mdev = [0-9.]+/([0-9.]+)/[0-9.]+/[0-9.]+", Pattern.MULTILINE);
+    static final Pattern GNU_OUTPUT_PATTERN =
+            Pattern.compile("min/avg/max/mdev = [0-9.]+/([0-9.]+)/[0-9.]+/[0-9.]+", Pattern.MULTILINE);
 
     /*
      * Get the round trip time to an address.

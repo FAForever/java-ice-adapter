@@ -3,7 +3,6 @@ package com.faforever.iceadapter.debug;
 import com.faforever.iceadapter.ice.Peer;
 import com.faforever.iceadapter.telemetry.CoturnServer;
 import com.nbarraille.jjsonrpc.JJsonPeer;
-
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
@@ -27,6 +26,5 @@ public interface Debugger {
 
     void peerConnectivityUpdate(Peer peer);
 
-    default void updateCoturnList(Collection<CoturnServer> servers) {
-    }
+    default void updateCoturnList(Collection<CoturnServer> servers) {}
 }

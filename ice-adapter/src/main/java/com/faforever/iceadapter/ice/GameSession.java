@@ -1,17 +1,13 @@
 package com.faforever.iceadapter.ice;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
+
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.telemetry.CoturnServer;
 import com.faforever.iceadapter.util.PingWrapper;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-import org.ice4j.Transport;
-import org.ice4j.TransportAddress;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,8 +21,11 @@ import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static com.faforever.iceadapter.debug.Debug.debug;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
 
 /**
  * Represents a game session and the current ICE status/communication with all peers
@@ -37,15 +36,15 @@ public class GameSession {
 
     private static final String STUN = "stun";
     private static final String TURN = "turn";
+
     @Getter
     private final Map<Integer, Peer> peers = new ConcurrentHashMap<>();
+
     @Getter
     @Setter
     private volatile boolean gameEnded = false;
 
-    public GameSession() {
-
-    }
+    public GameSession() {}
 
     /**
      * Initiates a connection to a peer (ICE)
@@ -68,8 +67,8 @@ public class GameSession {
             removedPeer.close();
             debug().disconnectFromPeer(remotePlayerId);
         }
-        //TODO: still testing connectivity and reporting disconnect via rpc, why???
-        //TODO: still attempting to ICE
+        // TODO: still testing connectivity and reporting disconnect via rpc, why???
+        // TODO: still attempting to ICE
     }
 
     /**
@@ -81,8 +80,7 @@ public class GameSession {
         if (Objects.nonNull(reconnectPeer)) {
             String remotePlayerLogin = reconnectPeer.getRemoteLogin();
             boolean offer = reconnectPeer.isLocalOffer();
-            int port = reconnectPeer.getFaSocket()
-                    .getLocalPort();
+            int port = reconnectPeer.getFaSocket().getLocalPort();
 
             disconnectFromPeer(remotePlayerId);
             connectToPeer(remotePlayerLogin, remotePlayerId, offer, port);
@@ -114,14 +112,14 @@ public class GameSession {
 
         // For caching RTT to a given host (the same host can appear in multiple urls)
         LoadingCache<String, CompletableFuture<OptionalDouble>> hostRTTCache = CacheBuilder.newBuilder()
-                                                                                           .build(new CacheLoader<>() {
-                                                                                               @Override
-                                                                                               public CompletableFuture<OptionalDouble> load(String host) {
-                                                                                                   return PingWrapper.getLatency(host, IceAdapter.PING_COUNT)
-                                                                                                                     .thenApply(OptionalDouble::of)
-                                                                                                                     .exceptionally(ex -> OptionalDouble.empty());
-                                                                                               }
-                                                                                           });
+                .build(new CacheLoader<>() {
+                    @Override
+                    public CompletableFuture<OptionalDouble> load(String host) {
+                        return PingWrapper.getLatency(host, IceAdapter.PING_COUNT)
+                                .thenApply(OptionalDouble::of)
+                                .exceptionally(ex -> OptionalDouble.empty());
+                    }
+                });
 
         Set<CoturnServer> coturnServers = new HashSet<>();
 
@@ -144,40 +142,42 @@ public class GameSession {
                     urls = Collections.singletonList((String) iceServerData.get("url"));
                 }
 
-                urls.stream().map(stringUrl -> {
-                    try {
-                        return new URI(stringUrl);
-                    } catch (Exception e) {
-                        log.warn("Invalid ICE server URI: {}", stringUrl);
-                        return null;
-                    }
-                }).filter(Objects::nonNull).forEach(uri -> {
-                    String host = uri.getHost();
-                    int port = uri.getPort() == -1 ? 3478 : uri.getPort();
-                    Transport transport = Optional.ofNullable(uri.getQuery())
-                                                  .stream()
-                                                  .flatMap(query -> Arrays.stream(query.split("&")))
-                                                  .map(param -> param.split("="))
-                                                  .filter(param -> param.length == 2)
-                                                  .filter(param -> param[0].equals("transport"))
-                                                  .map(param -> param[1])
-                                                  .map(Transport::parse)
-                                                  .findFirst()
-                                                  .orElse(Transport.UDP);
+                urls.stream()
+                        .map(stringUrl -> {
+                            try {
+                                return new URI(stringUrl);
+                            } catch (Exception e) {
+                                log.warn("Invalid ICE server URI: {}", stringUrl);
+                                return null;
+                            }
+                        })
+                        .filter(Objects::nonNull)
+                        .forEach(uri -> {
+                            String host = uri.getHost();
+                            int port = uri.getPort() == -1 ? 3478 : uri.getPort();
+                            Transport transport = Optional.ofNullable(uri.getQuery()).stream()
+                                    .flatMap(query -> Arrays.stream(query.split("&")))
+                                    .map(param -> param.split("="))
+                                    .filter(param -> param.length == 2)
+                                    .filter(param -> param[0].equals("transport"))
+                                    .map(param -> param[1])
+                                    .map(Transport::parse)
+                                    .findFirst()
+                                    .orElse(Transport.UDP);
 
-                    TransportAddress address = new TransportAddress(host, port, transport);
-                    switch (uri.getScheme()) {
-                        case STUN -> iceServer.getStunAddresses().add(address);
-                        case TURN -> iceServer.getTurnAddresses().add(address);
-                        default -> log.warn("Invalid ICE server protocol: {}", uri);
-                    }
+                            TransportAddress address = new TransportAddress(host, port, transport);
+                            switch (uri.getScheme()) {
+                                case STUN -> iceServer.getStunAddresses().add(address);
+                                case TURN -> iceServer.getTurnAddresses().add(address);
+                                default -> log.warn("Invalid ICE server protocol: {}", uri);
+                            }
 
-                    if (IceAdapter.PING_COUNT > 0) {
-                        iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
-                    }
+                            if (IceAdapter.PING_COUNT > 0) {
+                                iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
+                            }
 
-                    coturnServers.add(new CoturnServer("n/a", host, port, null));
-                });
+                            coturnServers.add(new CoturnServer("n/a", host, port, null));
+                        });
             }
 
             iceServers.add(iceServer);
@@ -185,10 +185,11 @@ public class GameSession {
 
         debug().updateCoturnList(coturnServers);
 
-        log.info("Ice Servers set, total addresses: {}",
-                 iceServers.stream()
-                           .mapToInt(iceServer -> iceServer.getStunAddresses().size() +
-                                                  iceServer.getTurnAddresses().size())
-                           .sum());
+        log.info(
+                "Ice Servers set, total addresses: {}",
+                iceServers.stream()
+                        .mapToInt(iceServer -> iceServer.getStunAddresses().size()
+                                + iceServer.getTurnAddresses().size())
+                        .sum());
     }
 }

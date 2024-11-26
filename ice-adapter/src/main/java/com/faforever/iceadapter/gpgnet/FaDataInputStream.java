@@ -1,7 +1,6 @@
 package com.faforever.iceadapter.gpgnet;
 
 import com.google.common.io.LittleEndianDataInputStream;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;

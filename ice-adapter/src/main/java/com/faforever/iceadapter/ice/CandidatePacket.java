@@ -15,8 +15,8 @@ public record CandidatePacket(
         int generation,
         String id,
         String relAddr,
-        int relPort
-) implements Comparable<CandidatePacket> {
+        int relPort)
+        implements Comparable<CandidatePacket> {
     @Override
     public int compareTo(CandidatePacket o) {
         return (int) (o.priority - this.priority);
