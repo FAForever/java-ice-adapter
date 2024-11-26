@@ -1,6 +1,7 @@
 package com.faforever.iceadapter.ice;
 
 import com.faforever.iceadapter.IceAdapter;
+import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import java.io.IOException;
 import java.net.*;
 import lombok.Getter;
@@ -33,10 +34,7 @@ public class Peer {
         this.preferredPort = preferredPort;
 
         log.debug(
-                "Peer created: {}, localOffer: {}, preferredPort: {}",
-                getPeerIdentifier(),
-                String.valueOf(localOffer),
-                preferredPort);
+                "Peer created: {}, localOffer: {}, preferredPort: {}", getPeerIdentifier(), localOffer, preferredPort);
 
         initForwarding(preferredPort);
 
@@ -68,8 +66,8 @@ public class Peer {
      */
     synchronized void onIceDataReceived(byte data[], int offset, int length) {
         try {
-            DatagramPacket packet =
-                    new DatagramPacket(data, offset, length, InetAddress.getByName("127.0.0.1"), IceAdapter.LOBBY_PORT);
+            DatagramPacket packet = new DatagramPacket(
+                    data, offset, length, InetAddress.getByName("127.0.0.1"), GPGNetServer.getLobbyPort());
             faSocket.send(packet);
         } catch (UnknownHostException e) {
         } catch (IOException e) {
@@ -90,7 +88,7 @@ public class Peer {
     private void faListener() {
         byte data[] = new byte
                 [65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
-        while (IceAdapter.running && IceAdapter.gameSession == gameSession) {
+        while (IceAdapter.isRunning() && IceAdapter.getGameSession() == gameSession) {
             try {
                 DatagramPacket packet = new DatagramPacket(data, data.length);
                 faSocket.receive(packet);
