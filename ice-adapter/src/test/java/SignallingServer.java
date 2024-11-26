@@ -16,12 +16,11 @@ public class SignallingServer {
         List<String> messages = new ArrayList<>();
         List<Socket> sockets = new ArrayList<>();
 
-
-        while(true) {
+        while (true) {
             Socket socket = serverSocket.accept();
             String s = new DataInputStream(socket.getInputStream()).readUTF();
 
-            if(sockets.size() >= 2) {
+            if (sockets.size() >= 2) {
                 sockets.clear();
                 messages.clear();
             }
@@ -29,7 +28,7 @@ public class SignallingServer {
             messages.add(s);
             sockets.add(socket);
 
-            if(sockets.size() == 2) {
+            if (sockets.size() == 2) {
                 DataOutputStream out1 = new DataOutputStream(sockets.get(0).getOutputStream());
                 out1.writeUTF(messages.get(1));
                 out1.flush();
@@ -38,7 +37,10 @@ public class SignallingServer {
                 out2.flush();
 
                 sockets.forEach(sock -> {
-                    try { sock.close(); } catch(IOException e) {}
+                    try {
+                        sock.close();
+                    } catch (IOException e) {
+                    }
                 });
                 sockets.clear();
                 messages.clear();

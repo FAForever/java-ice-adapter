@@ -1,12 +1,11 @@
 package com.faforever.iceadapter.util;
 
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.SocketException;
 import java.util.Random;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NetworkToolbox {
@@ -21,13 +20,13 @@ public class NetworkToolbox {
      */
     public static int findFreeTCPPort(int min, int max) {
 
-        for(int i = 0;i < 10000;i++) {
+        for (int i = 0; i < 10000; i++) {
             int possiblePort = min + random.nextInt(max - min);
             try {
                 ServerSocket serverSocket = new ServerSocket(possiblePort);
                 serverSocket.close();
                 return possiblePort;
-            } catch(IOException e) {
+            } catch (IOException e) {
                 continue;
             }
         }
@@ -45,13 +44,13 @@ public class NetworkToolbox {
      */
     public static int findFreeUDPPort(int min, int max) {
 
-        for(int i = 0;i < 10000;i++) {
+        for (int i = 0; i < 10000; i++) {
             int possiblePort = min + random.nextInt(max - min);
             try {
                 DatagramSocket socket = new DatagramSocket(possiblePort);
                 socket.close();
                 return possiblePort;
-            } catch(SocketException e) {
+            } catch (SocketException e) {
                 continue;
             }
         }

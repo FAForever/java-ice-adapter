@@ -1,12 +1,11 @@
 package com.faforever.iceadapter.ice;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
+
 import com.google.common.primitives.Longs;
+import java.util.Arrays;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Arrays;
-
-import static com.faforever.iceadapter.debug.Debug.debug;
 
 @Slf4j
 /**
@@ -21,10 +20,17 @@ public class PeerConnectivityCheckerModule {
     private volatile boolean running = false;
     private volatile Thread checkerThread;
 
-    @Getter private float averageRTT = 0.0f;
-    @Getter private long lastPacketReceived;
-    @Getter private long echosReceived = 0;
-    @Getter private long invalidEchosReceived = 0;
+    @Getter
+    private float averageRTT = 0.0f;
+
+    @Getter
+    private long lastPacketReceived;
+
+    @Getter
+    private long echosReceived = 0;
+
+    @Getter
+    private long invalidEchosReceived = 0;
 
     public PeerConnectivityCheckerModule(PeerIceModule ice) {
         this.ice = ice;
@@ -42,12 +48,13 @@ public class PeerConnectivityCheckerModule {
         lastPacketReceived = System.currentTimeMillis();
 
         checkerThread = new Thread(this::checkerThread, getThreadName());
-        checkerThread.setUncaughtExceptionHandler((t, e) -> log.error("Thread {} crashed unexpectedly", t.getName(), e));
+        checkerThread.setUncaughtExceptionHandler(
+                (t, e) -> log.error("Thread {} crashed unexpectedly", t.getName(), e));
         checkerThread.start();
     }
 
     private String getThreadName() {
-        return "connectivityChecker-"+ice.getPeer().getRemoteId();
+        return "connectivityChecker-" + ice.getPeer().getRemoteId();
     }
 
     synchronized void stop() {
@@ -77,7 +84,8 @@ public class PeerConnectivityCheckerModule {
             invalidEchosReceived++;
         }
 
-        int rtt = (int) (System.currentTimeMillis() - Longs.fromByteArray(Arrays.copyOfRange(data, offset + 1, length)));
+        int rtt =
+                (int) (System.currentTimeMillis() - Longs.fromByteArray(Arrays.copyOfRange(data, offset + 1, length)));
         if (averageRTT == 0) {
             averageRTT = rtt;
         } else {
@@ -87,7 +95,8 @@ public class PeerConnectivityCheckerModule {
         lastPacketReceived = System.currentTimeMillis();
 
         debug().peerConnectivityUpdate(ice.getPeer());
-//      System.out.printf("Received echo from %d after %d ms, averageRTT: %d ms", ice.getPeer().getRemoteId(), rtt, (int) averageRTT);
+        //      System.out.printf("Received echo from %d after %d ms, averageRTT: %d ms", ice.getPeer().getRemoteId(),
+        // rtt, (int) averageRTT);
     }
 
     private void checkerThread() {
@@ -97,7 +106,7 @@ public class PeerConnectivityCheckerModule {
             byte[] data = new byte[9];
             data[0] = 'e';
 
-            //Copy current time (long, 8 bytes) into array after leading prefix indicating echo
+            // Copy current time (long, 8 bytes) into array after leading prefix indicating echo
             System.arraycopy(Longs.toByteArray(System.currentTimeMillis()), 0, data, 1, 8);
 
             ice.sendViaIce(data, 0, data.length);
@@ -107,13 +116,17 @@ public class PeerConnectivityCheckerModule {
             try {
                 Thread.sleep(ECHO_INTERVAL);
             } catch (InterruptedException e) {
-                log.warn("{} (sleeping checkerThread) was interrupted", Thread.currentThread().getName());
+                log.warn(
+                        "{} (sleeping checkerThread) was interrupted",
+                        Thread.currentThread().getName());
                 Thread.currentThread().interrupt();
                 return;
             }
 
             if (System.currentTimeMillis() - lastPacketReceived > 10000) {
-                log.warn("Didn't receive any answer to echo requests for the past 10 seconds from {}, aborting connection", ice.getPeer().getRemoteLogin());
+                log.warn(
+                        "Didn't receive any answer to echo requests for the past 10 seconds from {}, aborting connection",
+                        ice.getPeer().getRemoteLogin());
                 new Thread(ice::onConnectionLost).start();
                 return;
             }

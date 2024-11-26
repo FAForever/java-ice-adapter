@@ -2,16 +2,6 @@ import com.faforever.iceadapter.ice.CandidatePacket;
 import com.faforever.iceadapter.ice.CandidatesMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import lombok.extern.slf4j.Slf4j;
-import org.ice4j.Transport;
-import org.ice4j.TransportAddress;
-import org.ice4j.ice.*;
-import org.ice4j.ice.harvest.StunCandidateHarvester;
-import org.ice4j.ice.harvest.TurnCandidateHarvester;
-import org.ice4j.security.LongTermCredential;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -22,14 +12,23 @@ import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import lombok.extern.slf4j.Slf4j;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.ice.*;
+import org.ice4j.ice.harvest.StunCandidateHarvester;
+import org.ice4j.ice.harvest.TurnCandidateHarvester;
+import org.ice4j.security.LongTermCredential;
 
 @Slf4j
 public class IceTest {
 
     private static final String COTURN_HOST = "geosearchef.de";
     private static final String COTURN_KEY = "B9UohFSnFeX1YQ7nQJsBe3MwWS4kx4FJ8TUBUDzYG23rLBCIeJMvgYfbRkeK";
-//    private static final String COTURN_HOST = "vmrbg145.informatik.tu-muenchen.de";
-//    private static final String COTURN_KEY = "banana";
+    //    private static final String COTURN_HOST = "vmrbg145.informatik.tu-muenchen.de";
+    //    private static final String COTURN_KEY = "banana";
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -48,7 +47,8 @@ public class IceTest {
         byte[] secret = null;
         try {
             Mac mac = Mac.getInstance("HmacSHA1");
-            mac.init(new SecretKeySpec(Charset.forName("cp1252").encode(COTURN_KEY).array(), "HmacSHA1"));
+            mac.init(new SecretKeySpec(
+                    Charset.forName("cp1252").encode(COTURN_KEY).array(), "HmacSHA1"));
             secret = mac.doFinal(Charset.forName("cp1252").encode(tokenName).array());
 
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
@@ -62,23 +62,20 @@ public class IceTest {
         map.put("credentialType", "token");
         map.put("username", tokenName);
 
-
-
-//        int localPort
+        //        int localPort
 
         TransportAddress[] turnAddresses = {
-                new TransportAddress(COTURN_HOST, 3478, Transport.TCP),
-                new TransportAddress(COTURN_HOST, 3478, Transport.UDP),
-//                String.format("turn:%s?transport=tcp", COTURN_HOST),
-//                String.format("turn:%s?transport=udp", COTURN_HOST)
+            new TransportAddress(COTURN_HOST, 3478, Transport.TCP),
+            new TransportAddress(COTURN_HOST, 3478, Transport.UDP),
+            //                String.format("turn:%s?transport=tcp", COTURN_HOST),
+            //                String.format("turn:%s?transport=udp", COTURN_HOST)
         };
 
         TransportAddress[] stunAddresses = {
-                new TransportAddress(COTURN_HOST, 3478, Transport.UDP),
-//                new TransportAddress("stun3.l.google.com", 19302, Transport.UDP)
-//                String.format("stun:%s", COTURN_HOST)
+            new TransportAddress(COTURN_HOST, 3478, Transport.UDP),
+            //                new TransportAddress("stun3.l.google.com", 19302, Transport.UDP)
+            //                String.format("stun:%s", COTURN_HOST)
         };
-
 
         Agent agent = new Agent();
 
@@ -88,26 +85,29 @@ public class IceTest {
         Arrays.stream(turnAddresses)
                 .map(a -> new TurnCandidateHarvester(
                         a,
-                        new LongTermCredential(/*String.format("%d:%s", ((System.currentTimeMillis() / 1000) + 3600*24), username)*/(String) map.get("username"), (String) map.get("credential"))))
+                        new LongTermCredential(
+                                /*String.format("%d:%s", ((System.currentTimeMillis() / 1000) + 3600*24), username)*/ (String)
+                                        map.get("username"),
+                                (String) map.get("credential"))))
                 .forEach(agent::addCandidateHarvester);
         Arrays.stream(stunAddresses).map(StunCandidateHarvester::new).forEach(agent::addCandidateHarvester);
 
-        System.out.printf("Preferred port?\n");//host port
+        System.out.printf("Preferred port?\n"); // host port
         int preferredPort = scan.nextInt();
 
         IceMediaStream mediaStream = agent.createMediaStream("mainStream");
         Component component = agent.createComponent(mediaStream, preferredPort, preferredPort, preferredPort + 100);
 
-        //------------------------------------------------------------
-        //agent done
-        //------------------------------------------------------------
+        // ------------------------------------------------------------
+        // agent done
+        // ------------------------------------------------------------
 
-        //print candidates
-        //may have to be done for multiple components
+        // print candidates
+        // may have to be done for multiple components
         int candidateIDFactory = 0;
         final List<CandidatePacket> candidatePackets = new ArrayList<>();
 
-        for(LocalCandidate localCandidate : component.getLocalCandidates()) {
+        for (LocalCandidate localCandidate : component.getLocalCandidates()) {
             String relAddr = null;
             int relPort = 0;
 
@@ -126,19 +126,21 @@ public class IceTest {
                     agent.getGeneration(),
                     String.valueOf(candidateIDFactory++),
                     relAddr,
-                    relPort
-            );
+                    relPort);
 
             candidatePackets.add(candidatePacket);
         }
 
         Collections.sort(candidatePackets);
 
-        CandidatesMessage localCandidatesMessage = new CandidatesMessage(0, 0/*mocked*/, agent.getLocalPassword(), agent.getLocalUfrag(), candidatePackets);
+        CandidatesMessage localCandidatesMessage = new CandidatesMessage(
+                0, 0 /*mocked*/, agent.getLocalPassword(), agent.getLocalUfrag(), candidatePackets);
 
-        System.out.printf("------------------------------------\n%s\n------------------------------------\n", objectMapper.writeValueAsString(localCandidatesMessage));
+        System.out.printf(
+                "------------------------------------\n%s\n------------------------------------\n",
+                objectMapper.writeValueAsString(localCandidatesMessage));
 
-        //read candidates
+        // read candidates
         Socket socket = new Socket("localhost", 49456);
         DataOutputStream out = new DataOutputStream(socket.getOutputStream());
         DataInputStream in = new DataInputStream(socket.getInputStream());
@@ -146,19 +148,26 @@ public class IceTest {
         out.flush();
         CandidatesMessage remoteCandidatesMessage = objectMapper.readValue(in.readUTF(), CandidatesMessage.class);
 
-        //Set candidates
+        // Set candidates
         mediaStream.setRemotePassword(remoteCandidatesMessage.password());
         mediaStream.setRemoteUfrag(remoteCandidatesMessage.ufrag());
-        for(CandidatePacket remoteCandidatePacket : remoteCandidatesMessage.candidates()) {
+        for (CandidatePacket remoteCandidatePacket : remoteCandidatesMessage.candidates()) {
 
-            if(remoteCandidatePacket.generation() == agent.getGeneration()
-                    && remoteCandidatePacket.ip() != null && remoteCandidatePacket.port() > 0) {
+            if (remoteCandidatePacket.generation() == agent.getGeneration()
+                    && remoteCandidatePacket.ip() != null
+                    && remoteCandidatePacket.port() > 0) {
 
-                TransportAddress mainAddress = new TransportAddress(remoteCandidatePacket.ip(), remoteCandidatePacket.port(), Transport.parse(remoteCandidatePacket.protocol().toLowerCase()));
+                TransportAddress mainAddress = new TransportAddress(
+                        remoteCandidatePacket.ip(),
+                        remoteCandidatePacket.port(),
+                        Transport.parse(remoteCandidatePacket.protocol().toLowerCase()));
 
                 RemoteCandidate relatedCandidate = null;
-                if(remoteCandidatePacket.relAddr() != null && remoteCandidatePacket.relPort() > 0) {
-                    TransportAddress relatedAddr = new TransportAddress(remoteCandidatePacket.relAddr(), remoteCandidatePacket.relPort(), Transport.parse(remoteCandidatePacket.protocol().toLowerCase()));
+                if (remoteCandidatePacket.relAddr() != null && remoteCandidatePacket.relPort() > 0) {
+                    TransportAddress relatedAddr = new TransportAddress(
+                            remoteCandidatePacket.relAddr(),
+                            remoteCandidatePacket.relPort(),
+                            Transport.parse(remoteCandidatePacket.protocol().toLowerCase()));
                     relatedCandidate = component.findRemoteCandidate(relatedAddr);
                 }
 
@@ -168,30 +177,51 @@ public class IceTest {
                         CandidateType.parse(remoteCandidatePacket.type().toString()),
                         remoteCandidatePacket.foundation(),
                         remoteCandidatePacket.priority(),
-                        relatedCandidate
-                );
+                        relatedCandidate);
 
-                if(remoteCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE)) //DEBUGGING: turn only
-                    component.addRemoteCandidate(remoteCandidate);
+                if (remoteCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE)) // DEBUGGING: turn only
+                component.addRemoteCandidate(remoteCandidate);
             }
         }
 
         agent.startConnectivityEstablishment();
 
-        while(agent.getState() != IceProcessingState.TERMINATED) {//TODO include more?
-            try { Thread.sleep(20); } catch(InterruptedException e) { e.printStackTrace(); }
+        while (agent.getState() != IceProcessingState.TERMINATED) { // TODO include more?
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
-
-        while("".equals("")) {
-          component.getSelectedPair().getIceSocketWrapper().send(new DatagramPacket("Aeon is the worst faction on this planet!".getBytes(), 0, 4, InetAddress.getByName(component.getSelectedPair().getRemoteCandidate().getHostAddress().getHostAddress()), component.getSelectedPair().getRemoteCandidate().getHostAddress().getPort()));
-          byte[] data = new byte[1024];
-          component.getSelectedPair().getIceSocketWrapper().receive(new DatagramPacket(data, data.length));
-          System.out.println("Got data: " + new String(data));
-          try {Thread.sleep(2500);} catch(InterruptedException e) {e.printStackTrace();}
+        while ("".isEmpty()) {
+            component
+                    .getSelectedPair()
+                    .getIceSocketWrapper()
+                    .send(new DatagramPacket(
+                            "Aeon is the worst faction on this planet!".getBytes(),
+                            0,
+                            4,
+                            InetAddress.getByName(component
+                                    .getSelectedPair()
+                                    .getRemoteCandidate()
+                                    .getHostAddress()
+                                    .getHostAddress()),
+                            component
+                                    .getSelectedPair()
+                                    .getRemoteCandidate()
+                                    .getHostAddress()
+                                    .getPort()));
+            byte[] data = new byte[1024];
+            component.getSelectedPair().getIceSocketWrapper().receive(new DatagramPacket(data, data.length));
+            System.out.println("Got data: " + new String(data));
+            try {
+                Thread.sleep(2500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
         agent.free();
     }
-
 }

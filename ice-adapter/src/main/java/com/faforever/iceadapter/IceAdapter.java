@@ -1,5 +1,7 @@
 package com.faforever.iceadapter;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
+
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
@@ -7,13 +9,14 @@ import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.Executor;
 import com.faforever.iceadapter.util.TrayIcon;
+import java.util.concurrent.Callable;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 
-import java.util.concurrent.Callable;
-
-import static com.faforever.iceadapter.debug.Debug.debug;
-@CommandLine.Command(name = "faf-ice-adapter", mixinStandardHelpOptions = true, usageHelpAutoWidth = true,
+@CommandLine.Command(
+        name = "faf-ice-adapter",
+        mixinStandardHelpOptions = true,
+        usageHelpAutoWidth = true,
         description = "An ice (RFC 5245) based network bridge between FAF client and ForgedAlliance.exe")
 @Slf4j
 public class IceAdapter implements Callable<Integer> {
@@ -43,9 +46,7 @@ public class IceAdapter implements Callable<Integer> {
     public static volatile GameSession gameSession;
 
     public static void main(String[] args) {
-        new CommandLine(new IceAdapter())
-                .setUnmatchedArgumentsAllowed(true)
-                .execute(args);
+        new CommandLine(new IceAdapter()).setUnmatchedArgumentsAllowed(true).execute(args);
     }
 
     @Override
@@ -61,14 +62,15 @@ public class IceAdapter implements Callable<Integer> {
 
         TrayIcon.create();
 
-        //Configure file appender
-//		RollingFileAppender fileAppender = (ch.qos.logback.core.rolling.RollingFileAppender)((ch.qos.logback.classic.Logger)log).getAppender("FILE");
-//        if (logDirectory != null) {
-//            Util.mkdir(Paths.get(logDirectory).toFile());
-//			//TODO: set log dir
-//        } else {
-////			fileAppender.stop();
-//		}
+        // Configure file appender
+        //		RollingFileAppender fileAppender =
+        // (ch.qos.logback.core.rolling.RollingFileAppender)((ch.qos.logback.classic.Logger)log).getAppender("FILE");
+        //        if (logDirectory != null) {
+        //            Util.mkdir(Paths.get(logDirectory).toFile());
+        //			//TODO: set log dir
+        //        } else {
+        ////			fileAppender.stop();
+        //		}
 
         log.info("Version: {}", VERSION);
 
@@ -102,7 +104,10 @@ public class IceAdapter implements Callable<Integer> {
     }
 
     public static void onConnectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer) {
-        if(GPGNetServer.isConnected() && GPGNetServer.getGameState().isPresent() && (GPGNetServer.getGameState().get() == GameState.LAUNCHING || GPGNetServer.getGameState().get() == GameState.ENDED)) {
+        if (GPGNetServer.isConnected()
+                && GPGNetServer.getGameState().isPresent()
+                && (GPGNetServer.getGameState().get() == GameState.LAUNCHING
+                        || GPGNetServer.getGameState().get() == GameState.ENDED)) {
             log.warn("Game ended or in progress, ABORTING connectToPeer");
             return;
         }
@@ -128,7 +133,7 @@ public class IceAdapter implements Callable<Integer> {
         });
     }
 
-    private synchronized static void createGameSession() {
+    private static synchronized void createGameSession() {
         if (gameSession != null) {
             gameSession.close();
             gameSession = null;
@@ -141,12 +146,12 @@ public class IceAdapter implements Callable<Integer> {
      * Triggered by losing gpgnet connection to FA.
      * Closes the active Game/ICE session
      */
-    public synchronized static void onFAShutdown() {
-        if(gameSession != null) {
+    public static synchronized void onFAShutdown() {
+        if (gameSession != null) {
             log.info("FA SHUTDOWN, closing everything");
             gameSession.close();
             gameSession = null;
-            //Do not put code outside of this if clause, else it will be executed multiple times
+            // Do not put code outside of this if clause, else it will be executed multiple times
         }
     }
 
@@ -158,14 +163,13 @@ public class IceAdapter implements Callable<Integer> {
 
         Executor.executeDelayed(500, () -> System.exit(0));
 
-        onFAShutdown();//will close gameSession aswell
+        onFAShutdown(); // will close gameSession aswell
         GPGNetServer.close();
         RPCService.close();
         TrayIcon.close();
 
         System.exit(0);
     }
-
 
     /**
      * Read command line arguments and set global, constant values
@@ -180,7 +184,7 @@ public class IceAdapter implements Callable<Integer> {
         GPGNET_PORT = iceOptions.getGpgnetPort();
         LOBBY_PORT = iceOptions.getLobbyPort();
 
-        if(iceOptions.isForceRelay()) {
+        if (iceOptions.isForceRelay()) {
             ALLOW_HOST = false;
             ALLOW_REFLEXIVE = false;
             ALLOW_RELAY = true;
@@ -197,7 +201,7 @@ public class IceAdapter implements Callable<Integer> {
 
     private static void determineVersion() {
         String versionFromGradle = IceAdapter.class.getPackage().getImplementationVersion();
-        if(versionFromGradle != null) {
+        if (versionFromGradle != null) {
             VERSION = versionFromGradle;
         }
     }

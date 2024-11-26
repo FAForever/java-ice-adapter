@@ -9,6 +9,7 @@ apply plugin: 'idea'
 apply plugin: 'java'
 apply plugin: 'java-library'
 apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.diffplug.spotless'
 
 group 'com.faforever'
 
@@ -65,5 +66,16 @@ shadowJar {
     getArchiveFileName().set("faf-ice-adapter-${version}-${plattformSuffix}.jar")
     manifest {
         attributes 'Main-Class': 'com.faforever.iceadapter.IceAdapter'
+    }
+}
+
+tasks.named("check") {
+    dependsOn("spotlessCheck")
+}
+
+spotless {
+    java {
+        cleanthat()
+        palantirJavaFormat()
     }
 }

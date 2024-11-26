@@ -1,11 +1,10 @@
 package com.faforever.iceadapter.gpgnet;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
+
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.NetworkToolbox;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -15,19 +14,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-
-import static com.faforever.iceadapter.debug.Debug.debug;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GPGNetServer {
     private static ServerSocket serverSocket;
     private static volatile GPGNetClient currentClient;
 
-    //Used by other services to get a callback on FA connecting
+    // Used by other services to get a callback on FA connecting
     public static volatile CompletableFuture<GPGNetClient> clientFuture = new CompletableFuture<>();
 
     public static volatile LobbyInitMode lobbyInitMode = LobbyInitMode.NORMAL;
-
 
     public static void init() {
         if (IceAdapter.GPGNET_PORT == 0) {
@@ -84,7 +82,6 @@ public class GPGNetServer {
             log.info("GPGNetClient has connected");
         }
 
-
         /**
          * Process an incoming message from FA
          */
@@ -95,7 +92,13 @@ public class GPGNetServer {
                     log.debug("New GameState: {}", gameState.getName());
 
                     if (gameState == GameState.IDLE) {
-                        sendGpgnetMessage("CreateLobby", lobbyInitMode.getId(), IceAdapter.LOBBY_PORT, IceAdapter.login, IceAdapter.id, 1);
+                        sendGpgnetMessage(
+                                "CreateLobby",
+                                lobbyInitMode.getId(),
+                                IceAdapter.LOBBY_PORT,
+                                IceAdapter.login,
+                                IceAdapter.id,
+                                1);
                     } else if (gameState == GameState.LOBBY) {
                         lobbyFuture.complete(this);
                     }
@@ -109,11 +112,14 @@ public class GPGNetServer {
                     }
                 }
                 default -> {
-                    //No need to log, as we are not processing all messages but just forward them via RPC
+                    // No need to log, as we are not processing all messages but just forward them via RPC
                 }
             }
 
-            log.info("Received GPGNet message: {} {}", command, args.stream().map(Object::toString).collect(Collectors.joining(" ")));
+            log.info(
+                    "Received GPGNet message: {} {}",
+                    command,
+                    args.stream().map(Object::toString).collect(Collectors.joining(" ")));
             RPCService.onGpgNetMessageReceived(command, args);
         }
 
@@ -123,7 +129,10 @@ public class GPGNetServer {
         public synchronized void sendGpgnetMessage(String command, Object... args) {
             try {
                 gpgnetOut.writeMessage(command, args);
-                log.info("Sent GPGNet message: {} {}", command, Arrays.stream(args).map(Object::toString).collect(Collectors.joining(" ")));
+                log.info(
+                        "Sent GPGNet message: {} {}",
+                        command,
+                        Arrays.stream(args).map(Object::toString).collect(Collectors.joining(" ")));
             } catch (IOException e) {
                 log.error("Error while communicating with FA (output), assuming shutdown", e);
                 GPGNetServer.onGpgnetConnectionLost();
@@ -135,9 +144,11 @@ public class GPGNetServer {
          */
         private void listenerThread() {
             log.debug("Listening for GPG messages");
-            boolean triggerActive = false;//Prevents a race condition between this thread and the thread that has created this object and is now going to set GPGNetServer.currentClient
+            boolean triggerActive =
+                    false; // Prevents a race condition between this thread and the thread that has created this object
+            // and is now going to set GPGNetServer.currentClient
             try (var inputStream = socket.getInputStream();
-                 var gpgnetIn = new FaDataInputStream(inputStream)) {
+                    var gpgnetIn = new FaDataInputStream(inputStream)) {
                 while ((!triggerActive || GPGNetServer.currentClient == this) && !stopping) {
                     String command = gpgnetIn.readString();
                     List<Object> args = gpgnetIn.readChunks();
@@ -145,7 +156,8 @@ public class GPGNetServer {
                     processGpgnetMessage(command, args);
 
                     if (!triggerActive && GPGNetServer.currentClient != null) {
-                        triggerActive = true;//From now on we will check GPGNetServer.currentClient to see if we should stop
+                        triggerActive =
+                                true; // From now on we will check GPGNetServer.currentClient to see if we should stop
                     }
                 }
             } catch (IOException e) {
