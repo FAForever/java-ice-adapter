@@ -68,7 +68,7 @@ public class DebugWindow extends Application implements Debugger {
         scene = new Scene(root, WIDTH, HEIGHT);
 
         stage.setScene(scene);
-        stage.setTitle("FAF ICE adapter - Debugger - Build: %s".formatted(IceAdapter.VERSION));
+        stage.setTitle("FAF ICE adapter - Debugger - Build: %s".formatted(IceAdapter.getVersion()));
         //		stage.setOnCloseRequest(Event::consume);
         //		stage.show();
 
@@ -98,11 +98,11 @@ public class DebugWindow extends Application implements Debugger {
     public void initStaticVariables() {
 
         runOnUIThread(() -> {
-            controller.versionLabel.setText("Version: %s".formatted(IceAdapter.VERSION));
-            controller.userLabel.setText("User: %s(%d)".formatted(IceAdapter.login, IceAdapter.id));
-            controller.rpcPortLabel.setText("RPC_PORT: %d".formatted(IceAdapter.RPC_PORT));
-            controller.gpgnetPortLabel.setText("GPGNET_PORT: %d".formatted(IceAdapter.GPGNET_PORT));
-            controller.lobbyPortLabel.setText("LOBBY_PORT: %d".formatted(IceAdapter.LOBBY_PORT));
+            controller.versionLabel.setText("Version: %s".formatted(IceAdapter.getVersion()));
+            controller.userLabel.setText("User: %s(%d)".formatted(IceAdapter.getLogin(), IceAdapter.getId()));
+            controller.rpcPortLabel.setText("RPC_PORT: %d".formatted(Debug.RPC_PORT));
+            controller.gpgnetPortLabel.setText("GPGNET_PORT: %d".formatted(GPGNetServer.getGpgnetPort()));
+            controller.lobbyPortLabel.setText("LOBBY_PORT: %d".formatted(GPGNetServer.getLobbyPort()));
         });
     }
 
@@ -110,7 +110,7 @@ public class DebugWindow extends Application implements Debugger {
         runOnUIThread(() -> {
             synchronized (peers) {
                 peers.clear();
-                for (Peer peer : IceAdapter.gameSession.getPeers().values()) {
+                for (Peer peer : IceAdapter.getGameSession().getPeers().values()) {
                     DebugPeer p = new DebugPeer(peer);
                     p.stateChangedUpdate(peer);
                     p.connectivityUpdate(peer);

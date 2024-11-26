@@ -19,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GPGNetServer {
+    private static int GPGNET_PORT;
+    private static int LOBBY_PORT;
     private static ServerSocket serverSocket;
     private static volatile GPGNetClient currentClient;
 
@@ -27,28 +29,29 @@ public class GPGNetServer {
 
     public static volatile LobbyInitMode lobbyInitMode = LobbyInitMode.NORMAL;
 
-    public static void init() {
-        if (IceAdapter.GPGNET_PORT == 0) {
-            IceAdapter.GPGNET_PORT = NetworkToolbox.findFreeTCPPort(20000, 65536);
-            log.info("Generated GPGNET_PORT: {}", IceAdapter.GPGNET_PORT);
+    public static void init(int gpgnetPort, int lobbyPort) {
+        if (gpgnetPort == 0) {
+            GPGNET_PORT = NetworkToolbox.findFreeTCPPort(20000, 65536);
+            log.info("Generated GPGNET_PORT: {}", GPGNET_PORT);
         } else {
-            log.info("Using GPGNET_PORT: {}", IceAdapter.GPGNET_PORT);
+            GPGNET_PORT = gpgnetPort;
+            log.info("Using GPGNET_PORT: {}", GPGNET_PORT);
         }
 
-        if (IceAdapter.LOBBY_PORT == 0) {
-            IceAdapter.LOBBY_PORT = NetworkToolbox.findFreeUDPPort(20000, 65536);
-            log.info("Generated LOBBY_PORT: {}", IceAdapter.LOBBY_PORT);
+        if (lobbyPort == 0) {
+            LOBBY_PORT = NetworkToolbox.findFreeUDPPort(20000, 65536);
+            log.info("Generated LOBBY_PORT: {}", LOBBY_PORT);
         } else {
-            log.info("Using LOBBY_PORT: {}", IceAdapter.LOBBY_PORT);
+            LOBBY_PORT = lobbyPort;
+            log.info("Using LOBBY_PORT: {}", LOBBY_PORT);
         }
 
         try {
-            serverSocket = new ServerSocket(IceAdapter.GPGNET_PORT);
+            serverSocket = new ServerSocket(GPGNetServer.getGpgnetPort());
         } catch (IOException e) {
             log.error("Couldn't start GPGNetServer", e);
             System.exit(-1);
         }
-
         new Thread(GPGNetServer::acceptThread).start();
         log.info("GPGNetServer started");
     }
@@ -95,9 +98,9 @@ public class GPGNetServer {
                         sendGpgnetMessage(
                                 "CreateLobby",
                                 lobbyInitMode.getId(),
-                                IceAdapter.LOBBY_PORT,
-                                IceAdapter.login,
-                                IceAdapter.id,
+                                GPGNetServer.getLobbyPort(),
+                                IceAdapter.getLogin(),
+                                IceAdapter.getId(),
                                 1);
                     } else if (gameState == GameState.LOBBY) {
                         lobbyFuture.complete(this);
@@ -106,8 +109,8 @@ public class GPGNetServer {
                     debug().gameStateChanged();
                 }
                 case "GameEnded" -> {
-                    if (IceAdapter.gameSession != null) {
-                        IceAdapter.gameSession.setGameEnded(true);
+                    if (IceAdapter.getGameSession() != null) {
+                        IceAdapter.getGameSession().setGameEnded(true);
                         log.info("GameEnded received, stopping reconnects...");
                     }
                 }
@@ -209,7 +212,7 @@ public class GPGNetServer {
      * Listens for incoming connections from a game instance
      */
     private static void acceptThread() {
-        while (IceAdapter.running) {
+        while (IceAdapter.isRunning()) {
             try {
                 Socket socket = serverSocket.accept();
                 synchronized (serverSocket) {
@@ -243,6 +246,14 @@ public class GPGNetServer {
 
     public static Optional<GameState> getGameState() {
         return Optional.ofNullable(currentClient).map(GPGNetClient::getGameState);
+    }
+
+    public static int getGpgnetPort() {
+        return GPGNET_PORT;
+    }
+
+    public static int getLobbyPort() {
+        return LOBBY_PORT;
     }
 
     /**

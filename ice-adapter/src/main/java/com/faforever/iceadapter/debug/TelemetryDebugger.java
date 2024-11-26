@@ -134,7 +134,8 @@ public class TelemetryDebugger implements Debugger {
             log.error("Failed to connect to telemetry websocket", e);
         }
 
-        sendMessage(new RegisterAsPeer(UUID.randomUUID(), "java-ice-adapter/" + IceAdapter.VERSION, IceAdapter.login));
+        sendMessage(new RegisterAsPeer(
+                UUID.randomUUID(), "java-ice-adapter/" + IceAdapter.getVersion(), IceAdapter.getLogin()));
     }
 
     @Override
