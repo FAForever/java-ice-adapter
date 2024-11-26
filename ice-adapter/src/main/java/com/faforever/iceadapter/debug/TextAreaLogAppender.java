@@ -64,9 +64,8 @@ public class TextAreaLogAppender<E> extends OutputStreamAppender<E> {
 
         public void setTextArea(Object textArea) {
             if (!textArea.getClass().getCanonicalName().equals("javafx.scene.control.TextArea")) {
-                throw new RuntimeException(String.format(
-                        "Object is of class %s, expected javafx.scene.control.TextArea",
-                        textArea.getClass().getCanonicalName()));
+                throw new RuntimeException("Object is of class %s, expected javafx.scene.control.TextArea"
+                        .formatted(textArea.getClass().getCanonicalName()));
             }
             this.textArea = textArea;
             try {

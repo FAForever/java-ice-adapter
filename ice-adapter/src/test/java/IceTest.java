@@ -43,7 +43,7 @@ public class IceTest {
         System.out.printf("Username: %s\n", username);
 
         int timestamp = (int) (System.currentTimeMillis() / 1000) + 3600 * 24;
-        String tokenName = String.format("%s:%s", timestamp, username);
+        String tokenName = "%s:%s".formatted(timestamp, username);
         byte[] secret = null;
         try {
             Mac mac = Mac.getInstance("HmacSHA1");
