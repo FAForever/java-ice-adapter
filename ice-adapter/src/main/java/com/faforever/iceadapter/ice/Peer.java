@@ -131,6 +131,6 @@ public class Peer {
      * @return %username%(%id%)
      */
     public String getPeerIdentifier() {
-        return String.format("%s(%d)", this.remoteLogin, this.remoteId);
+        return "%s(%d)".formatted(this.remoteLogin, this.remoteId);
     }
 }

@@ -68,7 +68,7 @@ public class DebugWindow extends Application implements Debugger {
         scene = new Scene(root, WIDTH, HEIGHT);
 
         stage.setScene(scene);
-        stage.setTitle(String.format("FAF ICE adapter - Debugger - Build: %s", IceAdapter.VERSION));
+        stage.setTitle("FAF ICE adapter - Debugger - Build: %s".formatted(IceAdapter.VERSION));
         //		stage.setOnCloseRequest(Event::consume);
         //		stage.show();
 
@@ -98,11 +98,11 @@ public class DebugWindow extends Application implements Debugger {
     public void initStaticVariables() {
 
         runOnUIThread(() -> {
-            controller.versionLabel.setText(String.format("Version: %s", IceAdapter.VERSION));
-            controller.userLabel.setText(String.format("User: %s(%d)", IceAdapter.login, IceAdapter.id));
-            controller.rpcPortLabel.setText(String.format("RPC_PORT: %d", IceAdapter.RPC_PORT));
-            controller.gpgnetPortLabel.setText(String.format("GPGNET_PORT: %d", IceAdapter.GPGNET_PORT));
-            controller.lobbyPortLabel.setText(String.format("LOBBY_PORT: %d", IceAdapter.LOBBY_PORT));
+            controller.versionLabel.setText("Version: %s".formatted(IceAdapter.VERSION));
+            controller.userLabel.setText("User: %s(%d)".formatted(IceAdapter.login, IceAdapter.id));
+            controller.rpcPortLabel.setText("RPC_PORT: %d".formatted(IceAdapter.RPC_PORT));
+            controller.gpgnetPortLabel.setText("GPGNET_PORT: %d".formatted(IceAdapter.GPGNET_PORT));
+            controller.lobbyPortLabel.setText("LOBBY_PORT: %d".formatted(IceAdapter.LOBBY_PORT));
         });
     }
 
@@ -127,7 +127,7 @@ public class DebugWindow extends Application implements Debugger {
         });
         peerFuture.thenAccept(peer -> runOnUIThread(() -> {
             controller.rpcClientStatus.setText(
-                    String.format("RPCClient: %s", peer.getSocket().getInetAddress()));
+                    "RPCClient: %s".formatted(peer.getSocket().getInetAddress()));
         }));
     }
 
@@ -142,7 +142,7 @@ public class DebugWindow extends Application implements Debugger {
     public void gpgnetConnectedDisconnected() {
         runOnUIThread(() -> {
             controller.gpgnetServerStatus.setText(
-                    String.format("GPGNetClient: %s", GPGNetServer.isConnected() ? "connected" : "-"));
+                    "GPGNetClient: %s".formatted(GPGNetServer.isConnected() ? "connected" : "-"));
             gameStateChanged();
         });
     }

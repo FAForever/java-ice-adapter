@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -121,7 +122,10 @@ public class PeerIceModule {
         CompletableFuture<Void> gatheringFuture = CompletableFuture.runAsync(() -> {
             try {
                 component = agent.createComponent(
-                        mediaStream, MINIMUM_PORT + (int) (Math.random() * 999.0), MINIMUM_PORT, MINIMUM_PORT + 1000);
+                        mediaStream,
+                        MINIMUM_PORT + (int) (ThreadLocalRandom.current().nextDouble() * 999.0),
+                        MINIMUM_PORT,
+                        MINIMUM_PORT + 1000);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -513,6 +517,6 @@ public class PeerIceModule {
     }
 
     public String getLogPrefix() {
-        return String.format("ICE %s: ", peer.getPeerIdentifier());
+        return "ICE %s: ".formatted(peer.getPeerIdentifier());
     }
 }
