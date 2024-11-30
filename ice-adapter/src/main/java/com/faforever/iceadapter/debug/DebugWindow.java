@@ -1,6 +1,5 @@
 package com.faforever.iceadapter.debug;
 
-import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
@@ -32,6 +31,7 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class DebugWindow extends Application implements Debugger {
@@ -74,13 +74,15 @@ public class DebugWindow extends Application implements Debugger {
         stage.setTitle("FAF ICE adapter - Debugger - Build: %s".formatted(IceAdapter.getVersion()));
 
         if (Debug.ENABLE_DEBUG_WINDOW) {
-            AsyncService.executeDelayed(Debug.DELAY_UI_MS, () -> runOnUIThread(stage::show));
+            CompletableFuture.runAsync(() -> runOnUIThread(stage::show),
+                    CompletableFuture.delayedExecutor(Debug.DELAY_UI_MS, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
         }
 
         log.info("Created debug window.");
 
         if (Debug.ENABLE_INFO_WINDOW) {
-            AsyncService.executeDelayed(Debug.DELAY_UI_MS, () -> runOnUIThread(() -> new InfoWindow().init()));
+            CompletableFuture.runAsync( () -> runOnUIThread(() -> new InfoWindow().init()),
+                    CompletableFuture.delayedExecutor(Debug.DELAY_UI_MS, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
         }
     }
 

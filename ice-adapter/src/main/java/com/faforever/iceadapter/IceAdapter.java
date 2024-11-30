@@ -6,12 +6,13 @@ import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.ice.PeerIceModule;
 import com.faforever.iceadapter.rpc.RPCService;
+import com.faforever.iceadapter.util.ExecutorHolder;
 import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 
-import java.util.concurrent.Callable;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -23,7 +24,7 @@ import static com.faforever.iceadapter.debug.Debug.debug;
         usageHelpAutoWidth = true,
         description = "An ice (RFC 5245) based network bridge between FAF client and ForgedAlliance.exe")
 @Slf4j
-public class IceAdapter implements Callable<Integer> {
+public class IceAdapter implements Callable<Integer>, AutoCloseable {
     private static IceAdapter INSTANCE;
     private static String VERSION = "SNAPSHOT";
     private static volatile GameSession GAME_SESSION;
@@ -32,6 +33,7 @@ public class IceAdapter implements Callable<Integer> {
     private IceOptions iceOptions;
 
     private volatile boolean running = true;
+    private final ExecutorService executor = ExecutorHolder.getExecutor();
     private static final Lock lockGameSession = new ReentrantLock();
 
     public static void main(String[] args) {
@@ -64,12 +66,18 @@ public class IceAdapter implements Callable<Integer> {
         debug().startupComplete();
     }
 
+    @Override
+    public void close() {
+        executor.shutdown();
+        CompletableFuture.runAsync(executor::shutdownNow, CompletableFuture.delayedExecutor(1000, TimeUnit.MILLISECONDS));
+    }
+
     public static void onHostGame(String mapName) {
         log.info("onHostGame");
         createGameSession();
 
-        AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
-            AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
+        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
+            gpgNetClient.getLobbyFuture().thenRun(() -> {
                 gpgNetClient.sendGpgnetMessage("HostGame", mapName);
             });
         });
@@ -80,8 +88,8 @@ public class IceAdapter implements Callable<Integer> {
         createGameSession();
         int port = GAME_SESSION.connectToPeer(remotePlayerLogin, remotePlayerId, false, 0);
 
-        AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
-            AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
+        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
+            gpgNetClient.getLobbyFuture().thenRun(() -> {
                 gpgNetClient.sendGpgnetMessage("JoinGame", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
             });
         });
@@ -99,8 +107,8 @@ public class IceAdapter implements Callable<Integer> {
         log.info("onConnectToPeer {} {}, offer: {}", remotePlayerId, remotePlayerLogin, String.valueOf(offer));
         int port = GAME_SESSION.connectToPeer(remotePlayerLogin, remotePlayerId, offer, 0);
 
-        AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
-            AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
+        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
+            gpgNetClient.getLobbyFuture().thenRun(() -> {
                 gpgNetClient.sendGpgnetMessage("ConnectToPeer", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
             });
         });
@@ -110,8 +118,8 @@ public class IceAdapter implements Callable<Integer> {
         log.info("onDisconnectFromPeer {}", remotePlayerId);
         GAME_SESSION.disconnectFromPeer(remotePlayerId);
 
-        AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
-            AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
+        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
+            gpgNetClient.getLobbyFuture().thenRun(() -> {
                 gpgNetClient.sendGpgnetMessage("DisconnectFromPeer", remotePlayerId);
             });
         });
@@ -153,7 +161,7 @@ public class IceAdapter implements Callable<Integer> {
         GPGNetServer.close();
         RPCService.close();
         TrayIcon.close();
-        AsyncService.close();
+        INSTANCE.close();
 
         System.exit(status);
     }
@@ -188,6 +196,10 @@ public class IceAdapter implements Callable<Integer> {
 
     public static boolean isRunning() {
         return INSTANCE.running;
+    }
+
+    public static Executor getExecutor() {
+        return INSTANCE.executor;
     }
 
     public static GameSession getGameSession() {

@@ -1,6 +1,5 @@
 package com.faforever.iceadapter.gpgnet;
 
-import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.LockUtil;
@@ -59,7 +58,7 @@ public class GPGNetServer {
             IceAdapter.close(-1);
         }
 
-        AsyncService.runAsync(GPGNetServer::acceptThread);
+        CompletableFuture.runAsync(GPGNetServer::acceptThread, IceAdapter.getExecutor());
         log.info("GPGNetServer started");
     }
 
@@ -85,7 +84,7 @@ public class GPGNetServer {
             } catch (IOException e) {
                 log.error("Could not create GPGNet output steam to FA", e);
             }
-            listener = AsyncService.runAsync(this::listenerThread);
+            listener = CompletableFuture.runAsync(this::listenerThread, IceAdapter.getExecutor());
 
             RPCService.onConnectionStateChanged("Connected");
             log.info("GPGNetClient has connected");

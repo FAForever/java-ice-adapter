@@ -1,6 +1,5 @@
 package com.faforever.iceadapter.ice;
 
-import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.util.LockUtil;
@@ -10,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.net.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -19,7 +19,6 @@ import java.util.concurrent.locks.ReentrantLock;
 @Getter
 @Slf4j
 public class Peer {
-
     private final GameSession gameSession;
 
     private final int remoteId;
@@ -45,10 +44,10 @@ public class Peer {
 
         faSocket = initForwarding(preferredPort);
 
-        AsyncService.runAsync(this::faListener);
+        CompletableFuture.runAsync(this::faListener, IceAdapter.getExecutor());
 
         if (localOffer) {
-            AsyncService.runAsync(ice::initiateIce);
+            CompletableFuture.runAsync(ice::initiateIce, IceAdapter.getExecutor());
         }
     }
 

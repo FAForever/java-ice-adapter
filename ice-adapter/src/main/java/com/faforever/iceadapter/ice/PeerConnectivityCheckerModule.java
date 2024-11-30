@@ -1,6 +1,6 @@
 package com.faforever.iceadapter.ice;
 
-import com.faforever.iceadapter.AsyncService;
+import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.util.LockUtil;
 import com.google.common.primitives.Longs;
 import lombok.Getter;
@@ -55,7 +55,10 @@ public class PeerConnectivityCheckerModule {
             averageRTT = 0.0f;
             lastPacketReceived = System.currentTimeMillis();
 
-            checker = AsyncService.runAsync(this::checkerThread, getThreadName());
+            checker = CompletableFuture.runAsync(() -> {
+                Thread.currentThread().setName(getThreadName());
+                checkerThread();
+            }, IceAdapter.getExecutor());
         });
     }
 
@@ -135,7 +138,7 @@ public class PeerConnectivityCheckerModule {
                 log.warn(
                         "Didn't receive any answer to echo requests for the past 10 seconds from {}, aborting connection",
                         peer.getRemoteLogin());
-                AsyncService.runAsync(ice::onConnectionLost);
+                CompletableFuture.runAsync(ice::onConnectionLost, IceAdapter.getExecutor());
                 return;
             }
         }

@@ -1,6 +1,5 @@
 package com.faforever.iceadapter.debug;
 
-import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.util.TrayIcon;
 import javafx.event.ActionEvent;
@@ -11,6 +10,7 @@ import lombok.SneakyThrows;
 import java.awt.*;
 import java.io.IOException;
 import java.net.URI;
+import java.util.concurrent.CompletableFuture;
 
 public class InfoWindowController {
     public Button killAdapterButton;
@@ -32,7 +32,7 @@ public class InfoWindowController {
     }
 
     public void onShowDebugWindowClicked(ActionEvent actionEvent) {
-        AsyncService.thenAcceptAsync(DebugWindow.INSTANCE, DebugWindow::showWindow);
+        DebugWindow.INSTANCE.thenAcceptAsync(DebugWindow::showWindow, IceAdapter.getExecutor());
     }
 
     @SneakyThrows
@@ -43,13 +43,13 @@ public class InfoWindowController {
                         IceAdapter.getGameId(),
                         IceAdapter.getId());
 
-        AsyncService.runAsync(() -> {
+        CompletableFuture.runAsync(() -> {
             try {
                 Desktop.getDesktop().browse(URI.create(url));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
+        }, IceAdapter.getExecutor());
     }
 
     public void onMinimizeToTrayClicked(ActionEvent actionEvent) {

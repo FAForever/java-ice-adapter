@@ -1,6 +1,5 @@
 package com.faforever.iceadapter.rpc;
 
-import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.IceStatus;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
@@ -10,11 +9,6 @@ import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.ice.Peer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -89,8 +83,8 @@ public class RPCHandler {
     }
 
     public void sendToGpgNet(String header, String... chunks) {
-        AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
-            AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
+        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
+            gpgNetClient.getLobbyFuture().thenRun(() -> {
                 gpgNetClient.sendGpgnetMessage(header, chunks);
             });
         });

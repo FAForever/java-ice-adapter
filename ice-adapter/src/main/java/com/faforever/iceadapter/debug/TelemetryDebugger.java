@@ -1,35 +1,14 @@
 package com.faforever.iceadapter.debug;
 
-import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.ice.Peer;
 import com.faforever.iceadapter.ice.PeerConnectivityCheckerModule;
-import com.faforever.iceadapter.telemetry.ConnectToPeer;
-import com.faforever.iceadapter.telemetry.CoturnServer;
-import com.faforever.iceadapter.telemetry.DisconnectFromPeer;
-import com.faforever.iceadapter.telemetry.OutgoingMessageV1;
-import com.faforever.iceadapter.telemetry.RegisterAsPeer;
-import com.faforever.iceadapter.telemetry.UpdateCoturnList;
-import com.faforever.iceadapter.telemetry.UpdateGameState;
-import com.faforever.iceadapter.telemetry.UpdateGpgnetState;
-import com.faforever.iceadapter.telemetry.UpdatePeerConnectivity;
-import com.faforever.iceadapter.telemetry.UpdatePeerState;
+import com.faforever.iceadapter.telemetry.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.util.concurrent.RateLimiter;
 import com.nbarraille.jjsonrpc.JJsonPeer;
-import java.net.ConnectException;
-import java.net.URI;
-import java.time.Instant;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.ice.Candidate;
@@ -37,6 +16,15 @@ import org.ice4j.ice.CandidatePair;
 import org.ice4j.ice.Component;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+
+import java.net.ConnectException;
+import java.net.URI;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.*;
 
 @Slf4j
 public class TelemetryDebugger implements Debugger {
@@ -46,7 +34,7 @@ public class TelemetryDebugger implements Debugger {
     private final Map<Integer, RateLimiter> peerRateLimiter = new ConcurrentHashMap<>();
     private final BlockingQueue<OutgoingMessageV1> messageQueue = new LinkedBlockingQueue<>();
 
-    public TelemetryDebugger(String telemetryServer, int gameId, int playerId) {
+    public TelemetryDebugger(String telemetryServer, int gameId, int playerId, Executor executor) {
         Debug.register(this);
 
         URI uri = URI.create("%s/adapter/v1/game/%d/player/%d".formatted(telemetryServer, gameId, playerId));
@@ -86,7 +74,10 @@ public class TelemetryDebugger implements Debugger {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
-        AsyncService.runAsync(this::sendingLoop, "sendingLoop");
+        CompletableFuture.runAsync(() -> {
+            Thread.currentThread().setName("sendingLoop");
+            sendingLoop();
+        }, executor);
     }
 
     private void sendMessage(OutgoingMessageV1 message) {

@@ -1,6 +1,6 @@
 package com.faforever.iceadapter.util;
 
-import com.faforever.iceadapter.AsyncService;
+import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.debug.DebugWindow;
 import com.faforever.iceadapter.debug.InfoWindow;
@@ -13,6 +13,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
 import java.net.URL;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class TrayIcon {
@@ -47,7 +48,7 @@ public class TrayIcon {
 
             @Override
             public void mousePressed(MouseEvent mouseEvent) {
-                AsyncService.runAsync(() -> {
+                CompletableFuture.runAsync(() -> {
                     if (InfoWindow.INSTANCE == null) {
                         log.info("Launching ICE adapter debug window");
                         Debug.ENABLE_INFO_WINDOW = true;
@@ -55,7 +56,7 @@ public class TrayIcon {
                     } else {
                         InfoWindow.INSTANCE.show();
                     }
-                });
+                }, IceAdapter.getExecutor());
             }
 
             @Override

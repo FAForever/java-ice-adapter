@@ -1,6 +1,6 @@
 package com.faforever.iceadapter.ice;
 
-import com.faforever.iceadapter.AsyncService;
+import com.faforever.iceadapter.IceAdapter;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.ice.RelayedCandidate;
@@ -61,7 +61,7 @@ public class PeerTurnRefreshModule {
         }
 
         if (harvest != null) {
-            refresher = AsyncService.runAsync(this::refreshThread);
+            refresher = CompletableFuture.runAsync(this::refreshThread, IceAdapter.getExecutor());
 
             log.info("Started turn refresh module for peer {}", ice.getPeer().getRemoteLogin());
         }

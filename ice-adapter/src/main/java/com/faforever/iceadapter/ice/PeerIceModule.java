@@ -1,6 +1,5 @@
 package com.faforever.iceadapter.ice;
 
-import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.CandidateUtil;
@@ -18,10 +17,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -69,7 +65,7 @@ public class PeerIceModule {
     private PeerTurnRefreshModule turnRefreshModule;
 
     // Checks the connection by sending echo requests and initiates a reconnect if needed
-    private final PeerConnectivityCheckerModule connectivityChecker = new PeerConnectivityCheckerModule(this);
+    private final PeerConnectivityCheckerModule connectivityChecker;
 
     // A list of the timestamps of initiated connectivity attempts, used to detect if relay/srflx should be forced
     private final List<Long> connectivityAttemptTimes = new ArrayList<>();
@@ -82,6 +78,7 @@ public class PeerIceModule {
 
     public PeerIceModule(Peer peer) {
         this.peer = peer;
+        connectivityChecker = new PeerConnectivityCheckerModule(this);
     }
 
     /**
@@ -151,7 +148,7 @@ public class PeerIceModule {
                         a, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential())))
                 .forEach(agent::addCandidateHarvester));
 
-        CompletableFuture<Void> gatheringFuture = AsyncService.runAsync(() -> {
+        CompletableFuture<Void> gatheringFuture = CompletableFuture.runAsync(() -> {
             try {
                 component = agent.createComponent(
                         mediaStream,
@@ -161,25 +158,25 @@ public class PeerIceModule {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
+        }, IceAdapter.getExecutor());
 
-        AsyncService.executeDelayed(5000, () -> {
+        CompletableFuture.runAsync(() -> {
             if (!gatheringFuture.isDone()) {
                 gatheringFuture.cancel(true);
             }
-        });
+        }, CompletableFuture.delayedExecutor(5000, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
 
         try {
             gatheringFuture.join();
         } catch (CompletionException e) {
             // Completed exceptionally
             log.error("{} Error while creating stream component/gathering candidates", getLogPrefix(), e);
-            AsyncService.runAsync(this::onConnectionLost);
+            CompletableFuture.runAsync(this::onConnectionLost, IceAdapter.getExecutor());
             return;
         } catch (CancellationException e) {
             // was cancelled due to timeout
             log.error("{} Gathering candidates timed out", getLogPrefix(), e);
-            AsyncService.runAsync(this::onConnectionLost);
+            CompletableFuture.runAsync(this::onConnectionLost, IceAdapter.getExecutor());
             return;
         }
 
@@ -205,7 +202,7 @@ public class PeerIceModule {
         // Make sure to abort the connection process and reinitiate when we haven't received an answer to our offer in 6
         // seconds, candidate packet was probably lost
         final int currentAwaitingCandidatesEventId = awaitingCandidatesEventId.incrementAndGet();
-        AsyncService.executeDelayed(6000, () -> {
+        CompletableFuture.runAsync(() -> {
             if (peer.isClosing()) {
                 log.warn(
                         "{} Peer {} not connected anymore, aborting reinitiation of ICE",
@@ -217,7 +214,7 @@ public class PeerIceModule {
                     && currentAwaitingCandidatesEventId == awaitingCandidatesEventId.get()) {
                 onConnectionLost();
             }
-        });
+        }, CompletableFuture.delayedExecutor(6000, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
     }
 
     private List<IceServer> getViableIceServers() {
@@ -266,7 +263,7 @@ public class PeerIceModule {
             }
 
             // Start ICE async as it's blocking and this is the RPC thread
-            AsyncService.runAsync(() -> {
+            CompletableFuture.runAsync(() -> {
                 log.debug(
                         "{} Got IceMsg for peer, offered candidates: {}",
                         getLogPrefix(),
@@ -307,7 +304,7 @@ public class PeerIceModule {
                         ALLOW_RELAY);
 
                 startIce();
-            });
+            }, IceAdapter.getExecutor());
         });
     }
 
@@ -366,7 +363,7 @@ public class PeerIceModule {
             connectivityChecker.start();
         }
 
-        listener = AsyncService.runAsync(this::listener);
+        listener = CompletableFuture.runAsync(this::listener, IceAdapter.getExecutor());
     }
 
     /**
@@ -428,10 +425,10 @@ public class PeerIceModule {
 
             if (previousState == CONNECTED && peer.isLocalOffer()) {
                 // We were connected before, retry immediately
-                AsyncService.executeDelayed(0, this::initiateIce);
+                CompletableFuture.runAsync(this::initiateIce, CompletableFuture.delayedExecutor(0, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
             } else if (peer.isLocalOffer()) {
                 // Last ice attempt didn't succeed, so wait a bit
-                AsyncService.executeDelayed(5000, this::initiateIce);
+                CompletableFuture.runAsync(this::initiateIce, CompletableFuture.delayedExecutor(5000, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
             }
         });
     }
