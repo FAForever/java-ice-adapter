@@ -69,6 +69,7 @@ public class GPGNetServer {
         private final Socket socket;
         private volatile boolean stopping = false;
         private FaDataOutputStream gpgnetOut;
+        private final CompletableFuture<Void> listener;
         private final Lock lockStream = new ReentrantLock();
         private final CompletableFuture<GPGNetClient> lobbyFuture = new CompletableFuture<>();
 
@@ -80,7 +81,7 @@ public class GPGNetServer {
             } catch (IOException e) {
                 log.error("Could not create GPGNet output steam to FA", e);
             }
-            AsyncService.runAsync(this::listenerThread);
+            listener = AsyncService.runAsync(this::listenerThread);
 
             RPCService.onConnectionStateChanged("Connected");
             log.info("GPGNetClient has connected");
@@ -178,6 +179,7 @@ public class GPGNetServer {
 
         public void close() {
             stopping = true;
+            listener.cancel(true);
             log.debug("Closing GPGNetClient");
 
             try {
