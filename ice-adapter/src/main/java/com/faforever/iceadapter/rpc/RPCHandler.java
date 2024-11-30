@@ -1,5 +1,6 @@
 package com.faforever.iceadapter.rpc;
 
+import com.faforever.iceadapter.FafRpcCallbacks;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.IceStatus;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
@@ -35,21 +36,22 @@ public class RPCHandler {
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private final Lock lockStatus = new ReentrantLock();
     private final int rpcPort;
+    private final FafRpcCallbacks callbacks;
 
     public void hostGame(String mapName) {
-        IceAdapter.onHostGame(mapName);
+        callbacks.onHostGame(mapName);
     }
 
     public void joinGame(String remotePlayerLogin, long remotePlayerId) {
-        IceAdapter.onJoinGame(remotePlayerLogin, (int) remotePlayerId);
+        callbacks.onJoinGame(remotePlayerLogin, (int) remotePlayerId);
     }
 
     public void connectToPeer(String remotePlayerLogin, long remotePlayerId, boolean offer) {
-        IceAdapter.onConnectToPeer(remotePlayerLogin, (int) remotePlayerId, offer);
+        callbacks.onConnectToPeer(remotePlayerLogin, (int) remotePlayerId, offer);
     }
 
     public void disconnectFromPeer(long remotePlayerId) {
-        IceAdapter.onDisconnectFromPeer((int) remotePlayerId);
+        callbacks.onDisconnectFromPeer((int) remotePlayerId);
     }
 
     public void setLobbyInitMode(String lobbyInitMode) {
@@ -169,6 +171,6 @@ public class RPCHandler {
 
     public void quit() {
         log.warn("Close requested, stopping...");
-        IceAdapter.close(0);
+        callbacks.close();
     }
 }

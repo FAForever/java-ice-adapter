@@ -2,7 +2,7 @@ package com.faforever.iceadapter.rpc;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
 
-import com.faforever.iceadapter.IceAdapter;
+import com.faforever.iceadapter.FafRpcCallbacks;
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.debug.InfoWindow;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
@@ -28,11 +28,11 @@ public class RPCService {
     private static TcpServer tcpServer;
     private static volatile boolean skipRPCMessages = false;
 
-    public static void init(int port) {
+    public static void init(int port, FafRpcCallbacks callbacks) {
         Debug.RPC_PORT = port;
         log.info("Creating RPC server on port {}", port);
 
-        RPCHandler rpcHandler = new RPCHandler(port);
+        RPCHandler rpcHandler = new RPCHandler(port, callbacks);
         tcpServer = new TcpServer(port, rpcHandler);
         tcpServer.start();
 
@@ -52,7 +52,7 @@ public class RPCService {
                     log.info(
                             "Lost connection to first RPC Peer. GameState: {}, Stopping adapter...",
                             gameState.getName());
-                    IceAdapter.close(0);
+                    callbacks.close();
                 }
             });
         });

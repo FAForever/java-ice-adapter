@@ -23,7 +23,7 @@ import picocli.CommandLine;
         usageHelpAutoWidth = true,
         description = "An ice (RFC 5245) based network bridge between FAF client and ForgedAlliance.exe")
 @Slf4j
-public class IceAdapter implements Callable<Integer>, AutoCloseable {
+public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallbacks {
     private static IceAdapter INSTANCE;
     private static String VERSION = "SNAPSHOT";
     private static volatile GameSession GAME_SESSION;
@@ -59,19 +59,13 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
 
         PeerIceModule.setForceRelay(iceOptions.isForceRelay());
         GPGNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort());
-        RPCService.init(iceOptions.getRpcPort());
+        RPCService.init(iceOptions.getRpcPort(), this);
 
         debug().startupComplete();
     }
 
     @Override
-    public void close() {
-        executor.shutdown();
-        CompletableFuture.runAsync(
-                executor::shutdownNow, CompletableFuture.delayedExecutor(250, TimeUnit.MILLISECONDS));
-    }
-
-    public static void onHostGame(String mapName) {
+    public void onHostGame(String mapName) {
         log.info("onHostGame");
         createGameSession();
 
@@ -82,7 +76,8 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
         });
     }
 
-    public static void onJoinGame(String remotePlayerLogin, int remotePlayerId) {
+    @Override
+    public void onJoinGame(String remotePlayerLogin, int remotePlayerId) {
         log.info("onJoinGame {} {}", remotePlayerId, remotePlayerLogin);
         createGameSession();
         int port = GAME_SESSION.connectToPeer(remotePlayerLogin, remotePlayerId, false, 0);
@@ -94,7 +89,8 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
         });
     }
 
-    public static void onConnectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer) {
+    @Override
+    public void onConnectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer) {
         if (GPGNetServer.isConnected()
                 && GPGNetServer.getGameState().isPresent()
                 && (GPGNetServer.getGameState().get() == GameState.LAUNCHING
@@ -113,7 +109,8 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
         });
     }
 
-    public static void onDisconnectFromPeer(int remotePlayerId) {
+    @Override
+    public void onDisconnectFromPeer(int remotePlayerId) {
         log.info("onDisconnectFromPeer {}", remotePlayerId);
         GAME_SESSION.disconnectFromPeer(remotePlayerId);
 
@@ -150,6 +147,11 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
         });
     }
 
+    @Override
+    public void close() {
+        this.close(0);
+    }
+
     /**
      * Stop the ICE adapter
      */
@@ -162,8 +164,11 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
         Debug.close();
         TrayIcon.close();
         INSTANCE.close();
+
+        INSTANCE.executor.shutdown();
         CompletableFuture.runAsync(
-                () -> System.exit(status), CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS));
+                        INSTANCE.executor::shutdownNow, CompletableFuture.delayedExecutor(250, TimeUnit.MILLISECONDS))
+                .thenRunAsync(() -> System.exit(status), CompletableFuture.delayedExecutor(250, TimeUnit.MILLISECONDS));
     }
 
     public static int getId() {
