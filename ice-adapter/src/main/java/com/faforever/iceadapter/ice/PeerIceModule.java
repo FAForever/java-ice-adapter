@@ -33,6 +33,22 @@ import static com.faforever.iceadapter.ice.IceState.*;
 @Getter
 @Slf4j
 public class PeerIceModule {
+    private static boolean ALLOW_HOST = true;
+    private static boolean ALLOW_REFLEXIVE = true;
+    private static boolean ALLOW_RELAY = true;
+
+    public static void setForceRelay(boolean forceRelay) {
+        if (forceRelay) {
+            ALLOW_HOST = false;
+            ALLOW_REFLEXIVE = false;
+            ALLOW_RELAY = true;
+        } else {
+            ALLOW_HOST = true;
+            ALLOW_REFLEXIVE = true;
+            ALLOW_RELAY = true;
+        }
+    }
+
     private static final int MINIMUM_PORT =
             6112; // PORT (range +1000) to be used by ICE for communicating, each peer needs a seperate port
     private static final long FORCE_SRFLX_RELAY_INTERVAL =
@@ -74,7 +90,7 @@ public class PeerIceModule {
      */
     private void setState(IceState newState) {
         this.iceState = newState;
-        RPCService.onIceConnectionStateChanged(IceAdapter.id, peer.getRemoteId(), iceState.getMessage());
+        RPCService.onIceConnectionStateChanged(IceAdapter.getId(), peer.getRemoteId(), iceState.getMessage());
         debug().peerStateChanged(this.peer);
     }
 
@@ -169,13 +185,13 @@ public class PeerIceModule {
 
         long previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
         CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(
-                IceAdapter.id,
+                IceAdapter.getId(),
                 peer.getRemoteId(),
                 agent,
                 component,
-                previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.ALLOW_HOST,
-                previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.ALLOW_REFLEXIVE,
-                IceAdapter.ALLOW_RELAY);
+                previousConnectivityAttempts < FORCE_SRFLX_COUNT && ALLOW_HOST,
+                previousConnectivityAttempts < FORCE_RELAY_COUNT && ALLOW_REFLEXIVE,
+                ALLOW_RELAY);
         log.debug(
                 "{} Sending own candidates to {}, offered candidates: {}",
                 getLogPrefix(),
@@ -206,7 +222,7 @@ public class PeerIceModule {
 
     private List<IceServer> getViableIceServers() {
         List<IceServer> allIceServers = GameSession.getIceServers();
-        if (IceAdapter.PING_COUNT <= 0 || allIceServers.isEmpty()) {
+        if (IceAdapter.getPingCount() <= 0 || allIceServers.isEmpty()) {
             return allIceServers;
         }
 
@@ -286,9 +302,9 @@ public class PeerIceModule {
                         agent,
                         component,
                         mediaStream,
-                        previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.ALLOW_HOST,
-                        previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.ALLOW_REFLEXIVE,
-                        IceAdapter.ALLOW_RELAY);
+                        previousConnectivityAttempts < FORCE_SRFLX_COUNT && ALLOW_HOST,
+                        previousConnectivityAttempts < FORCE_RELAY_COUNT && ALLOW_REFLEXIVE,
+                        ALLOW_RELAY);
 
                 startIce();
             });
@@ -338,7 +354,7 @@ public class PeerIceModule {
 
         // We are connected
         connected = true;
-        RPCService.onConnected(IceAdapter.id, peer.getRemoteId(), true);
+        RPCService.onConnected(IceAdapter.getId(), peer.getRemoteId(), true);
         setState(CONNECTED);
 
         if (component.getSelectedPair().getLocalCandidate().getType() == CandidateType.RELAYED_CANDIDATE) {
@@ -382,7 +398,7 @@ public class PeerIceModule {
             if (connected) {
                 connected = false;
                 log.warn("{} ICE connection has been lost for peer", getLogPrefix());
-                RPCService.onConnected(IceAdapter.id, peer.getRemoteId(), false);
+                RPCService.onConnected(IceAdapter.getId(), peer.getRemoteId(), false);
             }
 
             setState(DISCONNECTED);
@@ -477,8 +493,8 @@ public class PeerIceModule {
         byte[] data = new byte
                 [65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
         while (!Thread.currentThread().isInterrupted()
-                && IceAdapter.running
-                && IceAdapter.gameSession == peer.getGameSession()) {
+                && IceAdapter.isRunning()
+                && IceAdapter.getGameSession() == peer.getGameSession()) {
             try {
                 DatagramPacket packet = new DatagramPacket(data, data.length);
                 localComponent

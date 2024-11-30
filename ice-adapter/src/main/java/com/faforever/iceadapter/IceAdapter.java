@@ -4,6 +4,7 @@ import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.GameSession;
+import com.faforever.iceadapter.ice.PeerIceModule;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
@@ -23,30 +24,14 @@ import static com.faforever.iceadapter.debug.Debug.debug;
         description = "An ice (RFC 5245) based network bridge between FAF client and ForgedAlliance.exe")
 @Slf4j
 public class IceAdapter implements Callable<Integer> {
+    private static IceAdapter INSTANCE;
+    private static String VERSION = "SNAPSHOT";
+    private static volatile GameSession GAME_SESSION;
+
     @CommandLine.ArgGroup(exclusive = false)
     private IceOptions iceOptions;
 
-    public static String TELEMETRY_SERVER;
-
-    public static boolean ALLOW_HOST = true;
-    public static boolean ALLOW_REFLEXIVE = true;
-    public static boolean ALLOW_RELAY = true;
-
-    public static volatile boolean running = true;
-
-    public static String VERSION = "SNAPSHOT";
-
-    public static int id = -1;
-    public static int gameId = -1;
-    public static String login;
-    public static int RPC_PORT;
-    public static int GPGNET_PORT = 0;
-    public static int LOBBY_PORT = 0;
-
-    public static int PING_COUNT = 1;
-    public static double ACCEPTABLE_LATENCY = 250.0;
-
-    public static volatile GameSession gameSession;
+    private volatile boolean running = true;
     private static final Lock lockGameSession = new ReentrantLock();
 
     public static void main(String[] args) {
@@ -55,31 +40,26 @@ public class IceAdapter implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        IceAdapter.start(iceOptions);
+        INSTANCE = this;
+
+        start();
         return 0;
     }
 
-    public static void start(IceOptions iceOptions) {
+    public void start() {
         determineVersion();
+        log.info("Version: {}", VERSION);
 
-        loadOptions(iceOptions);
+        Debug.DELAY_UI_MS = iceOptions.getDelayUi();
+        Debug.ENABLE_DEBUG_WINDOW = iceOptions.isDebugWindow();
+        Debug.ENABLE_INFO_WINDOW = iceOptions.isInfoWindow();
+        Debug.init();
 
         TrayIcon.create();
 
-        // Configure file appender
-        //		RollingFileAppender fileAppender =
-        // (ch.qos.logback.core.rolling.RollingFileAppender)((ch.qos.logback.classic.Logger)log).getAppender("FILE");
-        //        if (logDirectory != null) {
-        //            Util.mkdir(Paths.get(logDirectory).toFile());
-        //			//TODO: set log dir
-        //        } else {
-        ////			fileAppender.stop();
-        //		}
-
-        log.info("Version: {}", VERSION);
-
-        GPGNetServer.init();
-        RPCService.init();
+        PeerIceModule.setForceRelay(iceOptions.isForceRelay());
+        GPGNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort());
+        RPCService.init(iceOptions.getRpcPort());
 
         debug().startupComplete();
     }
@@ -98,7 +78,8 @@ public class IceAdapter implements Callable<Integer> {
     public static void onJoinGame(String remotePlayerLogin, int remotePlayerId) {
         log.info("onJoinGame {} {}", remotePlayerId, remotePlayerLogin);
         createGameSession();
-        int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, false, 0);
+        int port = GAME_SESSION.connectToPeer(remotePlayerLogin, remotePlayerId, false, 0);
+
         AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
             AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
                 gpgNetClient.sendGpgnetMessage("JoinGame", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
@@ -116,7 +97,7 @@ public class IceAdapter implements Callable<Integer> {
         }
 
         log.info("onConnectToPeer {} {}, offer: {}", remotePlayerId, remotePlayerLogin, String.valueOf(offer));
-        int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, offer, 0);
+        int port = GAME_SESSION.connectToPeer(remotePlayerLogin, remotePlayerId, offer, 0);
 
         AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
             AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
@@ -127,7 +108,7 @@ public class IceAdapter implements Callable<Integer> {
 
     public static void onDisconnectFromPeer(int remotePlayerId) {
         log.info("onDisconnectFromPeer {}", remotePlayerId);
-        gameSession.disconnectFromPeer(remotePlayerId);
+        GAME_SESSION.disconnectFromPeer(remotePlayerId);
 
         AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
             AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
@@ -138,12 +119,12 @@ public class IceAdapter implements Callable<Integer> {
 
     private static void createGameSession() {
         LockUtil.executeWithLock(lockGameSession, () -> {
-            if (gameSession != null) {
-                gameSession.close();
-                gameSession = null;
+            if (GAME_SESSION != null) {
+                GAME_SESSION.close();
+                GAME_SESSION = null;
             }
 
-            gameSession = new GameSession();
+            GAME_SESSION = new GameSession();
         });
     }
 
@@ -153,10 +134,10 @@ public class IceAdapter implements Callable<Integer> {
      */
     public static void onFAShutdown() {
         LockUtil.executeWithLock(lockGameSession, () -> {
-            if (gameSession != null) {
+            if (GAME_SESSION != null) {
                 log.info("FA SHUTDOWN, closing everything");
-                gameSession.close();
-                gameSession = null;
+                GAME_SESSION.close();
+                GAME_SESSION = null;
                 // Do not put code outside of this if clause, else it will be executed multiple times
             }
         });
@@ -177,36 +158,44 @@ public class IceAdapter implements Callable<Integer> {
         System.exit(status);
     }
 
-    /**
-     * Read command line arguments and set global, constant values
-     * @param iceOptions The arguments to be read
-     */
-    public static void loadOptions(IceOptions iceOptions) {
-        TELEMETRY_SERVER = iceOptions.getTelemetryServer();
-        id = iceOptions.getId();
-        gameId = iceOptions.getGameId();
-        login = iceOptions.getLogin();
-        RPC_PORT = iceOptions.getRpcPort();
-        GPGNET_PORT = iceOptions.getGpgnetPort();
-        LOBBY_PORT = iceOptions.getLobbyPort();
-
-        if (iceOptions.isForceRelay()) {
-            ALLOW_HOST = false;
-            ALLOW_REFLEXIVE = false;
-            ALLOW_RELAY = true;
-        }
-
-        Debug.DELAY_UI_MS = iceOptions.getDelayUi();
-        PING_COUNT = iceOptions.getPingCount();
-        ACCEPTABLE_LATENCY = iceOptions.getAcceptableLatency();
-
-        Debug.ENABLE_DEBUG_WINDOW = iceOptions.isDebugWindow();
-        Debug.ENABLE_INFO_WINDOW = iceOptions.isInfoWindow();
-        Debug.init();
+    public static int getId() {
+        return INSTANCE.iceOptions.getId();
     }
 
-    private static void determineVersion() {
-        String versionFromGradle = IceAdapter.class.getPackage().getImplementationVersion();
+    public static String getVersion() {
+        return VERSION;
+    }
+
+    public static int getGameId() {
+        return INSTANCE.iceOptions.getGameId();
+    }
+
+    public static String getLogin() {
+        return INSTANCE.iceOptions.getLogin();
+    }
+
+    public static String getTelemetryServer() {
+        return INSTANCE.iceOptions.getTelemetryServer();
+    }
+
+    public static int getPingCount() {
+        return INSTANCE.iceOptions.getPingCount();
+    }
+
+    public static double getAcceptableLatency() {
+        return INSTANCE.iceOptions.getAcceptableLatency();
+    }
+
+    public static boolean isRunning() {
+        return INSTANCE.running;
+    }
+
+    public static GameSession getGameSession() {
+        return GAME_SESSION;
+    }
+
+    private void determineVersion() {
+        String versionFromGradle = getClass().getPackage().getImplementationVersion();
         if (versionFromGradle != null) {
             VERSION = versionFromGradle;
         }

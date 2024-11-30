@@ -24,6 +24,8 @@ import static com.faforever.iceadapter.debug.Debug.debug;
 
 @Slf4j
 public class GPGNetServer {
+    private static int GPGNET_PORT;
+    private static int LOBBY_PORT;
     private static final Lock lockSocket = new ReentrantLock();
     private static ServerSocket serverSocket;
     private static volatile GPGNetClient currentClient;
@@ -33,23 +35,25 @@ public class GPGNetServer {
 
     public static volatile LobbyInitMode lobbyInitMode = LobbyInitMode.NORMAL;
 
-    public static void init() {
-        if (IceAdapter.GPGNET_PORT == 0) {
-            IceAdapter.GPGNET_PORT = NetworkToolbox.findFreeTCPPort(20000, 65536);
-            log.info("Generated GPGNET_PORT: {}", IceAdapter.GPGNET_PORT);
+    public static void init(int gpgnetPort, int lobbyPort) {
+        if (gpgnetPort == 0) {
+            GPGNET_PORT = NetworkToolbox.findFreeTCPPort(20000, 65536);
+            log.info("Generated GPGNET_PORT: {}", GPGNET_PORT);
         } else {
-            log.info("Using GPGNET_PORT: {}", IceAdapter.GPGNET_PORT);
+            GPGNET_PORT = gpgnetPort;
+            log.info("Using GPGNET_PORT: {}", GPGNET_PORT);
         }
 
-        if (IceAdapter.LOBBY_PORT == 0) {
-            IceAdapter.LOBBY_PORT = NetworkToolbox.findFreeUDPPort(20000, 65536);
-            log.info("Generated LOBBY_PORT: {}", IceAdapter.LOBBY_PORT);
+        if (lobbyPort == 0) {
+            LOBBY_PORT = NetworkToolbox.findFreeUDPPort(20000, 65536);
+            log.info("Generated LOBBY_PORT: {}", LOBBY_PORT);
         } else {
-            log.info("Using LOBBY_PORT: {}", IceAdapter.LOBBY_PORT);
+            LOBBY_PORT = lobbyPort;
+            log.info("Using LOBBY_PORT: {}", LOBBY_PORT);
         }
 
         try {
-            serverSocket = new ServerSocket(IceAdapter.GPGNET_PORT);
+            serverSocket = new ServerSocket(GPGNetServer.getGpgnetPort());
         } catch (IOException e) {
             log.error("Couldn't start GPGNetServer", e);
             IceAdapter.close(-1);
@@ -67,9 +71,9 @@ public class GPGNetServer {
         private volatile GameState gameState = GameState.NONE;
 
         private final Socket socket;
+        private final CompletableFuture<Void> listener;
         private volatile boolean stopping = false;
         private FaDataOutputStream gpgnetOut;
-        private final CompletableFuture<Void> listener;
         private final Lock lockStream = new ReentrantLock();
         private final CompletableFuture<GPGNetClient> lobbyFuture = new CompletableFuture<>();
 
@@ -100,9 +104,9 @@ public class GPGNetServer {
                         sendGpgnetMessage(
                                 "CreateLobby",
                                 lobbyInitMode.getId(),
-                                IceAdapter.LOBBY_PORT,
-                                IceAdapter.login,
-                                IceAdapter.id,
+                                GPGNetServer.getLobbyPort(),
+                                IceAdapter.getLogin(),
+                                IceAdapter.getId(),
                                 1);
                     } else if (gameState == GameState.LOBBY) {
                         lobbyFuture.complete(this);
@@ -111,8 +115,8 @@ public class GPGNetServer {
                     debug().gameStateChanged();
                 }
                 case "GameEnded" -> {
-                    if (IceAdapter.gameSession != null) {
-                        IceAdapter.gameSession.setGameEnded(true);
+                    if (IceAdapter.getGameSession() != null) {
+                        IceAdapter.getGameSession().setGameEnded(true);
                         log.info("GameEnded received, stopping reconnects...");
                     }
                 }
@@ -219,7 +223,7 @@ public class GPGNetServer {
      * Listens for incoming connections from a game instance
      */
     private static void acceptThread() {
-        while (!Thread.currentThread().isInterrupted() && IceAdapter.running) {
+        while (!Thread.currentThread().isInterrupted() && IceAdapter.isRunning()) {
             try {
                 Socket socket = serverSocket.accept();
                 LockUtil.executeWithLock(lockSocket, () -> {
@@ -253,6 +257,14 @@ public class GPGNetServer {
 
     public static Optional<GameState> getGameState() {
         return Optional.ofNullable(currentClient).map(GPGNetClient::getGameState);
+    }
+
+    public static int getGpgnetPort() {
+        return GPGNET_PORT;
+    }
+
+    public static int getLobbyPort() {
+        return LOBBY_PORT;
     }
 
     /**

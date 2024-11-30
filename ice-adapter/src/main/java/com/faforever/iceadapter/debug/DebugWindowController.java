@@ -54,7 +54,7 @@ public class DebugWindowController {
 
     public void reconnectToPeer(DebugWindow.DebugPeer peer) {
         if (peer != null) {
-            AsyncService.runAsync(() -> IceAdapter.gameSession.reconnectToPeer(peer.getId()));
+            AsyncService.runAsync(() -> IceAdapter.getGameSession().reconnectToPeer(peer.getId()));
         }
     }
 

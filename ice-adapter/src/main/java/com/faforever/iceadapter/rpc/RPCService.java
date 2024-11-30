@@ -25,22 +25,16 @@ import static com.faforever.iceadapter.debug.Debug.debug;
 @Slf4j
 public class RPCService {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
+    private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private static TcpServer tcpServer;
-    private static RPCHandler rpcHandler;
-
     private static volatile boolean skipRPCMessages = false;
 
-    static {
-        objectMapper.registerModule(new JavaTimeModule());
-    }
+    public static void init(int port) {
+        Debug.RPC_PORT = port;
+        log.info("Creating RPC server on port {}", port);
 
-    public static void init() {
-        log.info("Creating RPC server on port {}", IceAdapter.RPC_PORT);
-
-        rpcHandler = new RPCHandler();
-        tcpServer = new TcpServer(IceAdapter.RPC_PORT, rpcHandler);
+        RPCHandler rpcHandler = new RPCHandler(port);
+        tcpServer = new TcpServer(port, rpcHandler);
         tcpServer.start();
 
         debug().rpcStarted(tcpServer.getFirstPeer());

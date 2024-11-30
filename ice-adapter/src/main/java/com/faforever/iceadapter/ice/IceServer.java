@@ -22,6 +22,6 @@ public class IceServer {
 
     public boolean hasAcceptableLatency() {
         OptionalDouble rtt = this.getRoundTripTime().join();
-        return !rtt.isPresent() || rtt.getAsDouble() < IceAdapter.ACCEPTABLE_LATENCY;
+        return rtt.isEmpty() || rtt.getAsDouble() < IceAdapter.getAcceptableLatency();
     }
 }

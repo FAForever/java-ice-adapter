@@ -38,7 +38,10 @@ public class InfoWindowController {
     @SneakyThrows
     public void onTelemetryWebUiClicked(ActionEvent actionEvent) {
         String url = "%s/app.html?gameId=%d&playerId=%d"
-                .formatted(IceAdapter.TELEMETRY_SERVER.replaceFirst("ws", "http"), IceAdapter.gameId, IceAdapter.id);
+                .formatted(
+                        IceAdapter.getTelemetryServer().replaceFirst("ws", "http"),
+                        IceAdapter.getGameId(),
+                        IceAdapter.getId());
 
         AsyncService.runAsync(() -> {
             try {

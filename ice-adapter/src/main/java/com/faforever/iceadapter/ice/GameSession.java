@@ -115,7 +115,7 @@ public class GameSession {
                 .build(new CacheLoader<>() {
                     @Override
                     public CompletableFuture<OptionalDouble> load(String host) {
-                        return PingWrapper.getLatency(host, IceAdapter.PING_COUNT)
+                        return PingWrapper.getLatency(host, IceAdapter.getPingCount())
                                 .thenApply(OptionalDouble::of)
                                 .exceptionally(ex -> OptionalDouble.empty());
                     }
@@ -172,7 +172,7 @@ public class GameSession {
                                 default -> log.warn("Invalid ICE server protocol: {}", uri);
                             }
 
-                            if (IceAdapter.PING_COUNT > 0) {
+                            if (IceAdapter.getPingCount() > 0) {
                                 iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
                             }
 
