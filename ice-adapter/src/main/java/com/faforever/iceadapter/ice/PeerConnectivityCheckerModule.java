@@ -1,6 +1,7 @@
 package com.faforever.iceadapter.ice;
 
 import com.faforever.iceadapter.AsyncService;
+import com.faforever.iceadapter.util.LockUtil;
 import com.google.common.primitives.Longs;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +44,7 @@ public class PeerConnectivityCheckerModule {
     }
 
     void start() {
-        AsyncService.executeWithLock(lockIce, () -> {
+        LockUtil.executeWithLock(lockIce, () -> {
             if (running) {
                 return;
             }
@@ -63,7 +64,7 @@ public class PeerConnectivityCheckerModule {
     }
 
     void stop() {
-        AsyncService.executeWithLock(lockIce, () -> {
+        LockUtil.executeWithLock(lockIce, () -> {
             if (!running) {
                 return;
             }

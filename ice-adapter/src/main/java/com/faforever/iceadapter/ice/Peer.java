@@ -2,6 +2,7 @@ package com.faforever.iceadapter.ice;
 
 import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
+import com.faforever.iceadapter.util.LockUtil;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -79,7 +80,7 @@ public class Peer {
      * @param length
      */
     void onIceDataReceived(byte[] data, int offset, int length) {
-        AsyncService.executeWithLock(lockSocketSend, () -> {
+        LockUtil.executeWithLock(lockSocketSend, () -> {
             try {
                 DatagramPacket packet = new DatagramPacket(
                         data, offset, length, InetAddress.getByName("127.0.0.1"), IceAdapter.LOBBY_PORT);

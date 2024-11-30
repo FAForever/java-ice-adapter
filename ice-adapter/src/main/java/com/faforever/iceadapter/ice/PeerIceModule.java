@@ -4,6 +4,7 @@ import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.CandidateUtil;
+import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -81,7 +82,7 @@ public class PeerIceModule {
      * Will start the ICE Process
      */
     void initiateIce() {
-        AsyncService.executeWithLock(lockInit, () -> {
+        LockUtil.executeWithLock(lockInit, () -> {
             if (peer.isClosing()) {
                 log.warn("{} Peer not connected anymore, aborting reinitiation of ICE", getLogPrefix());
                 return;
@@ -242,7 +243,7 @@ public class PeerIceModule {
      * @param remoteCandidatesMessage
      */
     public void onIceMessageReceived(CandidatesMessage remoteCandidatesMessage) {
-        AsyncService.executeWithLock(lockMessageReceived, () -> {
+        LockUtil.executeWithLock(lockMessageReceived, () -> {
             if (peer.isClosing()) {
                 log.warn("{} Peer not connected anymore, discarding ice message", getLogPrefix());
                 return;
@@ -358,7 +359,7 @@ public class PeerIceModule {
      * Will then reinitiate ICE
      */
     public void onConnectionLost() {
-        AsyncService.executeWithLock(lockLostConnection, () -> {
+        LockUtil.executeWithLock(lockLostConnection, () -> {
             if (iceState == DISCONNECTED) {
                 log.warn("{} Lost connection, albeit already in ice state disconnected", getLogPrefix());
                 return; // TODO: will this kill the life cycle?

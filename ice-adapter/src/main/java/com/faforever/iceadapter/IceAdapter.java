@@ -5,6 +5,7 @@ import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.rpc.RPCService;
+import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
@@ -136,7 +137,7 @@ public class IceAdapter implements Callable<Integer> {
     }
 
     private static void createGameSession() {
-        AsyncService.executeWithLock(lockGameSession, () -> {
+        LockUtil.executeWithLock(lockGameSession, () -> {
             if (gameSession != null) {
                 gameSession.close();
                 gameSession = null;
@@ -151,7 +152,7 @@ public class IceAdapter implements Callable<Integer> {
      * Closes the active Game/ICE session
      */
     public static void onFAShutdown() {
-        AsyncService.executeWithLock(lockGameSession, () -> {
+        LockUtil.executeWithLock(lockGameSession, () -> {
             if (gameSession != null) {
                 log.info("FA SHUTDOWN, closing everything");
                 gameSession.close();

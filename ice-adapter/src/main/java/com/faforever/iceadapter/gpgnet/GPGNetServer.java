@@ -3,6 +3,7 @@ package com.faforever.iceadapter.gpgnet;
 import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
+import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.NetworkToolbox;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -130,7 +131,7 @@ public class GPGNetServer {
          * Send a message to this FA instance via GPGNet
          */
         public void sendGpgnetMessage(String command, Object... args) {
-            AsyncService.executeWithLock(lockStream, () -> {
+            LockUtil.executeWithLock(lockStream, () -> {
                 try {
 
                     gpgnetOut.writeMessage(command, args);
@@ -195,7 +196,7 @@ public class GPGNetServer {
      */
     private static void onGpgnetConnectionLost() {
         log.info("GPGNet connection lost");
-        AsyncService.executeWithLock(lockSocket, () -> {
+        LockUtil.executeWithLock(lockSocket, () -> {
             if (currentClient != null) {
                 currentClient.close();
                 currentClient = null;
@@ -219,7 +220,7 @@ public class GPGNetServer {
         while (!Thread.currentThread().isInterrupted() && IceAdapter.running) {
             try {
                 Socket socket = serverSocket.accept();
-                AsyncService.executeWithLock(lockSocket, () -> {
+                LockUtil.executeWithLock(lockSocket, () -> {
                     if (currentClient != null) {
                         onGpgnetConnectionLost();
                     }
