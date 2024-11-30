@@ -1,5 +1,6 @@
 package com.faforever.iceadapter.debug;
 
+import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import java.lang.reflect.InvocationTargetException;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,7 @@ public class Debug {
         }
 
         if (isJavaFxSupported()) {
-            new Thread(() -> {
+            AsyncService.runAsync(() -> {
                         try {
                             Class.forName("com.faforever.iceadapter.debug.DebugWindow")
                                     .getMethod("launchApplication")
@@ -45,11 +46,9 @@ public class Debug {
                                 | ClassNotFoundException
                                 | NoSuchMethodException
                                 | InvocationTargetException e) {
-                            e.printStackTrace();
-                            log.error("Could not create DebugWindow. Running without debug window.");
+                            log.error("Could not create DebugWindow. Running without debug window.", e);
                         }
-                    })
-                    .start(); // Completes future once application started
+                    });
         } else {
             log.info("No JavaFX support detected. Running without debug window.");
         }

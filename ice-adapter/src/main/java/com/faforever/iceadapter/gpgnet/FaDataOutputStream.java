@@ -8,6 +8,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Writes data to Forged Alliance (the forgedalliance, not the lobby).
@@ -20,6 +22,7 @@ public class FaDataOutputStream extends OutputStream {
     public static final char DELIMITER = '\b';
     private final LittleEndianDataOutputStream outputStream;
     private final Charset charset = StandardCharsets.UTF_8;
+    private final Lock writer = new ReentrantLock();
 
     public FaDataOutputStream(OutputStream outputStream) {
         this.outputStream = new LittleEndianDataOutputStream(new BufferedOutputStream(outputStream));
@@ -27,15 +30,46 @@ public class FaDataOutputStream extends OutputStream {
 
     @Override
     public void write(int b) throws IOException {
-        outputStream.write(b);
+        writer.lock();
+        try {
+            outputStream.write(b);
+        } finally {
+            writer.unlock();
+        }
+    }
+
+    public void writeMessage(String header, Object... args) throws IOException {
+        writer.lock();
+        try {
+            writeString(header);
+            writeArgs(Arrays.asList(args));
+            outputStream.flush();
+        } finally {
+            writer.unlock();
+        }
     }
 
     @Override
     public void flush() throws IOException {
-        outputStream.flush();
+        writer.lock();
+        try {
+            outputStream.flush();
+        } finally {
+            writer.unlock();
+        }
     }
 
-    public synchronized void writeArgs(List<Object> args) throws IOException {
+    @Override
+    public void close() throws IOException {
+        writer.lock();
+        try {
+            outputStream.close();
+        } finally {
+            writer.unlock();
+        }
+    }
+
+    private void writeArgs(List<Object> args) throws IOException {
         writeInt(args.size());
 
         for (Object arg : args) {
@@ -52,27 +86,16 @@ public class FaDataOutputStream extends OutputStream {
         }
     }
 
-    public void writeInt(int value) throws IOException {
+    private void writeInt(int value) throws IOException {
         outputStream.writeInt(value);
     }
 
-    public synchronized void writeByte(int b) throws IOException {
+    private void writeByte(int b) throws IOException {
         outputStream.writeByte(b);
     }
 
-    public synchronized void writeString(String string) throws IOException {
+    private void writeString(String string) throws IOException {
         outputStream.writeInt(string.length());
         outputStream.write(string.getBytes(charset));
-    }
-
-    public synchronized void writeMessage(String header, Object... args) throws IOException {
-        writeString(header);
-        writeArgs(Arrays.asList(args));
-        outputStream.flush();
-    }
-
-    @Override
-    public void close() throws IOException {
-        outputStream.close();
     }
 }

@@ -1,5 +1,6 @@
 package com.faforever.iceadapter.util;
 
+import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.debug.DebugWindow;
 import com.faforever.iceadapter.debug.InfoWindow;
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.net.URL;
 import javax.imageio.ImageIO;
 import javax.swing.*;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -45,7 +47,7 @@ public class TrayIcon {
 
             @Override
             public void mousePressed(MouseEvent mouseEvent) {
-                new Thread(() -> {
+                AsyncService.runAsync(() -> {
                             if (InfoWindow.INSTANCE == null) {
                                 log.info("Launching ICE adapter debug window");
                                 Debug.ENABLE_INFO_WINDOW = true;
@@ -53,8 +55,7 @@ public class TrayIcon {
                             } else {
                                 InfoWindow.INSTANCE.show();
                             }
-                        })
-                        .start();
+                        });
             }
 
             @Override

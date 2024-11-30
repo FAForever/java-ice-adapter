@@ -1,7 +1,7 @@
 package com.faforever.iceadapter.debug;
 
+import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
-import java.util.Objects;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -53,8 +53,8 @@ public class DebugWindowController {
     }
 
     public void reconnectToPeer(DebugWindow.DebugPeer peer) {
-        if (Objects.nonNull(peer)) {
-            new Thread(() -> IceAdapter.gameSession.reconnectToPeer(peer.getId())).start();
+        if (peer != null) {
+            AsyncService.runAsync(() -> IceAdapter.gameSession.reconnectToPeer(peer.getId()));
         }
     }
 

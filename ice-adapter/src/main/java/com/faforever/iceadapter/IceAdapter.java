@@ -7,9 +7,11 @@ import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.rpc.RPCService;
-import com.faforever.iceadapter.util.Executor;
 import com.faforever.iceadapter.util.TrayIcon;
 import java.util.concurrent.Callable;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 
@@ -44,6 +46,7 @@ public class IceAdapter implements Callable<Integer> {
     public static double ACCEPTABLE_LATENCY = 250.0;
 
     public static volatile GameSession gameSession;
+    private static final Lock lockGameSession = new ReentrantLock();
 
     public static void main(String[] args) {
         new CommandLine(new IceAdapter()).setUnmatchedArgumentsAllowed(true).execute(args);
@@ -84,8 +87,8 @@ public class IceAdapter implements Callable<Integer> {
         log.info("onHostGame");
         createGameSession();
 
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
+        AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
+            AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
                 gpgNetClient.sendGpgnetMessage("HostGame", mapName);
             });
         });
@@ -95,9 +98,8 @@ public class IceAdapter implements Callable<Integer> {
         log.info("onJoinGame {} {}", remotePlayerId, remotePlayerLogin);
         createGameSession();
         int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, false, 0);
-
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
+        AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
+            AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
                 gpgNetClient.sendGpgnetMessage("JoinGame", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
             });
         });
@@ -115,8 +117,8 @@ public class IceAdapter implements Callable<Integer> {
         log.info("onConnectToPeer {} {}, offer: {}", remotePlayerId, remotePlayerLogin, String.valueOf(offer));
         int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, offer, 0);
 
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
+        AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
+            AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
                 gpgNetClient.sendGpgnetMessage("ConnectToPeer", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
             });
         });
@@ -126,33 +128,38 @@ public class IceAdapter implements Callable<Integer> {
         log.info("onDisconnectFromPeer {}", remotePlayerId);
         gameSession.disconnectFromPeer(remotePlayerId);
 
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
+
+        AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
+            AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
                 gpgNetClient.sendGpgnetMessage("DisconnectFromPeer", remotePlayerId);
             });
         });
     }
 
-    private static synchronized void createGameSession() {
-        if (gameSession != null) {
-            gameSession.close();
-            gameSession = null;
-        }
+    private static void createGameSession() {
+        AsyncService.executeWithLock(lockGameSession, () -> {
+            if (gameSession != null) {
+                gameSession.close();
+                gameSession = null;
+            }
 
-        gameSession = new GameSession();
+            gameSession = new GameSession();
+        });
     }
 
     /**
      * Triggered by losing gpgnet connection to FA.
      * Closes the active Game/ICE session
      */
-    public static synchronized void onFAShutdown() {
-        if (gameSession != null) {
-            log.info("FA SHUTDOWN, closing everything");
-            gameSession.close();
-            gameSession = null;
-            // Do not put code outside of this if clause, else it will be executed multiple times
-        }
+    public static void onFAShutdown() {
+        AsyncService.executeWithLock(lockGameSession, () -> {
+            if (gameSession != null) {
+                log.info("FA SHUTDOWN, closing everything");
+                gameSession.close();
+                gameSession = null;
+                // Do not put code outside of this if clause, else it will be executed multiple times
+            }
+        });
     }
 
     /**
@@ -161,12 +168,13 @@ public class IceAdapter implements Callable<Integer> {
     public static void close() {
         log.info("close() - stopping the adapter");
 
-        Executor.executeDelayed(500, () -> System.exit(0));
+        AsyncService.executeDelayed(500, () -> System.exit(0));
 
         onFAShutdown(); // will close gameSession aswell
         GPGNetServer.close();
         RPCService.close();
         TrayIcon.close();
+        AsyncService.close();
 
         System.exit(0);
     }

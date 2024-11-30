@@ -1,5 +1,6 @@
 package com.faforever.iceadapter.debug;
 
+import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.ice.Peer;
@@ -45,8 +46,6 @@ public class TelemetryDebugger implements Debugger {
     private final Map<Integer, RateLimiter> peerRateLimiter = new ConcurrentHashMap<>();
     private final BlockingQueue<OutgoingMessageV1> messageQueue = new LinkedBlockingQueue<>();
 
-    private final Thread sendingLoopThread;
-
     public TelemetryDebugger(String telemetryServer, int gameId, int playerId) {
         Debug.register(this);
 
@@ -87,10 +86,7 @@ public class TelemetryDebugger implements Debugger {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
-        sendingLoopThread = new Thread(this::sendingLoop, "sendingLoop");
-        sendingLoopThread.setUncaughtExceptionHandler(
-                (t, e) -> log.error("Thread sendingLoop crashed unexpectedly", e));
-        sendingLoopThread.start();
+        AsyncService.runAsync(this::sendingLoop, "sendingLoop");
     }
 
     private void sendMessage(OutgoingMessageV1 message) {
@@ -103,7 +99,7 @@ public class TelemetryDebugger implements Debugger {
 
     @SneakyThrows
     private void sendingLoop() {
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             var message = messageQueue.take();
             try {
                 String json = objectMapper.writeValueAsString(message);

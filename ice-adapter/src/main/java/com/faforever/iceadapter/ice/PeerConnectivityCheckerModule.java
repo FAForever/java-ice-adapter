@@ -2,23 +2,29 @@ package com.faforever.iceadapter.ice;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
 
+import com.faforever.iceadapter.AsyncService;
 import com.google.common.primitives.Longs;
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 /**
  * Periodically sends echo requests via the ICE data channel and initiates a reconnect after timeout
  * ONLY THE OFFERING ADAPTER of a connection will send echos and reoffer.
  */
+@Slf4j
 public class PeerConnectivityCheckerModule {
 
     private static final int ECHO_INTERVAL = 1000;
 
     private final PeerIceModule ice;
+    private final Lock lockIce = new ReentrantLock();
     private volatile boolean running = false;
-    private volatile Thread checkerThread;
+    private volatile CompletableFuture<Void> checker;
 
     @Getter
     private float averageRTT = 0.0f;
@@ -36,38 +42,39 @@ public class PeerConnectivityCheckerModule {
         this.ice = ice;
     }
 
-    synchronized void start() {
-        if (running) {
-            return;
-        }
+    void start() {
+        AsyncService.executeWithLock(lockIce, () -> {
+            if (running) {
+                return;
+            }
 
-        running = true;
-        log.debug("Starting connectivity checker for peer {}", ice.getPeer().getRemoteId());
+            running = true;
+            log.debug("Starting connectivity checker for peer {}", ice.getPeer().getRemoteId());
 
-        averageRTT = 0.0f;
-        lastPacketReceived = System.currentTimeMillis();
+            averageRTT = 0.0f;
+            lastPacketReceived = System.currentTimeMillis();
 
-        checkerThread = new Thread(this::checkerThread, getThreadName());
-        checkerThread.setUncaughtExceptionHandler(
-                (t, e) -> log.error("Thread {} crashed unexpectedly", t.getName(), e));
-        checkerThread.start();
+            checker = AsyncService.runAsync(this::checkerThread, getThreadName());
+        });
     }
 
     private String getThreadName() {
         return "connectivityChecker-" + ice.getPeer().getRemoteId();
     }
 
-    synchronized void stop() {
-        if (!running) {
-            return;
-        }
+    void stop() {
+        AsyncService.executeWithLock(lockIce, () -> {
+            if (!running) {
+                return;
+            }
 
-        running = false;
+            running = false;
 
-        if (checkerThread != null) {
-            checkerThread.interrupt();
-            checkerThread = null;
-        }
+            if (checker != null) {
+                checker.cancel(true);
+                checker = null;
+            }
+        });
     }
 
     /**
@@ -100,9 +107,11 @@ public class PeerConnectivityCheckerModule {
     }
 
     private void checkerThread() {
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted()
+                && running) {
             log.trace("Running connectivity checker");
 
+            Peer peer = ice.getPeer();
             byte[] data = new byte[9];
             data[0] = 'e';
 
@@ -111,23 +120,20 @@ public class PeerConnectivityCheckerModule {
 
             ice.sendViaIce(data, 0, data.length);
 
-            debug().peerConnectivityUpdate(ice.getPeer());
+            debug().peerConnectivityUpdate(peer);
 
             try {
                 Thread.sleep(ECHO_INTERVAL);
             } catch (InterruptedException e) {
-                log.warn(
-                        "{} (sleeping checkerThread) was interrupted",
-                        Thread.currentThread().getName());
-                Thread.currentThread().interrupt();
+                log.warn("{} (sleeping checkerThread) was interrupted", Thread.currentThread().getName());
                 return;
             }
 
             if (System.currentTimeMillis() - lastPacketReceived > 10000) {
                 log.warn(
                         "Didn't receive any answer to echo requests for the past 10 seconds from {}, aborting connection",
-                        ice.getPeer().getRemoteLogin());
-                new Thread(ice::onConnectionLost).start();
+                        peer.getRemoteLogin());
+                AsyncService.runAsync(ice::onConnectionLost);
                 return;
             }
         }

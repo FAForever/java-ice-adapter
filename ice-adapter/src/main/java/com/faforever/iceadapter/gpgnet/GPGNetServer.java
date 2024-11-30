@@ -2,6 +2,7 @@ package com.faforever.iceadapter.gpgnet;
 
 import static com.faforever.iceadapter.debug.Debug.debug;
 
+import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.NetworkToolbox;
@@ -13,12 +14,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GPGNetServer {
+    private static final Lock lockSocket = new ReentrantLock();
     private static ServerSocket serverSocket;
     private static volatile GPGNetClient currentClient;
 
@@ -49,7 +53,7 @@ public class GPGNetServer {
             System.exit(-1);
         }
 
-        new Thread(GPGNetServer::acceptThread).start();
+        AsyncService.runAsync(GPGNetServer::acceptThread);
         log.info("GPGNetServer started");
     }
 
@@ -61,9 +65,9 @@ public class GPGNetServer {
         private volatile GameState gameState = GameState.NONE;
 
         private final Socket socket;
-        private final Thread listenerThread;
         private volatile boolean stopping = false;
         private FaDataOutputStream gpgnetOut;
+        private final Lock lockStream = new ReentrantLock();
         private final CompletableFuture<GPGNetClient> lobbyFuture = new CompletableFuture<>();
 
         private GPGNetClient(Socket socket) {
@@ -74,9 +78,7 @@ public class GPGNetServer {
             } catch (IOException e) {
                 log.error("Could not create GPGNet output steam to FA", e);
             }
-
-            listenerThread = new Thread(this::listenerThread);
-            listenerThread.start();
+            AsyncService.runAsync(this::listenerThread);
 
             RPCService.onConnectionStateChanged("Connected");
             log.info("GPGNetClient has connected");
@@ -126,17 +128,20 @@ public class GPGNetServer {
         /**
          * Send a message to this FA instance via GPGNet
          */
-        public synchronized void sendGpgnetMessage(String command, Object... args) {
-            try {
-                gpgnetOut.writeMessage(command, args);
-                log.info(
-                        "Sent GPGNet message: {} {}",
-                        command,
-                        Arrays.stream(args).map(Object::toString).collect(Collectors.joining(" ")));
-            } catch (IOException e) {
-                log.error("Error while communicating with FA (output), assuming shutdown", e);
-                GPGNetServer.onGpgnetConnectionLost();
-            }
+        public void sendGpgnetMessage(String command, Object... args) {
+            AsyncService.executeWithLock(lockStream, () ->{
+                try {
+
+                    gpgnetOut.writeMessage(command, args);
+                    log.info(
+                            "Sent GPGNet message: {} {}",
+                            command,
+                            Arrays.stream(args).map(Object::toString).collect(Collectors.joining(" ")));
+                } catch (IOException e) {
+                    log.error("Error while communicating with FA (output), assuming shutdown", e);
+                    GPGNetServer.onGpgnetConnectionLost();
+                }
+            });
         }
 
         /**
@@ -149,7 +154,9 @@ public class GPGNetServer {
             // and is now going to set GPGNetServer.currentClient
             try (var inputStream = socket.getInputStream();
                     var gpgnetIn = new FaDataInputStream(inputStream)) {
-                while ((!triggerActive || GPGNetServer.currentClient == this) && !stopping) {
+                while (!Thread.currentThread().isInterrupted()
+                        && (!triggerActive || GPGNetServer.currentClient == this)
+                        && !stopping) {
                     String command = gpgnetIn.readString();
                     List<Object> args = gpgnetIn.readChunks();
 
@@ -169,7 +176,6 @@ public class GPGNetServer {
 
         public void close() {
             stopping = true;
-            this.listenerThread.interrupt();
             log.debug("Closing GPGNetClient");
 
             try {
@@ -188,7 +194,7 @@ public class GPGNetServer {
      */
     private static void onGpgnetConnectionLost() {
         log.info("GPGNet connection lost");
-        synchronized (serverSocket) {
+        AsyncService.executeWithLock(lockSocket, () -> {
             if (currentClient != null) {
                 currentClient.close();
                 currentClient = null;
@@ -201,7 +207,7 @@ public class GPGNetServer {
 
                 IceAdapter.onFAShutdown();
             }
-        }
+        } );
         debug().gpgnetConnectedDisconnected();
     }
 
@@ -209,10 +215,11 @@ public class GPGNetServer {
      * Listens for incoming connections from a game instance
      */
     private static void acceptThread() {
-        while (IceAdapter.running) {
+        while (!Thread.currentThread().isInterrupted()
+                && IceAdapter.running) {
             try {
                 Socket socket = serverSocket.accept();
-                synchronized (serverSocket) {
+                AsyncService.executeWithLock(lockSocket, () -> {
                     if (currentClient != null) {
                         onGpgnetConnectionLost();
                     }
@@ -221,7 +228,7 @@ public class GPGNetServer {
                     clientFuture.complete(currentClient);
 
                     debug().gpgnetConnectedDisconnected();
-                }
+                });
             } catch (SocketException e) {
                 return;
             } catch (IOException e) {

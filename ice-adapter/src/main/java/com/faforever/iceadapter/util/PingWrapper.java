@@ -1,5 +1,6 @@
 package com.faforever.iceadapter.util;
 
+import com.faforever.iceadapter.AsyncService;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -34,7 +35,7 @@ public class PingWrapper {
                 output_pattern = GNU_OUTPUT_PATTERN;
             }
 
-            return CompletableFuture.supplyAsync(() -> {
+            return AsyncService.supplyAsync(() -> {
                 try {
                     process.waitFor();
                     InputStreamReader reader = new InputStreamReader(process.getInputStream());

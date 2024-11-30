@@ -1,5 +1,6 @@
 package com.faforever.iceadapter.debug;
 
+import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.util.TrayIcon;
 import java.awt.*;
@@ -30,7 +31,7 @@ public class InfoWindowController {
     }
 
     public void onShowDebugWindowClicked(ActionEvent actionEvent) {
-        DebugWindow.INSTANCE.thenAcceptAsync(DebugWindow::showWindow);
+        AsyncService.thenAcceptAsync(DebugWindow.INSTANCE, DebugWindow::showWindow);
     }
 
     @SneakyThrows
@@ -38,14 +39,14 @@ public class InfoWindowController {
         String url = "%s/app.html?gameId=%d&playerId=%d"
                 .formatted(IceAdapter.TELEMETRY_SERVER.replaceFirst("ws", "http"), IceAdapter.gameId, IceAdapter.id);
 
-        new Thread(() -> {
+
+        AsyncService.runAsync(() -> {
                     try {
                         Desktop.getDesktop().browse(URI.create(url));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
-                })
-                .start();
+                });
     }
 
     public void onMinimizeToTrayClicked(ActionEvent actionEvent) {

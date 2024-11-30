@@ -3,6 +3,7 @@ package com.faforever.iceadapter.ice;
 import static com.faforever.iceadapter.debug.Debug.debug;
 import static com.faforever.iceadapter.ice.IceState.*;
 
+import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.CandidateUtil;
@@ -17,6 +18,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +47,7 @@ public class PeerIceModule {
 
     private volatile IceState iceState = NEW;
     private volatile boolean connected = false;
-    private volatile Thread listenerThread;
+    private volatile CompletableFuture<Void> listener;
 
     private PeerTurnRefreshModule turnRefreshModule;
 
@@ -55,6 +58,10 @@ public class PeerIceModule {
     private final List<Long> connectivityAttemptTimes = new ArrayList<>();
     // How often have we been waiting for a response to local candidates/offer
     private final AtomicInteger awaitingCandidatesEventId = new AtomicInteger(0);
+
+    private final Lock lockInit = new ReentrantLock();
+    private final Lock lockLostConnection = new ReentrantLock();
+    private final Lock lockMessageReceived = new ReentrantLock();
 
     public PeerIceModule(Peer peer) {
         this.peer = peer;
@@ -73,19 +80,26 @@ public class PeerIceModule {
     /**
      * Will start the ICE Process
      */
-    synchronized void initiateIce() {
-        if (iceState != NEW && iceState != DISCONNECTED) {
-            log.warn(
-                    getLogPrefix() + "ICE already in progress, aborting re initiation. current state: {}",
-                    iceState.getMessage());
-            return;
-        }
+    void initiateIce() {
+        AsyncService.executeWithLock(lockInit, () -> {
+            if (peer.isClosing()) {
+                log.warn("{} Peer not connected anymore, aborting reinitiation of ICE", getLogPrefix());
+                return;
+            }
 
-        setState(GATHERING);
-        log.info(getLogPrefix() + "Initiating ICE for peer");
+            if (iceState != NEW && iceState != DISCONNECTED) {
+                log.warn(
+                        getLogPrefix() + "ICE already in progress, aborting re initiation. current state: {}",
+                        iceState.getMessage());
+                return;
+            }
 
-        createAgent();
-        gatherCandidates();
+            setState(GATHERING);
+            log.info(getLogPrefix() + "Initiating ICE for peer");
+
+            createAgent();
+            gatherCandidates();
+        });
     }
 
     /**
@@ -119,7 +133,7 @@ public class PeerIceModule {
                         a, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential())))
                 .forEach(agent::addCandidateHarvester));
 
-        CompletableFuture<Void> gatheringFuture = CompletableFuture.runAsync(() -> {
+        CompletableFuture<Void> gatheringFuture = AsyncService.runAsync(() -> {
             try {
                 component = agent.createComponent(
                         mediaStream,
@@ -131,7 +145,7 @@ public class PeerIceModule {
             }
         });
 
-        Executor.executeDelayed(5000, () -> {
+        AsyncService.executeDelayed(5000, () -> {
             if (!gatheringFuture.isDone()) {
                 gatheringFuture.cancel(true);
             }
@@ -142,12 +156,12 @@ public class PeerIceModule {
         } catch (CompletionException e) {
             // Completed exceptionally
             log.error(getLogPrefix() + "Error while creating stream component/gathering candidates", e);
-            new Thread(this::onConnectionLost).start();
+            AsyncService.runAsync(this::onConnectionLost);
             return;
         } catch (CancellationException e) {
             // was cancelled due to timeout
             log.error(getLogPrefix() + "Gathering candidates timed out", e);
-            new Thread(this::onConnectionLost).start();
+            AsyncService.runAsync(this::onConnectionLost);
             return;
         }
 
@@ -172,7 +186,7 @@ public class PeerIceModule {
         // Make sure to abort the connection process and reinitiate when we haven't received an answer to our offer in 6
         // seconds, candidate packet was probably lost
         final int currentAwaitingCandidatesEventId = awaitingCandidatesEventId.incrementAndGet();
-        Executor.executeDelayed(6000, () -> {
+        AsyncService.executeDelayed(6000, () -> {
             if (peer.isClosing()) {
                 log.warn(
                         getLogPrefix() + "Peer {} not connected anymore, aborting reinitiation of ICE",
@@ -224,54 +238,55 @@ public class PeerIceModule {
      * Starts harvesting local candidates if in answer mode, then initiates the actual ICE process
      * @param remoteCandidatesMessage
      */
-    public synchronized void onIceMessageReceived(CandidatesMessage remoteCandidatesMessage) {
-        if (peer.isClosing()) {
-            log.warn(getLogPrefix() + "Peer not connected anymore, discarding ice message");
-            return;
-        }
+    public void onIceMessageReceived(CandidatesMessage remoteCandidatesMessage) {
+        AsyncService.executeWithLock(lockMessageReceived,() -> {
+            if (peer.isClosing()) {
+                log.warn(getLogPrefix() + "Peer not connected anymore, discarding ice message");
+                return;
+            }
 
-        // Start ICE async as it's blocking and this is the RPC thread
-        new Thread(() -> {
-                    log.debug(
-                            getLogPrefix() + "Got IceMsg for peer, offered candidates: {}",
-                            remoteCandidatesMessage.candidates().stream()
-                                    .map(it -> it.type().toString() + "(" + it.protocol() + ")")
-                                    .collect(Collectors.joining(", ")));
+            // Start ICE async as it's blocking and this is the RPC thread
+            AsyncService.runAsync(() -> {
+                log.debug(
+                        getLogPrefix() + "Got IceMsg for peer, offered candidates: {}",
+                        remoteCandidatesMessage.candidates().stream()
+                                .map(it -> it.type().toString() + "(" + it.protocol() + ")")
+                                .collect(Collectors.joining(", ")));
 
-                    if (peer.isLocalOffer()) {
-                        if (iceState != AWAITING_CANDIDATES) {
-                            log.warn(
-                                    getLogPrefix() + "Received candidates unexpectedly, current state: {}",
-                                    iceState.getMessage());
-                            return;
-                        }
-
-                    } else {
-                        // Check if we are already processing an ICE offer and if so stop it
-                        if (iceState != NEW && iceState != DISCONNECTED) {
-                            log.info(getLogPrefix() + "Received new candidates/offer, stopping...");
-                            onConnectionLost();
-                        }
-
-                        // Answer mode, initialize agent and gather candidates
-                        initiateIce();
+                if (peer.isLocalOffer()) {
+                    if (iceState != AWAITING_CANDIDATES) {
+                        log.warn(
+                                getLogPrefix() + "Received candidates unexpectedly, current state: {}",
+                                iceState.getMessage());
+                        return;
                     }
 
-                    setState(CHECKING);
+                } else {
+                    // Check if we are already processing an ICE offer and if so stop it
+                    if (iceState != NEW && iceState != DISCONNECTED) {
+                        log.info(getLogPrefix() + "Received new candidates/offer, stopping...");
+                        onConnectionLost();
+                    }
 
-                    int previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
-                    CandidateUtil.unpackCandidates(
-                            remoteCandidatesMessage,
-                            agent,
-                            component,
-                            mediaStream,
-                            previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.ALLOW_HOST,
-                            previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.ALLOW_REFLEXIVE,
-                            IceAdapter.ALLOW_RELAY);
+                    // Answer mode, initialize agent and gather candidates
+                    initiateIce();
+                }
 
-                    startIce();
-                })
-                .start();
+                setState(CHECKING);
+
+                int previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
+                CandidateUtil.unpackCandidates(
+                        remoteCandidatesMessage,
+                        agent,
+                        component,
+                        mediaStream,
+                        previousConnectivityAttempts < FORCE_SRFLX_COUNT && IceAdapter.ALLOW_HOST,
+                        previousConnectivityAttempts < FORCE_RELAY_COUNT && IceAdapter.ALLOW_REFLEXIVE,
+                        IceAdapter.ALLOW_RELAY);
+
+                startIce();
+            });
+        });
     }
 
     /**
@@ -285,12 +300,14 @@ public class PeerIceModule {
 
         // Wait for termination/completion of the agent
         long iceStartTime = System.currentTimeMillis();
-        while (agent.getState()
-                != IceProcessingState.COMPLETED) { // TODO include more?, maybe stop on COMPLETED, is that to early?
+        while (!Thread.currentThread().isInterrupted()
+                && agent.getState() != IceProcessingState.COMPLETED) { // TODO include more?, maybe stop on COMPLETED, is that to early?
             try {
                 Thread.sleep(20);
             } catch (InterruptedException e) {
                 log.error(getLogPrefix() + "Interrupted while waiting for ICE", e);
+                onConnectionLost();
+                return;
             }
 
             if (agent.getState() == IceProcessingState.FAILED) { // TODO null pointer due to no agent?
@@ -323,8 +340,7 @@ public class PeerIceModule {
             connectivityChecker.start();
         }
 
-        listenerThread = new Thread(this::listener);
-        listenerThread.start();
+        listener = AsyncService.runAsync(this::listener);
     }
 
     /**
@@ -332,72 +348,66 @@ public class PeerIceModule {
      * Will close agent, stop listener and connectivity checker thread and change state to disconnected
      * Will then reinitiate ICE
      */
-    public synchronized void onConnectionLost() {
-        if (iceState == DISCONNECTED) {
-            log.warn(getLogPrefix() + "Lost connection, albeit already in ice state disconnected");
-            return; // TODO: will this kill the life cycle?
-        }
+    public void onConnectionLost() {
+        AsyncService.executeWithLock(lockLostConnection, () ->{
+            if (iceState == DISCONNECTED) {
+                log.warn(getLogPrefix() + "Lost connection, albeit already in ice state disconnected");
+                return; // TODO: will this kill the life cycle?
+            }
 
-        IceState previousState = getIceState();
+            IceState previousState = getIceState();
 
-        if (listenerThread != null) {
-            listenerThread.interrupt();
-            listenerThread = null;
-        }
+            if (listener != null) {
+                listener.cancel(true);
+                listener = null;
+            }
 
-        if (turnRefreshModule != null) {
-            turnRefreshModule.close();
-            turnRefreshModule = null;
-        }
+            if (turnRefreshModule != null) {
+                turnRefreshModule.close();
+                turnRefreshModule = null;
+            }
 
-        connectivityChecker.stop();
+            connectivityChecker.stop();
 
-        if (connected) {
-            connected = false;
-            log.warn(getLogPrefix() + "ICE connection has been lost for peer");
-            RPCService.onConnected(IceAdapter.id, peer.getRemoteId(), false);
-        }
+            if (connected) {
+                connected = false;
+                log.warn(getLogPrefix() + "ICE connection has been lost for peer");
+                RPCService.onConnected(IceAdapter.id, peer.getRemoteId(), false);
+            }
 
-        setState(DISCONNECTED);
+            setState(DISCONNECTED);
 
-        if (agent != null) {
-            agent.free();
-            agent = null;
-            mediaStream = null;
-            component = null;
-        }
+            if (agent != null) {
+                agent.free();
+                agent = null;
+                mediaStream = null;
+                component = null;
+            }
 
-        debug().peerStateChanged(this.peer);
+            debug().peerStateChanged(this.peer);
 
-        if (peer.isClosing()) {
-            log.warn(getLogPrefix() + "Peer not connected anymore, aborting onConnectionLost of ICE");
-            return;
-        }
+            if (peer.isClosing()) {
+                log.warn(getLogPrefix() + "Peer not connected anymore, aborting onConnectionLost of ICE");
+                return;
+            }
 
-        if (peer.getGameSession().isGameEnded()) {
-            log.warn(getLogPrefix() + "GAME ENDED, ABORTING onConnectionLost of ICE for peer ");
-            return;
-        }
+            if (peer.getGameSession().isGameEnded()) {
+                log.warn(getLogPrefix() + "GAME ENDED, ABORTING onConnectionLost of ICE for peer ");
+                return;
+            }
 
-        if (previousState == CONNECTED) {
-            TrayIcon.showMessage("Reconnecting to " + this.peer.getRemoteLogin() + " (connection lost)");
-        }
+            if (previousState == CONNECTED) {
+                TrayIcon.showMessage("Reconnecting to " + this.peer.getRemoteLogin() + " (connection lost)");
+            }
 
-        if (previousState == CONNECTED && peer.isLocalOffer()) {
-            // We were connected before, retry immediately
-            Executor.executeDelayed(0, this::reinitIce);
-        } else if (peer.isLocalOffer()) {
-            // Last ice attempt didn't succeed, so wait a bit
-            Executor.executeDelayed(5000, this::reinitIce);
-        }
-    }
-
-    private synchronized void reinitIce() {
-        if (peer.isClosing()) {
-            log.warn(getLogPrefix() + "Peer not connected anymore, aborting reinitiation of ICE");
-            return;
-        }
-        initiateIce();
+            if (previousState == CONNECTED && peer.isLocalOffer()) {
+                // We were connected before, retry immediately
+                AsyncService.executeDelayed(0, this::initiateIce);
+            } else if (peer.isLocalOffer()) {
+                // Last ice attempt didn't succeed, so wait a bit
+                AsyncService.executeDelayed(5000, this::initiateIce);
+            }
+        });
     }
 
     /**
@@ -454,9 +464,10 @@ public class PeerIceModule {
         log.debug(getLogPrefix() + "Now forwarding data from ICE to FA for peer");
         Component localComponent = component;
 
-        byte[] data = new byte
-                [65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
-        while (IceAdapter.running && IceAdapter.gameSession == peer.getGameSession()) {
+        byte[] data = new byte[65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
+        while (!Thread.currentThread().isInterrupted()
+                && IceAdapter.running
+                && IceAdapter.gameSession == peer.getGameSession()) {
             try {
                 DatagramPacket packet = new DatagramPacket(data, data.length);
                 localComponent

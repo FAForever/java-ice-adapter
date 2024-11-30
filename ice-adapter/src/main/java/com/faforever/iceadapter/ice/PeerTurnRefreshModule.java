@@ -4,6 +4,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Duration;
+
+import com.faforever.iceadapter.AsyncService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.ice.RelayedCandidate;
@@ -44,7 +46,6 @@ public class PeerTurnRefreshModule {
 
     private TurnCandidateHarvest harvest = null;
 
-    private Thread refreshThread;
     private volatile boolean running = true;
 
     public PeerTurnRefreshModule(PeerIceModule ice, RelayedCandidate candidate) {
@@ -58,15 +59,14 @@ public class PeerTurnRefreshModule {
         }
 
         if (harvest != null) {
-            refreshThread = new Thread(this::refreshThread);
-            refreshThread.start();
+            AsyncService.runAsync(this::refreshThread);
 
             log.info("Started turn refresh module for peer {}", ice.getPeer().getRemoteLogin());
         }
     }
 
     private void refreshThread() {
-        while (running) {
+        while (!Thread.currentThread().isInterrupted() && running) {
 
             Request refreshRequest = MessageFactory.createRefreshRequest(
                     600); // Maximum lifetime of turn is 600 seconds (10 minutes), server may limit this even further
@@ -77,7 +77,7 @@ public class PeerTurnRefreshModule {
 
                 log.info("Sent turn refresh request.");
             } catch (IllegalAccessException | InvocationTargetException e) {
-                log.error("Could not send turn refresh request!.", e);
+                log.error("Could not send turn refresh request!", e);
             }
 
             try {
@@ -90,6 +90,5 @@ public class PeerTurnRefreshModule {
 
     public void close() {
         running = false;
-        refreshThread.interrupt();
     }
 }

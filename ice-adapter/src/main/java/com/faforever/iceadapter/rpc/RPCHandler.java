@@ -1,5 +1,6 @@
 package com.faforever.iceadapter.rpc;
 
+import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.IceStatus;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
@@ -14,6 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.TransportAddress;
@@ -29,6 +33,7 @@ import org.ice4j.ice.Component;
 public class RPCHandler {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Lock lockStatus = new ReentrantLock();
 
     public RPCHandler() {
         objectMapper.registerModule(new JavaTimeModule());
@@ -80,8 +85,8 @@ public class RPCHandler {
     }
 
     public void sendToGpgNet(String header, String... chunks) {
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
+        AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
+            AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {
                 gpgNetClient.sendGpgnetMessage(header, chunks);
             });
         });
@@ -100,8 +105,11 @@ public class RPCHandler {
         List<IceStatus.IceRelay> relays = new ArrayList<>();
         GameSession gameSession = IceAdapter.gameSession;
         if (gameSession != null) {
-            synchronized (gameSession.getPeers()) {
-                gameSession.getPeers().values().stream()
+            lockStatus.lock();
+            try {
+                gameSession.getPeers()
+                        .values()
+                        .stream()
                         .map(peer -> {
                             IceStatus.IceRelay.IceRelayICEState iceRelayICEState =
                                     new IceStatus.IceRelay.IceRelayICEState(
@@ -143,6 +151,8 @@ public class RPCHandler {
                                     iceRelayICEState);
                         })
                         .forEach(relays::add);
+            } finally {
+                lockStatus.unlock();
             }
         }
 
