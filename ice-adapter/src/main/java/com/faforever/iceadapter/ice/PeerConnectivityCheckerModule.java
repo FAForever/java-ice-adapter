@@ -1,16 +1,16 @@
 package com.faforever.iceadapter.ice;
 
-import static com.faforever.iceadapter.debug.Debug.debug;
-
 import com.faforever.iceadapter.AsyncService;
 import com.google.common.primitives.Longs;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+import static com.faforever.iceadapter.debug.Debug.debug;
 
 /**
  * Periodically sends echo requests via the ICE data channel and initiates a reconnect after timeout
@@ -107,8 +107,7 @@ public class PeerConnectivityCheckerModule {
     }
 
     private void checkerThread() {
-        while (!Thread.currentThread().isInterrupted()
-                && running) {
+        while (!Thread.currentThread().isInterrupted() && running) {
             log.trace("Running connectivity checker");
 
             Peer peer = ice.getPeer();
@@ -125,7 +124,9 @@ public class PeerConnectivityCheckerModule {
             try {
                 Thread.sleep(ECHO_INTERVAL);
             } catch (InterruptedException e) {
-                log.warn("{} (sleeping checkerThread) was interrupted", Thread.currentThread().getName());
+                log.warn(
+                        "{} (sleeping checkerThread) was interrupted",
+                        Thread.currentThread().getName());
                 return;
             }
 

@@ -7,12 +7,6 @@ import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.Peer;
 import com.faforever.iceadapter.ice.PeerConnectivityCheckerModule;
 import com.nbarraille.jjsonrpc.JJsonPeer;
-
-import java.io.IOException;
-import java.util.Comparator;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -33,6 +27,11 @@ import org.ice4j.ice.CandidatePair;
 import org.ice4j.ice.CandidateType;
 import org.ice4j.ice.Component;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class DebugWindow extends Application implements Debugger {
@@ -183,11 +182,9 @@ public class DebugWindow extends Application implements Debugger {
     public void peerStateChanged(Peer peer) {
         runOnUIThread(() -> {
             synchronized (peers) {
-                peers.stream()
-                        .filter(p -> p.id.get() == peer.getRemoteId())
-                        .forEach(p -> {
-                            p.stateChangedUpdate(peer);
-                        });
+                peers.stream().filter(p -> p.id.get() == peer.getRemoteId()).forEach(p -> {
+                    p.stateChangedUpdate(peer);
+                });
             }
         });
     }
@@ -371,8 +368,7 @@ public class DebugWindow extends Application implements Debugger {
 
         @Override
         public int compareTo(@NotNull DebugPeer o) {
-            return Comparator.comparingLong(DebugPeer::getId)
-                    .compare(this, o);
+            return Comparator.comparingLong(DebugPeer::getId).compare(this, o);
         }
     }
 }

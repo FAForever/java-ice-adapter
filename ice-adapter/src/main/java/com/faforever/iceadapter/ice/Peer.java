@@ -2,14 +2,14 @@ package com.faforever.iceadapter.ice;
 
 import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
+import lombok.Getter;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.net.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import lombok.Getter;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Represents a peer in the current game session which we are connected to
@@ -81,18 +81,19 @@ public class Peer {
     void onIceDataReceived(byte[] data, int offset, int length) {
         AsyncService.executeWithLock(lockSocketSend, () -> {
             try {
-                DatagramPacket packet = new DatagramPacket(data,
-                        offset,
-                        length,
-                        InetAddress.getByName("127.0.0.1"),
-                        IceAdapter.LOBBY_PORT);
+                DatagramPacket packet = new DatagramPacket(
+                        data, offset, length, InetAddress.getByName("127.0.0.1"), IceAdapter.LOBBY_PORT);
                 faSocket.send(packet);
             } catch (UnknownHostException e) {
             } catch (IOException e) {
                 if (closing) {
-                    log.debug("Ignoring error the send packet because the connection was closed {}", getPeerIdentifier());
+                    log.debug(
+                            "Ignoring error the send packet because the connection was closed {}", getPeerIdentifier());
                 } else {
-                    log.error("Error while writing to local FA as peer (probably disconnecting from peer) {}", getPeerIdentifier(), e);
+                    log.error(
+                            "Error while writing to local FA as peer (probably disconnecting from peer) {}",
+                            getPeerIdentifier(),
+                            e);
                 }
             }
         });
@@ -102,7 +103,8 @@ public class Peer {
      * This method get's invoked by the thread listening for data from FA
      */
     private void faListener() {
-        byte[] data = new byte[65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
+        byte[] data = new byte
+                [65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
         while (!Thread.currentThread().isInterrupted()
                 && IceAdapter.running
                 && IceAdapter.gameSession == gameSession
@@ -113,9 +115,14 @@ public class Peer {
                 ice.onFaDataReceived(data, packet.getLength());
             } catch (IOException e) {
                 if (closing) {
-                    log.debug("Ignoring error the receive packet because the connection was closed as peer {}", getPeerIdentifier());
+                    log.debug(
+                            "Ignoring error the receive packet because the connection was closed as peer {}",
+                            getPeerIdentifier());
                 } else {
-                    log.debug("Error while reading from local FA as peer (probably disconnecting from peer) {}", getPeerIdentifier(), e);
+                    log.debug(
+                            "Error while reading from local FA as peer (probably disconnecting from peer) {}",
+                            getPeerIdentifier(),
+                            e);
                 }
                 return;
             }

@@ -1,19 +1,19 @@
 package com.faforever.iceadapter;
 
-import static com.faforever.iceadapter.debug.Debug.debug;
-
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.TrayIcon;
+import lombok.extern.slf4j.Slf4j;
+import picocli.CommandLine;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import lombok.extern.slf4j.Slf4j;
-import picocli.CommandLine;
+import static com.faforever.iceadapter.debug.Debug.debug;
 
 @CommandLine.Command(
         name = "faf-ice-adapter",
@@ -127,7 +127,6 @@ public class IceAdapter implements Callable<Integer> {
     public static void onDisconnectFromPeer(int remotePlayerId) {
         log.info("onDisconnectFromPeer {}", remotePlayerId);
         gameSession.disconnectFromPeer(remotePlayerId);
-
 
         AsyncService.thenAccept(GPGNetServer.clientFuture, gpgNetClient -> {
             AsyncService.thenRun(gpgNetClient.getLobbyFuture(), () -> {

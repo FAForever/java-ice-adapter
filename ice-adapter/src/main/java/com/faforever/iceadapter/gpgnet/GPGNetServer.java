@@ -1,11 +1,12 @@
 package com.faforever.iceadapter.gpgnet;
 
-import static com.faforever.iceadapter.debug.Debug.debug;
-
 import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.NetworkToolbox;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -17,8 +18,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+
+import static com.faforever.iceadapter.debug.Debug.debug;
 
 @Slf4j
 public class GPGNetServer {
@@ -129,7 +130,7 @@ public class GPGNetServer {
          * Send a message to this FA instance via GPGNet
          */
         public void sendGpgnetMessage(String command, Object... args) {
-            AsyncService.executeWithLock(lockStream, () ->{
+            AsyncService.executeWithLock(lockStream, () -> {
                 try {
 
                     gpgnetOut.writeMessage(command, args);
@@ -207,7 +208,7 @@ public class GPGNetServer {
 
                 IceAdapter.onFAShutdown();
             }
-        } );
+        });
         debug().gpgnetConnectedDisconnected();
     }
 
@@ -215,8 +216,7 @@ public class GPGNetServer {
      * Listens for incoming connections from a game instance
      */
     private static void acceptThread() {
-        while (!Thread.currentThread().isInterrupted()
-                && IceAdapter.running) {
+        while (!Thread.currentThread().isInterrupted() && IceAdapter.running) {
             try {
                 Socket socket = serverSocket.accept();
                 AsyncService.executeWithLock(lockSocket, () -> {

@@ -3,7 +3,10 @@ package com.faforever.iceadapter;
 import com.faforever.iceadapter.exception.AsyncException;
 import lombok.experimental.UtilityClass;
 
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;

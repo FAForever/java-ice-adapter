@@ -3,13 +3,14 @@ package com.faforever.iceadapter.debug;
 import com.faforever.iceadapter.AsyncService;
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.util.TrayIcon;
-import java.awt.*;
-import java.io.IOException;
-import java.net.URI;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import lombok.SneakyThrows;
+
+import java.awt.*;
+import java.io.IOException;
+import java.net.URI;
 
 public class InfoWindowController {
     public Button killAdapterButton;
@@ -39,14 +40,13 @@ public class InfoWindowController {
         String url = "%s/app.html?gameId=%d&playerId=%d"
                 .formatted(IceAdapter.TELEMETRY_SERVER.replaceFirst("ws", "http"), IceAdapter.gameId, IceAdapter.id);
 
-
         AsyncService.runAsync(() -> {
-                    try {
-                        Desktop.getDesktop().browse(URI.create(url));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+            try {
+                Desktop.getDesktop().browse(URI.create(url));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public void onMinimizeToTrayClicked(ActionEvent actionEvent) {
