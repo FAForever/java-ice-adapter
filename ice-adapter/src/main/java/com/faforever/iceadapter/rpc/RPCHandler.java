@@ -171,6 +171,6 @@ public class RPCHandler {
 
     public void quit() {
         log.warn("Close requested, stopping...");
-        IceAdapter.close();
+        IceAdapter.close(0);
     }
 }

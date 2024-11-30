@@ -27,7 +27,7 @@ public class InfoWindowController {
             killAdapterButton.setText(
                     "This will disconnect you from the game! Click " + (3 - killRequests) + " more times.");
         } else {
-            System.exit(337);
+            IceAdapter.close(337);
         }
     }
 

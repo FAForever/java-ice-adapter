@@ -1,7 +1,5 @@
 package com.faforever.iceadapter.rpc;
 
-import static com.faforever.iceadapter.debug.Debug.debug;
-
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.debug.InfoWindow;
@@ -13,10 +11,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 import com.nbarraille.jjsonrpc.TcpServer;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import lombok.extern.slf4j.Slf4j;
+
+import static com.faforever.iceadapter.debug.Debug.debug;
 
 /**
  * Handles communication between client and adapter, opens a server for the client to connect to
@@ -58,7 +59,7 @@ public class RPCService {
                     log.info(
                             "Lost connection to first RPC Peer. GameState: {}, Stopping adapter...",
                             gameState.getName());
-                    IceAdapter.close();
+                    IceAdapter.close(0);
                 }
             });
         });

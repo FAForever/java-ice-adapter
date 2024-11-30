@@ -164,10 +164,8 @@ public class IceAdapter implements Callable<Integer> {
     /**
      * Stop the ICE adapter
      */
-    public static void close() {
+    public static void close(int status) {
         log.info("close() - stopping the adapter");
-
-        AsyncService.executeDelayed(500, () -> System.exit(0));
 
         onFAShutdown(); // will close gameSession aswell
         GPGNetServer.close();
@@ -175,7 +173,7 @@ public class IceAdapter implements Callable<Integer> {
         TrayIcon.close();
         AsyncService.close();
 
-        System.exit(0);
+        System.exit(status);
     }
 
     /**

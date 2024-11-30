@@ -1,11 +1,13 @@
 package com.faforever.iceadapter.util;
 
+import com.faforever.iceadapter.IceAdapter;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.SocketException;
 import java.util.Random;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NetworkToolbox {
@@ -32,7 +34,7 @@ public class NetworkToolbox {
         }
 
         log.error("Could not find a free tcp port");
-        System.exit(-1);
+        IceAdapter.close(-1);
         return -1;
     }
 
@@ -56,7 +58,7 @@ public class NetworkToolbox {
         }
 
         log.error("Could not find a free tcp port");
-        System.exit(-1);
+        IceAdapter.close(-1);
         return -1;
     }
 }

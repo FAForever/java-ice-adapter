@@ -51,7 +51,7 @@ public class GPGNetServer {
             serverSocket = new ServerSocket(IceAdapter.GPGNET_PORT);
         } catch (IOException e) {
             log.error("Couldn't start GPGNetServer", e);
-            System.exit(-1);
+            IceAdapter.close(-1);
         }
 
         AsyncService.runAsync(GPGNetServer::acceptThread);

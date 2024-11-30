@@ -49,7 +49,7 @@ public class DebugWindowController {
     public DebugWindowController() {}
 
     public void onKillAdapterClicked(ActionEvent actionEvent) {
-        System.exit(337);
+        IceAdapter.close(337);
     }
 
     public void reconnectToPeer(DebugWindow.DebugPeer peer) {
