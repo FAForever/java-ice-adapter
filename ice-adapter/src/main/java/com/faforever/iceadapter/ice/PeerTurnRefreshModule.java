@@ -14,6 +14,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Sends continuous refresh requests to the turn server
@@ -25,6 +26,7 @@ public class PeerTurnRefreshModule {
 
     private static Field harvestField;
     private static Method sendRequestMethod;
+    private static CompletableFuture<Void> refresher;
 
     static {
         try {
@@ -59,7 +61,7 @@ public class PeerTurnRefreshModule {
         }
 
         if (harvest != null) {
-            AsyncService.runAsync(this::refreshThread);
+            refresher = AsyncService.runAsync(this::refreshThread);
 
             log.info("Started turn refresh module for peer {}", ice.getPeer().getRemoteLogin());
         }
@@ -90,5 +92,9 @@ public class PeerTurnRefreshModule {
 
     public void close() {
         running = false;
+        if (refresher != null) {
+            refresher.cancel(true);
+            refresher = null;
+        }
     }
 }
