@@ -43,13 +43,15 @@ public class InfoWindowController {
                         IceAdapter.getGameId(),
                         IceAdapter.getId());
 
-        CompletableFuture.runAsync(() -> {
-            try {
-                Desktop.getDesktop().browse(URI.create(url));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }, IceAdapter.getExecutor());
+        CompletableFuture.runAsync(
+                () -> {
+                    try {
+                        Desktop.getDesktop().browse(URI.create(url));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                },
+                IceAdapter.getExecutor());
     }
 
     public void onMinimizeToTrayClicked(ActionEvent actionEvent) {

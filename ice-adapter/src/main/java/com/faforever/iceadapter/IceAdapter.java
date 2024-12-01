@@ -69,7 +69,8 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
     @Override
     public void close() {
         executor.shutdown();
-        CompletableFuture.runAsync(executor::shutdownNow, CompletableFuture.delayedExecutor(1000, TimeUnit.MILLISECONDS));
+        CompletableFuture.runAsync(
+                executor::shutdownNow, CompletableFuture.delayedExecutor(1000, TimeUnit.MILLISECONDS));
     }
 
     public static void onHostGame(String mapName) {

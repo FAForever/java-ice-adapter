@@ -30,7 +30,8 @@ public class Debug {
     }
 
     public static void init() {
-        new TelemetryDebugger(IceAdapter.getTelemetryServer(), IceAdapter.getGameId(), IceAdapter.getId(), IceAdapter.getExecutor());
+        new TelemetryDebugger(
+                IceAdapter.getTelemetryServer(), IceAdapter.getGameId(), IceAdapter.getId(), IceAdapter.getExecutor());
 
         // Debugger window is started and set to debugFuture when either window is requested as the info window can be
         // used to open the debug window
@@ -40,18 +41,20 @@ public class Debug {
         }
 
         if (isJavaFxSupported()) {
-            CompletableFuture.runAsync(() -> {
-                try {
-                    Class.forName("com.faforever.iceadapter.debug.DebugWindow")
-                            .getMethod("launchApplication")
-                            .invoke(null);
-                } catch (IllegalAccessException
-                        | ClassNotFoundException
-                        | NoSuchMethodException
-                        | InvocationTargetException e) {
-                    log.error("Could not create DebugWindow. Running without debug window.", e);
-                }
-            }, IceAdapter.getExecutor());
+            CompletableFuture.runAsync(
+                    () -> {
+                        try {
+                            Class.forName("com.faforever.iceadapter.debug.DebugWindow")
+                                    .getMethod("launchApplication")
+                                    .invoke(null);
+                        } catch (IllegalAccessException
+                                | ClassNotFoundException
+                                | NoSuchMethodException
+                                | InvocationTargetException e) {
+                            log.error("Could not create DebugWindow. Running without debug window.", e);
+                        }
+                    },
+                    IceAdapter.getExecutor());
         } else {
             log.info("No JavaFX support detected. Running without debug window.");
         }

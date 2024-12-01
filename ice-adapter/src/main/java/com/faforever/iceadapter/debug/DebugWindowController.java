@@ -55,7 +55,8 @@ public class DebugWindowController {
 
     public void reconnectToPeer(DebugWindow.DebugPeer peer) {
         if (peer != null) {
-            CompletableFuture.runAsync(() -> IceAdapter.getGameSession().reconnectToPeer(peer.getId()), IceAdapter.getExecutor());
+            CompletableFuture.runAsync(
+                    () -> IceAdapter.getGameSession().reconnectToPeer(peer.getId()), IceAdapter.getExecutor());
         }
     }
 

@@ -36,27 +36,29 @@ public class PingWrapper {
                 output_pattern = GNU_OUTPUT_PATTERN;
             }
 
-            return CompletableFuture.supplyAsync(() -> {
-                try {
-                    process.waitFor();
-                    InputStreamReader reader = new InputStreamReader(process.getInputStream());
-                    String output = CharStreams.toString(reader);
-                    reader.close();
+            return CompletableFuture.supplyAsync(
+                    () -> {
+                        try {
+                            process.waitFor();
+                            InputStreamReader reader = new InputStreamReader(process.getInputStream());
+                            String output = CharStreams.toString(reader);
+                            reader.close();
 
-                    Matcher m = output_pattern.matcher(output);
+                            Matcher m = output_pattern.matcher(output);
 
-                    if (m.find()) {
-                        double result = Double.parseDouble(m.group(1));
-                        log.debug("Pinged {} with an RTT of {}", address, result);
-                        return result;
-                    } else {
-                        log.warn("Failed to ping {}", address);
-                        throw new RuntimeException("Failed to contact the host");
-                    }
-                } catch (InterruptedException | IOException | RuntimeException e) {
-                    throw new CompletionException(e);
-                }
-            }, IceAdapter.getExecutor());
+                            if (m.find()) {
+                                double result = Double.parseDouble(m.group(1));
+                                log.debug("Pinged {} with an RTT of {}", address, result);
+                                return result;
+                            } else {
+                                log.warn("Failed to ping {}", address);
+                                throw new RuntimeException("Failed to contact the host");
+                            }
+                        } catch (InterruptedException | IOException | RuntimeException e) {
+                            throw new CompletionException(e);
+                        }
+                    },
+                    IceAdapter.getExecutor());
         } catch (IOException e) {
             CompletableFuture<Double> future = new CompletableFuture<>();
             future.completeExceptionally(e);

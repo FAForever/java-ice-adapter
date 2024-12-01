@@ -48,15 +48,17 @@ public class TrayIcon {
 
             @Override
             public void mousePressed(MouseEvent mouseEvent) {
-                CompletableFuture.runAsync(() -> {
-                    if (InfoWindow.INSTANCE == null) {
-                        log.info("Launching ICE adapter debug window");
-                        Debug.ENABLE_INFO_WINDOW = true;
-                        DebugWindow.launchApplication();
-                    } else {
-                        InfoWindow.INSTANCE.show();
-                    }
-                }, IceAdapter.getExecutor());
+                CompletableFuture.runAsync(
+                        () -> {
+                            if (InfoWindow.INSTANCE == null) {
+                                log.info("Launching ICE adapter debug window");
+                                Debug.ENABLE_INFO_WINDOW = true;
+                                DebugWindow.launchApplication();
+                            } else {
+                                InfoWindow.INSTANCE.show();
+                            }
+                        },
+                        IceAdapter.getExecutor());
             }
 
             @Override

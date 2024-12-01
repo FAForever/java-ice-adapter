@@ -74,15 +74,19 @@ public class DebugWindow extends Application implements Debugger {
         stage.setTitle("FAF ICE adapter - Debugger - Build: %s".formatted(IceAdapter.getVersion()));
 
         if (Debug.ENABLE_DEBUG_WINDOW) {
-            CompletableFuture.runAsync(() -> runOnUIThread(stage::show),
-                    CompletableFuture.delayedExecutor(Debug.DELAY_UI_MS, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
+            CompletableFuture.runAsync(
+                    () -> runOnUIThread(stage::show),
+                    CompletableFuture.delayedExecutor(
+                            Debug.DELAY_UI_MS, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
         }
 
         log.info("Created debug window.");
 
         if (Debug.ENABLE_INFO_WINDOW) {
-            CompletableFuture.runAsync( () -> runOnUIThread(() -> new InfoWindow().init()),
-                    CompletableFuture.delayedExecutor(Debug.DELAY_UI_MS, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
+            CompletableFuture.runAsync(
+                    () -> runOnUIThread(() -> new InfoWindow().init()),
+                    CompletableFuture.delayedExecutor(
+                            Debug.DELAY_UI_MS, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
         }
     }
 

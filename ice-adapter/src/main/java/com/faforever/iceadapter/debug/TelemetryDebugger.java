@@ -74,10 +74,12 @@ public class TelemetryDebugger implements Debugger {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
-        CompletableFuture.runAsync(() -> {
-            Thread.currentThread().setName("sendingLoop");
-            sendingLoop();
-        }, executor);
+        CompletableFuture.runAsync(
+                () -> {
+                    Thread.currentThread().setName("sendingLoop");
+                    sendingLoop();
+                },
+                executor);
     }
 
     private void sendMessage(OutgoingMessageV1 message) {

@@ -55,10 +55,12 @@ public class PeerConnectivityCheckerModule {
             averageRTT = 0.0f;
             lastPacketReceived = System.currentTimeMillis();
 
-            checker = CompletableFuture.runAsync(() -> {
-                Thread.currentThread().setName(getThreadName());
-                checkerThread();
-            }, IceAdapter.getExecutor());
+            checker = CompletableFuture.runAsync(
+                    () -> {
+                        Thread.currentThread().setName(getThreadName());
+                        checkerThread();
+                    },
+                    IceAdapter.getExecutor());
         });
     }
 
