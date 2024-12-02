@@ -9,6 +9,7 @@ import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.ExecutorHolder;
 import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
+import javafx.application.Platform;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 
@@ -70,7 +71,11 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
     public void close() {
         executor.shutdown();
         CompletableFuture.runAsync(
-                executor::shutdownNow, CompletableFuture.delayedExecutor(1000, TimeUnit.MILLISECONDS));
+                () -> {
+                    executor.shutdownNow();
+                    Platform.exit();
+                },
+                CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS));
     }
 
     public static void onHostGame(String mapName) {
@@ -156,15 +161,13 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
      * Stop the ICE adapter
      */
     public static void close(int status) {
-        log.info("close() - stopping the adapter");
+        log.info("close() - stopping the adapter. Status: {}", status);
 
         onFAShutdown(); // will close gameSession aswell
         GPGNetServer.close();
         RPCService.close();
         TrayIcon.close();
         INSTANCE.close();
-
-        System.exit(status);
     }
 
     public static int getId() {
