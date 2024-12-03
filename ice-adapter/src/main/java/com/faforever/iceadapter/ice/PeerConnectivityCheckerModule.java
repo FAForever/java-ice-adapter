@@ -25,7 +25,7 @@ public class PeerConnectivityCheckerModule {
     private final PeerIceModule ice;
     private final Lock lockIce = new ReentrantLock();
     private volatile boolean running = false;
-    private volatile CompletableFuture<Void> checker;
+    private volatile Thread checkerThread;
 
     @Getter
     private float averageRTT = 0.0f;
@@ -55,12 +55,10 @@ public class PeerConnectivityCheckerModule {
             averageRTT = 0.0f;
             lastPacketReceived = System.currentTimeMillis();
 
-            checker = CompletableFuture.runAsync(
-                    () -> {
-                        Thread.currentThread().setName(getThreadName());
-                        checkerThread();
-                    },
-                    IceAdapter.getExecutor());
+            checkerThread = Thread.ofVirtual()
+                    .name(getThreadName())
+                    .uncaughtExceptionHandler((t, e) -> log.error("Thread {} crashed unexpectedly", t.getName(), e))
+                    .start(this::checkerThread);
         });
     }
 
@@ -76,9 +74,9 @@ public class PeerConnectivityCheckerModule {
 
             running = false;
 
-            if (checker != null) {
-                checker.cancel(true);
-                checker = null;
+            if (checkerThread != null) {
+                checkerThread.interrupt();
+                checkerThread = null;
             }
         });
     }

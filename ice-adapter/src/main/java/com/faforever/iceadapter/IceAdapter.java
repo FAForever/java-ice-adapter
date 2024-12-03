@@ -166,6 +166,7 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
         onFAShutdown(); // will close gameSession aswell
         GPGNetServer.close();
         RPCService.close();
+        Debug.close();
         TrayIcon.close();
         INSTANCE.close();
     }

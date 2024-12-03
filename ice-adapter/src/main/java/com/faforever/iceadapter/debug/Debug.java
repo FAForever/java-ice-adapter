@@ -19,6 +19,8 @@ public class Debug {
 
     public static int RPC_PORT;
 
+    private static TelemetryDebugger telemetryDebugger;
+
     private static final DebugFacade debugFacade = new DebugFacade();
 
     public static void register(Debugger debugger) {
@@ -30,8 +32,8 @@ public class Debug {
     }
 
     public static void init() {
-        new TelemetryDebugger(
-                IceAdapter.getTelemetryServer(), IceAdapter.getGameId(), IceAdapter.getId(), IceAdapter.getExecutor());
+        telemetryDebugger = new TelemetryDebugger(
+                IceAdapter.getTelemetryServer(), IceAdapter.getGameId(), IceAdapter.getId());
 
         // Debugger window is started and set to debugFuture when either window is requested as the info window can be
         // used to open the debug window
@@ -57,6 +59,13 @@ public class Debug {
                     IceAdapter.getExecutor());
         } else {
             log.info("No JavaFX support detected. Running without debug window.");
+        }
+    }
+
+    public static void close() {
+        if (telemetryDebugger != null) {
+            telemetryDebugger.close();
+            telemetryDebugger = null;
         }
     }
 

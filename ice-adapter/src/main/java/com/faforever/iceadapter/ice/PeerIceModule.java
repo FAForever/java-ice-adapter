@@ -60,12 +60,12 @@ public class PeerIceModule {
 
     private volatile IceState iceState = NEW;
     private volatile boolean connected = false;
-    private volatile CompletableFuture<Void> listener;
+    private volatile Thread listenerThread;
 
     private PeerTurnRefreshModule turnRefreshModule;
 
     // Checks the connection by sending echo requests and initiates a reconnect if needed
-    private final PeerConnectivityCheckerModule connectivityChecker;
+    private final PeerConnectivityCheckerModule connectivityChecker = new PeerConnectivityCheckerModule(this);
 
     // A list of the timestamps of initiated connectivity attempts, used to detect if relay/srflx should be forced
     private final List<Long> connectivityAttemptTimes = new ArrayList<>();
@@ -78,7 +78,6 @@ public class PeerIceModule {
 
     public PeerIceModule(Peer peer) {
         this.peer = peer;
-        connectivityChecker = new PeerConnectivityCheckerModule(this);
     }
 
     /**
@@ -372,7 +371,7 @@ public class PeerIceModule {
             connectivityChecker.start();
         }
 
-        listener = CompletableFuture.runAsync(this::listener, IceAdapter.getExecutor());
+        listenerThread = Thread.startVirtualThread(this::listener);
     }
 
     /**
@@ -389,9 +388,9 @@ public class PeerIceModule {
 
             IceState previousState = getIceState();
 
-            if (listener != null) {
-                listener.cancel(true);
-                listener = null;
+            if (listenerThread != null) {
+                listenerThread.interrupt();
+                listenerThread = null;
             }
 
             if (turnRefreshModule != null) {
@@ -548,6 +547,10 @@ public class PeerIceModule {
     }
 
     void close() {
+        if (listenerThread != null) {
+            listenerThread.interrupt();
+            listenerThread = null;
+        }
         if (turnRefreshModule != null) {
             turnRefreshModule.close();
         }

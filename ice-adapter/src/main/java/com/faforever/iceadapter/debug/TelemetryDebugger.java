@@ -24,17 +24,22 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @Slf4j
-public class TelemetryDebugger implements Debugger {
+public class TelemetryDebugger implements Debugger, AutoCloseable {
     private final WebSocketClient websocketClient;
     private final ObjectMapper objectMapper;
 
     private final Map<Integer, RateLimiter> peerRateLimiter = new ConcurrentHashMap<>();
     private final BlockingQueue<OutgoingMessageV1> messageQueue = new LinkedBlockingQueue<>();
 
-    public TelemetryDebugger(String telemetryServer, int gameId, int playerId, Executor executor) {
+    private final Thread sendingLoopThread;
+
+    public TelemetryDebugger(String telemetryServer, int gameId, int playerId) {
         Debug.register(this);
 
         URI uri = URI.create("%s/adapter/v1/game/%d/player/%d".formatted(telemetryServer, gameId, playerId));
@@ -74,12 +79,10 @@ public class TelemetryDebugger implements Debugger {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
-        CompletableFuture.runAsync(
-                () -> {
-                    Thread.currentThread().setName("sendingLoop");
-                    sendingLoop();
-                },
-                executor);
+        sendingLoopThread = Thread.ofVirtual()
+                .name("sendingLoop")
+                .uncaughtExceptionHandler((t, e) -> log.error("Thread {} crashed unexpectedly", t.getName(), e))
+                .start(this::sendingLoop);
     }
 
     private void sendMessage(OutgoingMessageV1 message) {
@@ -214,5 +217,10 @@ public class TelemetryDebugger implements Debugger {
                 UUID.randomUUID(),
                 servers.stream().map(CoturnServer::host).findFirst().orElse(null),
                 servers));
+    }
+
+    @Override
+    public void close() {
+        sendingLoopThread.interrupt();
     }
 }

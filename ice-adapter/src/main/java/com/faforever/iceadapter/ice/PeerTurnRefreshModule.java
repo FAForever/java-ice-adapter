@@ -1,6 +1,5 @@
 package com.faforever.iceadapter.ice;
 
-import com.faforever.iceadapter.IceAdapter;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.ice.RelayedCandidate;
@@ -14,7 +13,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Sends continuous refresh requests to the turn server
@@ -26,7 +24,6 @@ public class PeerTurnRefreshModule {
 
     private static Field harvestField;
     private static Method sendRequestMethod;
-    private static CompletableFuture<Void> refresher;
 
     static {
         try {
@@ -48,6 +45,7 @@ public class PeerTurnRefreshModule {
 
     private TurnCandidateHarvest harvest = null;
 
+    private Thread refreshThread;
     private volatile boolean running = true;
 
     public PeerTurnRefreshModule(PeerIceModule ice, RelayedCandidate candidate) {
@@ -61,7 +59,7 @@ public class PeerTurnRefreshModule {
         }
 
         if (harvest != null) {
-            refresher = CompletableFuture.runAsync(this::refreshThread, IceAdapter.getExecutor());
+            refreshThread = Thread.startVirtualThread(this::refreshThread);
 
             log.info("Started turn refresh module for peer {}", ice.getPeer().getRemoteLogin());
         }
@@ -92,9 +90,9 @@ public class PeerTurnRefreshModule {
 
     public void close() {
         running = false;
-        if (refresher != null) {
-            refresher.cancel(true);
-            refresher = null;
+        if (refreshThread != null) {
+            refreshThread.interrupt();
+            refreshThread = null;
         }
     }
 }
