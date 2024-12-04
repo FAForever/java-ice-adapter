@@ -49,10 +49,11 @@ public class Debug {
                             Class.forName("com.faforever.iceadapter.debug.DebugWindow")
                                     .getMethod("launchApplication")
                                     .invoke(null);
+                        } catch (InvocationTargetException e) {
+                            log.info("DebugWindows stopped");
                         } catch (IllegalAccessException
                                 | ClassNotFoundException
-                                | NoSuchMethodException
-                                | InvocationTargetException e) {
+                                | NoSuchMethodException e) {
                             log.error("Could not create DebugWindow. Running without debug window.", e);
                         }
                     },

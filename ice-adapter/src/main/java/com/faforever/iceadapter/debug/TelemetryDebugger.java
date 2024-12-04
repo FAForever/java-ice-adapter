@@ -81,7 +81,6 @@ public class TelemetryDebugger implements Debugger, AutoCloseable {
 
         sendingLoopThread = Thread.ofVirtual()
                 .name("sendingLoop")
-                .uncaughtExceptionHandler((t, e) -> log.error("Thread {} crashed unexpectedly", t.getName(), e))
                 .start(this::sendingLoop);
     }
 
@@ -108,6 +107,8 @@ public class TelemetryDebugger implements Debugger, AutoCloseable {
 
                 log.trace("Sending telemetry message: {}", json);
                 websocketClient.send(json);
+            } catch (InterruptedException e) {
+                log.info("Sending loop interrupted");
             } catch (Exception e) {
                 log.error("Error on sending message object: {}", message, e);
             }
