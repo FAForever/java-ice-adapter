@@ -109,6 +109,7 @@ public class TelemetryDebugger implements Debugger, AutoCloseable {
                 websocketClient.send(json);
             } catch (InterruptedException e) {
                 log.info("Sending loop interrupted");
+                return;
             } catch (Exception e) {
                 log.error("Error on sending message object: {}", message, e);
             }

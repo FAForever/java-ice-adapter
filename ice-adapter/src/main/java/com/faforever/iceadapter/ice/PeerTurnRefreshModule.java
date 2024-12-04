@@ -84,6 +84,7 @@ public class PeerTurnRefreshModule {
                 Thread.sleep(REFRESH_INTERVAL);
             } catch (InterruptedException e) {
                 log.warn("Sleeping refreshThread was interrupted");
+                return;
             }
         }
     }
