@@ -14,7 +14,7 @@ apply plugin: 'com.diffplug.spotless'
 group 'com.faforever'
 
 
-sourceCompatibility = JavaVersion.VERSION_17
+sourceCompatibility = JavaVersion.VERSION_21
 
 repositories {
     mavenCentral()

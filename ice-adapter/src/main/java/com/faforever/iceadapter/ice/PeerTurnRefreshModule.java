@@ -1,9 +1,5 @@
 package com.faforever.iceadapter.ice;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.time.Duration;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.ice.RelayedCandidate;
@@ -12,6 +8,11 @@ import org.ice4j.ice.harvest.TurnCandidateHarvest;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.stack.TransactionID;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.time.Duration;
 
 /**
  * Sends continuous refresh requests to the turn server
@@ -58,15 +59,14 @@ public class PeerTurnRefreshModule {
         }
 
         if (harvest != null) {
-            refreshThread = new Thread(this::refreshThread);
-            refreshThread.start();
+            refreshThread = Thread.startVirtualThread(this::refreshThread);
 
             log.info("Started turn refresh module for peer {}", ice.getPeer().getRemoteLogin());
         }
     }
 
     private void refreshThread() {
-        while (running) {
+        while (!Thread.currentThread().isInterrupted() && running) {
 
             Request refreshRequest = MessageFactory.createRefreshRequest(
                     600); // Maximum lifetime of turn is 600 seconds (10 minutes), server may limit this even further
@@ -77,19 +77,23 @@ public class PeerTurnRefreshModule {
 
                 log.info("Sent turn refresh request.");
             } catch (IllegalAccessException | InvocationTargetException e) {
-                log.error("Could not send turn refresh request!.", e);
+                log.error("Could not send turn refresh request!", e);
             }
 
             try {
                 Thread.sleep(REFRESH_INTERVAL);
             } catch (InterruptedException e) {
                 log.warn("Sleeping refreshThread was interrupted");
+                return;
             }
         }
     }
 
     public void close() {
         running = false;
-        refreshThread.interrupt();
+        if (refreshThread != null) {
+            refreshThread.interrupt();
+            refreshThread = null;
+        }
     }
 }

@@ -4,20 +4,19 @@ import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.ice.Peer;
 import com.faforever.iceadapter.ice.PeerConnectivityCheckerModule;
-import com.faforever.iceadapter.telemetry.ConnectToPeer;
-import com.faforever.iceadapter.telemetry.CoturnServer;
-import com.faforever.iceadapter.telemetry.DisconnectFromPeer;
-import com.faforever.iceadapter.telemetry.OutgoingMessageV1;
-import com.faforever.iceadapter.telemetry.RegisterAsPeer;
-import com.faforever.iceadapter.telemetry.UpdateCoturnList;
-import com.faforever.iceadapter.telemetry.UpdateGameState;
-import com.faforever.iceadapter.telemetry.UpdateGpgnetState;
-import com.faforever.iceadapter.telemetry.UpdatePeerConnectivity;
-import com.faforever.iceadapter.telemetry.UpdatePeerState;
+import com.faforever.iceadapter.telemetry.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.util.concurrent.RateLimiter;
 import com.nbarraille.jjsonrpc.JJsonPeer;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.ice4j.ice.Candidate;
+import org.ice4j.ice.CandidatePair;
+import org.ice4j.ice.Component;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
+
 import java.net.ConnectException;
 import java.net.URI;
 import java.time.Instant;
@@ -29,16 +28,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import org.ice4j.ice.Candidate;
-import org.ice4j.ice.CandidatePair;
-import org.ice4j.ice.Component;
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.handshake.ServerHandshake;
 
 @Slf4j
-public class TelemetryDebugger implements Debugger {
+public class TelemetryDebugger implements Debugger, AutoCloseable {
     private final WebSocketClient websocketClient;
     private final ObjectMapper objectMapper;
 
@@ -87,10 +79,9 @@ public class TelemetryDebugger implements Debugger {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
-        sendingLoopThread = new Thread(this::sendingLoop, "sendingLoop");
-        sendingLoopThread.setUncaughtExceptionHandler(
-                (t, e) -> log.error("Thread sendingLoop crashed unexpectedly", e));
-        sendingLoopThread.start();
+        sendingLoopThread = Thread.ofVirtual()
+                .name("sendingLoop")
+                .start(this::sendingLoop);
     }
 
     private void sendMessage(OutgoingMessageV1 message) {
@@ -103,7 +94,7 @@ public class TelemetryDebugger implements Debugger {
 
     @SneakyThrows
     private void sendingLoop() {
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             var message = messageQueue.take();
             try {
                 String json = objectMapper.writeValueAsString(message);
@@ -116,6 +107,9 @@ public class TelemetryDebugger implements Debugger {
 
                 log.trace("Sending telemetry message: {}", json);
                 websocketClient.send(json);
+            } catch (InterruptedException e) {
+                log.info("Sending loop interrupted");
+                return;
             } catch (Exception e) {
                 log.error("Error on sending message object: {}", message, e);
             }
@@ -225,5 +219,10 @@ public class TelemetryDebugger implements Debugger {
                 UUID.randomUUID(),
                 servers.stream().map(CoturnServer::host).findFirst().orElse(null),
                 servers));
+    }
+
+    @Override
+    public void close() {
+        sendingLoopThread.interrupt();
     }
 }

@@ -2,10 +2,16 @@ package com.faforever.iceadapter.ice;
 
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
+import com.faforever.iceadapter.util.LockUtil;
+import lombok.Getter;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.net.*;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Represents a peer in the current game session which we are connected to
@@ -13,7 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Slf4j
 public class Peer {
-
     private final GameSession gameSession;
 
     private final int remoteId;
@@ -24,7 +29,8 @@ public class Peer {
     public volatile boolean closing = false;
 
     private final PeerIceModule ice = new PeerIceModule(this);
-    private DatagramSocket faSocket; // Socket on which we are listening for FA / sending data to FA
+    private final DatagramSocket faSocket; // Socket on which we are listening for FA / sending data to FA
+    private final Lock lockSocketSend = new ReentrantLock();
 
     public Peer(GameSession gameSession, int remoteId, String remoteLogin, boolean localOffer, int preferredPort) {
         this.gameSession = gameSession;
@@ -36,26 +42,32 @@ public class Peer {
         log.debug(
                 "Peer created: {}, localOffer: {}, preferredPort: {}", getPeerIdentifier(), localOffer, preferredPort);
 
-        initForwarding(preferredPort);
+        faSocket = initForwarding(preferredPort);
+
+        CompletableFuture.runAsync(this::faListener, IceAdapter.getExecutor());
 
         if (localOffer) {
-            new Thread(ice::initiateIce).start();
+            CompletableFuture.runAsync(ice::initiateIce, IceAdapter.getExecutor());
         }
+    }
+
+    public int getLocalPort() {
+        return faSocket.getLocalPort();
     }
 
     /**
      * Starts waiting for data from FA
      */
-    private void initForwarding(int port) {
+    @SneakyThrows(SocketException.class)
+    private DatagramSocket initForwarding(int port) {
         try {
-            faSocket = new DatagramSocket(port);
+            DatagramSocket socket = new DatagramSocket(port);
+            log.debug("Now forwarding data to peer {}", getPeerIdentifier());
+            return socket;
         } catch (SocketException e) {
             log.error("Could not create socket for peer: {}", getPeerIdentifier(), e);
+            throw e;
         }
-
-        new Thread(this::faListener).start();
-
-        log.debug("Now forwarding data to peer {}", getPeerIdentifier());
     }
 
     /**
@@ -64,31 +76,37 @@ public class Peer {
      * @param offset
      * @param length
      */
-    synchronized void onIceDataReceived(byte data[], int offset, int length) {
-        try {
-            DatagramPacket packet = new DatagramPacket(
-                    data, offset, length, InetAddress.getByName("127.0.0.1"), GPGNetServer.getLobbyPort());
-            faSocket.send(packet);
-        } catch (UnknownHostException e) {
-        } catch (IOException e) {
-            if (closing) {
-                log.debug("Ignoring error the send packet because the connection was closed {}", getPeerIdentifier());
-            } else {
-                log.error(
-                        "Error while writing to local FA as peer (probably disconnecting from peer) {}",
-                        getPeerIdentifier(),
-                        e);
+    void onIceDataReceived(byte[] data, int offset, int length) {
+        LockUtil.executeWithLock(lockSocketSend, () -> {
+            try {
+                DatagramPacket packet = new DatagramPacket(
+                        data, offset, length, InetAddress.getByName("127.0.0.1"), GPGNetServer.getLobbyPort());
+                faSocket.send(packet);
+            } catch (UnknownHostException e) {
+            } catch (IOException e) {
+                if (closing) {
+                    log.debug(
+                            "Ignoring error the send packet because the connection was closed {}", getPeerIdentifier());
+                } else {
+                    log.error(
+                            "Error while writing to local FA as peer (probably disconnecting from peer) {}",
+                            getPeerIdentifier(),
+                            e);
+                }
             }
-        }
+        });
     }
 
     /**
      * This method get's invoked by the thread listening for data from FA
      */
     private void faListener() {
-        byte data[] = new byte
+        byte[] data = new byte
                 [65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
-        while (IceAdapter.isRunning() && IceAdapter.getGameSession() == gameSession) {
+        while (!Thread.currentThread().isInterrupted()
+                && IceAdapter.isRunning()
+                && IceAdapter.getGameSession() == gameSession
+                && !closing) {
             try {
                 DatagramPacket packet = new DatagramPacket(data, data.length);
                 faSocket.receive(packet);
@@ -118,9 +136,7 @@ public class Peer {
         log.info("Closing peer for player {}", getPeerIdentifier());
 
         closing = true;
-        if (faSocket != null) {
-            faSocket.close();
-        }
+        faSocket.close();
 
         ice.close();
     }

@@ -2,13 +2,15 @@ package com.faforever.iceadapter.debug;
 
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.util.TrayIcon;
-import java.awt.*;
-import java.io.IOException;
-import java.net.URI;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import lombok.SneakyThrows;
+
+import java.awt.*;
+import java.io.IOException;
+import java.net.URI;
+import java.util.concurrent.CompletableFuture;
 
 public class InfoWindowController {
     public Button killAdapterButton;
@@ -25,12 +27,12 @@ public class InfoWindowController {
             killAdapterButton.setText(
                     "This will disconnect you from the game! Click " + (3 - killRequests) + " more times.");
         } else {
-            System.exit(337);
+            IceAdapter.close(337);
         }
     }
 
     public void onShowDebugWindowClicked(ActionEvent actionEvent) {
-        DebugWindow.INSTANCE.thenAcceptAsync(DebugWindow::showWindow);
+        DebugWindow.INSTANCE.thenAcceptAsync(DebugWindow::showWindow, IceAdapter.getExecutor());
     }
 
     @SneakyThrows
@@ -41,14 +43,15 @@ public class InfoWindowController {
                         IceAdapter.getGameId(),
                         IceAdapter.getId());
 
-        new Thread(() -> {
+        CompletableFuture.runAsync(
+                () -> {
                     try {
                         Desktop.getDesktop().browse(URI.create(url));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
-                })
-                .start();
+                },
+                IceAdapter.getExecutor());
     }
 
     public void onMinimizeToTrayClicked(ActionEvent actionEvent) {

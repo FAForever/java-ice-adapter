@@ -55,7 +55,7 @@ public class GameSession {
         Peer peer = new Peer(this, remotePlayerId, remotePlayerLogin, offer, preferredPort);
         peers.put(remotePlayerId, peer);
         debug().connectToPeer(remotePlayerId, remotePlayerLogin, offer);
-        return peer.getFaSocket().getLocalPort();
+        return peer.getLocalPort();
     }
 
     /**
@@ -80,7 +80,7 @@ public class GameSession {
         if (Objects.nonNull(reconnectPeer)) {
             String remotePlayerLogin = reconnectPeer.getRemoteLogin();
             boolean offer = reconnectPeer.isLocalOffer();
-            int port = reconnectPeer.getFaSocket().getLocalPort();
+            int port = reconnectPeer.getLocalPort();
 
             disconnectFromPeer(remotePlayerId);
             connectToPeer(remotePlayerLogin, remotePlayerId, offer, port);

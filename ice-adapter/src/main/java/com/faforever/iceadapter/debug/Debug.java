@@ -1,8 +1,10 @@
 package com.faforever.iceadapter.debug;
 
 import com.faforever.iceadapter.IceAdapter;
-import java.lang.reflect.InvocationTargetException;
 import lombok.extern.slf4j.Slf4j;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class Debug {
@@ -17,6 +19,8 @@ public class Debug {
 
     public static int RPC_PORT;
 
+    private static TelemetryDebugger telemetryDebugger;
+
     private static final DebugFacade debugFacade = new DebugFacade();
 
     public static void register(Debugger debugger) {
@@ -28,7 +32,8 @@ public class Debug {
     }
 
     public static void init() {
-        new TelemetryDebugger(IceAdapter.getTelemetryServer(), IceAdapter.getGameId(), IceAdapter.getId());
+        telemetryDebugger = new TelemetryDebugger(
+                IceAdapter.getTelemetryServer(), IceAdapter.getGameId(), IceAdapter.getId());
 
         // Debugger window is started and set to debugFuture when either window is requested as the info window can be
         // used to open the debug window
@@ -38,22 +43,30 @@ public class Debug {
         }
 
         if (isJavaFxSupported()) {
-            new Thread(() -> {
+            CompletableFuture.runAsync(
+                    () -> {
                         try {
                             Class.forName("com.faforever.iceadapter.debug.DebugWindow")
                                     .getMethod("launchApplication")
                                     .invoke(null);
+                        } catch (InvocationTargetException e) {
+                            log.info("DebugWindows stopped");
                         } catch (IllegalAccessException
                                 | ClassNotFoundException
-                                | NoSuchMethodException
-                                | InvocationTargetException e) {
-                            e.printStackTrace();
-                            log.error("Could not create DebugWindow. Running without debug window.");
+                                | NoSuchMethodException e) {
+                            log.error("Could not create DebugWindow. Running without debug window.", e);
                         }
-                    })
-                    .start(); // Completes future once application started
+                    },
+                    IceAdapter.getExecutor());
         } else {
             log.info("No JavaFX support detected. Running without debug window.");
+        }
+    }
+
+    public static void close() {
+        if (telemetryDebugger != null) {
+            telemetryDebugger.close();
+            telemetryDebugger = null;
         }
     }
 

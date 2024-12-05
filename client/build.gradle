@@ -5,7 +5,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 group 'com.faforever'
 version '1.0-SNAPSHOT'
 
-sourceCompatibility = JavaVersion.VERSION_17
+sourceCompatibility = JavaVersion.VERSION_21
 
 repositories {
     mavenCentral()

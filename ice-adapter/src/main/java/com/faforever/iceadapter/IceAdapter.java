@@ -1,18 +1,22 @@
 package com.faforever.iceadapter;
 
-import static com.faforever.iceadapter.debug.Debug.debug;
-
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.ice.PeerIceModule;
 import com.faforever.iceadapter.rpc.RPCService;
-import com.faforever.iceadapter.util.Executor;
+import com.faforever.iceadapter.util.ExecutorHolder;
+import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
-import java.util.concurrent.Callable;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
+
+import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static com.faforever.iceadapter.debug.Debug.debug;
 
 @CommandLine.Command(
         name = "faf-ice-adapter",
@@ -20,7 +24,7 @@ import picocli.CommandLine;
         usageHelpAutoWidth = true,
         description = "An ice (RFC 5245) based network bridge between FAF client and ForgedAlliance.exe")
 @Slf4j
-public class IceAdapter implements Callable<Integer> {
+public class IceAdapter implements Callable<Integer>, AutoCloseable {
     private static IceAdapter INSTANCE;
     private static String VERSION = "SNAPSHOT";
     private static volatile GameSession GAME_SESSION;
@@ -29,6 +33,8 @@ public class IceAdapter implements Callable<Integer> {
     private IceOptions iceOptions;
 
     private volatile boolean running = true;
+    private final ExecutorService executor = ExecutorHolder.getExecutor();
+    private static final Lock lockGameSession = new ReentrantLock();
 
     public static void main(String[] args) {
         new CommandLine(new IceAdapter()).setUnmatchedArgumentsAllowed(true).execute(args);
@@ -58,6 +64,13 @@ public class IceAdapter implements Callable<Integer> {
         RPCService.init(iceOptions.getRpcPort());
 
         debug().startupComplete();
+    }
+
+    @Override
+    public void close() {
+        executor.shutdown();
+        CompletableFuture.runAsync(executor::shutdownNow,
+                CompletableFuture.delayedExecutor(250, TimeUnit.MILLISECONDS));
     }
 
     public static void onHostGame(String mapName) {
@@ -113,42 +126,46 @@ public class IceAdapter implements Callable<Integer> {
         });
     }
 
-    private static synchronized void createGameSession() {
-        if (GAME_SESSION != null) {
-            GAME_SESSION.close();
-            GAME_SESSION = null;
-        }
+    private static void createGameSession() {
+        LockUtil.executeWithLock(lockGameSession, () -> {
+            if (GAME_SESSION != null) {
+                GAME_SESSION.close();
+                GAME_SESSION = null;
+            }
 
-        GAME_SESSION = new GameSession();
+            GAME_SESSION = new GameSession();
+        });
     }
 
     /**
      * Triggered by losing gpgnet connection to FA.
      * Closes the active Game/ICE session
      */
-    public static synchronized void onFAShutdown() {
-        if (GAME_SESSION != null) {
-            log.info("FA SHUTDOWN, closing everything");
-            GAME_SESSION.close();
-            GAME_SESSION = null;
-            // Do not put code outside of this if clause, else it will be executed multiple times
-        }
+    public static void onFAShutdown() {
+        LockUtil.executeWithLock(lockGameSession, () -> {
+            if (GAME_SESSION != null) {
+                log.info("FA SHUTDOWN, closing everything");
+                GAME_SESSION.close();
+                GAME_SESSION = null;
+                // Do not put code outside of this if clause, else it will be executed multiple times
+            }
+        });
     }
 
     /**
      * Stop the ICE adapter
      */
-    public static void close() {
-        log.info("close() - stopping the adapter");
-
-        Executor.executeDelayed(500, () -> System.exit(0));
+    public static void close(int status) {
+        log.info("close() - stopping the adapter. Status: {}", status);
 
         onFAShutdown(); // will close gameSession aswell
         GPGNetServer.close();
         RPCService.close();
+        Debug.close();
         TrayIcon.close();
-
-        System.exit(0);
+        INSTANCE.close();
+        CompletableFuture.runAsync(() -> System.exit(status),
+                CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS));
     }
 
     public static int getId() {
@@ -181,6 +198,10 @@ public class IceAdapter implements Callable<Integer> {
 
     public static boolean isRunning() {
         return INSTANCE.running;
+    }
+
+    public static Executor getExecutor() {
+        return INSTANCE.executor;
     }
 
     public static GameSession getGameSession() {

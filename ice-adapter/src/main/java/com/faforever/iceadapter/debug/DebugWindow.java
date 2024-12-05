@@ -5,11 +5,7 @@ import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.Peer;
 import com.faforever.iceadapter.ice.PeerConnectivityCheckerModule;
-import com.faforever.iceadapter.util.Executor;
 import com.nbarraille.jjsonrpc.JJsonPeer;
-import java.io.IOException;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -29,6 +25,13 @@ import org.ice4j.ice.Candidate;
 import org.ice4j.ice.CandidatePair;
 import org.ice4j.ice.CandidateType;
 import org.ice4j.ice.Component;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class DebugWindow extends Application implements Debugger {
@@ -69,25 +72,30 @@ public class DebugWindow extends Application implements Debugger {
 
         stage.setScene(scene);
         stage.setTitle("FAF ICE adapter - Debugger - Build: %s".formatted(IceAdapter.getVersion()));
-        //		stage.setOnCloseRequest(Event::consume);
-        //		stage.show();
 
         if (Debug.ENABLE_DEBUG_WINDOW) {
-            Executor.executeDelayed(Debug.DELAY_UI_MS, () -> runOnUIThread(stage::show));
+            CompletableFuture.runAsync(
+                    () -> runOnUIThread(stage::show),
+                    CompletableFuture.delayedExecutor(
+                            Debug.DELAY_UI_MS, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
         }
 
-        //		new Thread(() -> Debug.debug.complete(this)).start();
         log.info("Created debug window.");
 
         if (Debug.ENABLE_INFO_WINDOW) {
-            Executor.executeDelayed(Debug.DELAY_UI_MS, () -> runOnUIThread(() -> new InfoWindow().init()));
+            CompletableFuture.runAsync(
+                    () -> runOnUIThread(() -> new InfoWindow().init()),
+                    CompletableFuture.delayedExecutor(
+                            Debug.DELAY_UI_MS, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
         }
     }
 
     public void showWindow() {
-        runOnUIThread(() -> stage.show());
-        initStaticVariables();
-        initPeers();
+        runOnUIThread(() -> {
+            stage.show();
+            initStaticVariables();
+            initPeers();
+        });
     }
 
     @Override
@@ -96,7 +104,6 @@ public class DebugWindow extends Application implements Debugger {
     }
 
     public void initStaticVariables() {
-
         runOnUIThread(() -> {
             controller.versionLabel.setText("Version: %s".formatted(IceAdapter.getVersion()));
             controller.userLabel.setText("User: %s(%d)".formatted(IceAdapter.getLogin(), IceAdapter.getId()));
@@ -116,6 +123,7 @@ public class DebugWindow extends Application implements Debugger {
                     p.connectivityUpdate(peer);
                     peers.add(p);
                 }
+                peers.sort(DebugPeer::compareTo);
             }
         });
     }
@@ -158,36 +166,33 @@ public class DebugWindow extends Application implements Debugger {
 
     @Override
     public void connectToPeer(int id, String login, boolean localOffer) {
-        new Thread(() -> {
-                    synchronized (peers) {
-                        peers.add(new DebugPeer(id, login, localOffer)); // Might callback into jfx
-                    }
-                })
-                .start();
+        runOnUIThread(() -> {
+            synchronized (peers) {
+                peers.add(new DebugPeer(id, login, localOffer)); // Might callback into jfx
+                peers.sort(DebugPeer::compareTo);
+            }
+        });
     }
 
     @Override
     public void disconnectFromPeer(int id) {
-        new Thread(() -> {
-                    synchronized (peers) {
-                        peers.removeIf(peer -> peer.id.get() == id); // Might callback into jfx
-                    }
-                })
-                .start();
+        runOnUIThread(() -> {
+            synchronized (peers) {
+                peers.removeIf(peer -> peer.id.get() == id); // Might callback into jfx
+                peers.sort(DebugPeer::compareTo);
+            }
+        });
     }
 
     @Override
     public void peerStateChanged(Peer peer) {
-        new Thread(() -> {
-                    synchronized (peers) {
-                        peers.stream()
-                                .filter(p -> p.id.get() == peer.getRemoteId())
-                                .forEach(p -> {
-                                    p.stateChangedUpdate(peer);
-                                });
-                    }
-                })
-                .start();
+        runOnUIThread(() -> {
+            synchronized (peers) {
+                peers.stream().filter(p -> p.id.get() == peer.getRemoteId()).forEach(p -> {
+                    p.stateChangedUpdate(peer);
+                });
+            }
+        });
     }
 
     @Override
@@ -217,7 +222,7 @@ public class DebugWindow extends Application implements Debugger {
     @AllArgsConstructor
     // @Getter //PropertyValueFactory will attempt to access fieldNameProperty(), then getFieldName() (expecting value,
     // not property) and then isFieldName() methods
-    public static class DebugPeer {
+    public static class DebugPeer implements Comparable<DebugPeer> {
         public SimpleIntegerProperty id = new SimpleIntegerProperty(-1);
         public SimpleStringProperty login = new SimpleStringProperty("");
         public SimpleBooleanProperty localOffer = new SimpleBooleanProperty(false);
@@ -365,6 +370,11 @@ public class DebugWindow extends Application implements Debugger {
                     .map(PeerConnectivityCheckerModule::getEchosReceived)
                     .orElse(-1L)
                     .intValue());
+        }
+
+        @Override
+        public int compareTo(@NotNull DebugPeer o) {
+            return Comparator.comparingLong(DebugPeer::getId).compare(this, o);
         }
     }
 }
