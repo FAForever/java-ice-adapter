@@ -1,10 +1,9 @@
 package com.faforever.iceadapter.debug;
 
 import com.faforever.iceadapter.IceAdapter;
-import lombok.extern.slf4j.Slf4j;
-
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.CompletableFuture;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Debug {
@@ -32,8 +31,8 @@ public class Debug {
     }
 
     public static void init() {
-        telemetryDebugger = new TelemetryDebugger(
-                IceAdapter.getTelemetryServer(), IceAdapter.getGameId(), IceAdapter.getId());
+        telemetryDebugger =
+                new TelemetryDebugger(IceAdapter.getTelemetryServer(), IceAdapter.getGameId(), IceAdapter.getId());
 
         // Debugger window is started and set to debugFuture when either window is requested as the info window can be
         // used to open the debug window
@@ -51,9 +50,7 @@ public class Debug {
                                     .invoke(null);
                         } catch (InvocationTargetException e) {
                             log.info("DebugWindows stopped");
-                        } catch (IllegalAccessException
-                                | ClassNotFoundException
-                                | NoSuchMethodException e) {
+                        } catch (IllegalAccessException | ClassNotFoundException | NoSuchMethodException e) {
                             log.error("Could not create DebugWindow. Running without debug window.", e);
                         }
                     },

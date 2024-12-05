@@ -1,5 +1,9 @@
 package com.faforever.iceadapter.ice;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.time.Duration;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.ice.RelayedCandidate;
@@ -8,11 +12,6 @@ import org.ice4j.ice.harvest.TurnCandidateHarvest;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.stack.TransactionID;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.time.Duration;
 
 /**
  * Sends continuous refresh requests to the turn server

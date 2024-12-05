@@ -1,5 +1,7 @@
 package com.faforever.iceadapter;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
+
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
@@ -9,14 +11,11 @@ import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.ExecutorHolder;
 import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
-import lombok.extern.slf4j.Slf4j;
-import picocli.CommandLine;
-
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static com.faforever.iceadapter.debug.Debug.debug;
+import lombok.extern.slf4j.Slf4j;
+import picocli.CommandLine;
 
 @CommandLine.Command(
         name = "faf-ice-adapter",
@@ -69,8 +68,8 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
     @Override
     public void close() {
         executor.shutdown();
-        CompletableFuture.runAsync(executor::shutdownNow,
-                CompletableFuture.delayedExecutor(250, TimeUnit.MILLISECONDS));
+        CompletableFuture.runAsync(
+                executor::shutdownNow, CompletableFuture.delayedExecutor(250, TimeUnit.MILLISECONDS));
     }
 
     public static void onHostGame(String mapName) {
@@ -164,8 +163,8 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
         Debug.close();
         TrayIcon.close();
         INSTANCE.close();
-        CompletableFuture.runAsync(() -> System.exit(status),
-                CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS));
+        CompletableFuture.runAsync(
+                () -> System.exit(status), CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS));
     }
 
     public static int getId() {

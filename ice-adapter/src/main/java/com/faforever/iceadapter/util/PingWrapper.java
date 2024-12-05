@@ -2,14 +2,13 @@ package com.faforever.iceadapter.util;
 
 import com.faforever.iceadapter.IceAdapter;
 import com.google.common.io.CharStreams;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
 
 /*
  * A wrapper around calling the system `ping` executable to query the latency of a host.

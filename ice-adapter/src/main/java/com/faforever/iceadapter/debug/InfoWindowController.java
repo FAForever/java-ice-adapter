@@ -2,15 +2,14 @@ package com.faforever.iceadapter.debug;
 
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.util.TrayIcon;
-import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import lombok.SneakyThrows;
-
 import java.awt.*;
 import java.io.IOException;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.scene.control.Button;
+import lombok.SneakyThrows;
 
 public class InfoWindowController {
     public Button killAdapterButton;

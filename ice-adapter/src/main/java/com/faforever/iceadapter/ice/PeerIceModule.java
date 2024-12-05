@@ -1,18 +1,13 @@
 package com.faforever.iceadapter.ice;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
+import static com.faforever.iceadapter.ice.IceState.*;
+
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.CandidateUtil;
 import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.ice4j.TransportAddress;
-import org.ice4j.ice.*;
-import org.ice4j.ice.harvest.StunCandidateHarvester;
-import org.ice4j.ice.harvest.TurnCandidateHarvester;
-import org.ice4j.security.LongTermCredential;
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.util.ArrayList;
@@ -22,9 +17,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
-
-import static com.faforever.iceadapter.debug.Debug.debug;
-import static com.faforever.iceadapter.ice.IceState.*;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.ice4j.TransportAddress;
+import org.ice4j.ice.*;
+import org.ice4j.ice.harvest.StunCandidateHarvester;
+import org.ice4j.ice.harvest.TurnCandidateHarvester;
+import org.ice4j.security.LongTermCredential;
 
 @Getter
 @Slf4j

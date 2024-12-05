@@ -1,12 +1,11 @@
 package com.faforever.iceadapter.gpgnet;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
+
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.NetworkToolbox;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -18,8 +17,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
-
-import static com.faforever.iceadapter.debug.Debug.debug;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GPGNetServer {

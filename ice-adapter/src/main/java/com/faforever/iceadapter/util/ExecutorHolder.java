@@ -1,9 +1,8 @@
 package com.faforever.iceadapter.util;
 
-import lombok.experimental.UtilityClass;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ExecutorHolder {

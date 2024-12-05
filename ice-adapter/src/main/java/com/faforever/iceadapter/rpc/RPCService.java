@@ -1,5 +1,7 @@
 package com.faforever.iceadapter.rpc;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
+
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.debug.InfoWindow;
@@ -11,13 +13,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 import com.nbarraille.jjsonrpc.TcpServer;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
-import static com.faforever.iceadapter.debug.Debug.debug;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Handles communication between client and adapter, opens a server for the client to connect to

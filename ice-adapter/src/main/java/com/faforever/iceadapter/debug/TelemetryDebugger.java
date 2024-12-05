@@ -9,14 +9,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.util.concurrent.RateLimiter;
 import com.nbarraille.jjsonrpc.JJsonPeer;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import org.ice4j.ice.Candidate;
-import org.ice4j.ice.CandidatePair;
-import org.ice4j.ice.Component;
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.handshake.ServerHandshake;
-
 import java.net.ConnectException;
 import java.net.URI;
 import java.time.Instant;
@@ -28,6 +20,13 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.ice4j.ice.Candidate;
+import org.ice4j.ice.CandidatePair;
+import org.ice4j.ice.Component;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
 
 @Slf4j
 public class TelemetryDebugger implements Debugger, AutoCloseable {
@@ -79,9 +78,7 @@ public class TelemetryDebugger implements Debugger, AutoCloseable {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
-        sendingLoopThread = Thread.ofVirtual()
-                .name("sendingLoop")
-                .start(this::sendingLoop);
+        sendingLoopThread = Thread.ofVirtual().name("sendingLoop").start(this::sendingLoop);
     }
 
     private void sendMessage(OutgoingMessageV1 message) {
