@@ -31,7 +31,6 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
     @CommandLine.ArgGroup(exclusive = false)
     private IceOptions iceOptions;
 
-    private volatile boolean running = true;
     private final ExecutorService executor = ExecutorHolder.getExecutor();
     private static final Lock lockGameSession = new ReentrantLock();
 
@@ -193,10 +192,6 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable {
 
     public static double getAcceptableLatency() {
         return INSTANCE.iceOptions.getAcceptableLatency();
-    }
-
-    public static boolean isRunning() {
-        return INSTANCE.running;
     }
 
     public static Executor getExecutor() {

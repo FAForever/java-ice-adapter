@@ -221,7 +221,7 @@ public class GPGNetServer {
      * Listens for incoming connections from a game instance
      */
     private static void acceptThread() {
-        while (!Thread.currentThread().isInterrupted() && IceAdapter.isRunning()) {
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 Socket socket = serverSocket.accept();
                 LockUtil.executeWithLock(lockSocket, () -> {

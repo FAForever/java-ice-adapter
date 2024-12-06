@@ -500,9 +500,7 @@ public class PeerIceModule {
 
         byte[] data = new byte
                 [65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
-        while (!Thread.currentThread().isInterrupted()
-                && IceAdapter.isRunning()
-                && IceAdapter.getGameSession() == peer.getGameSession()) {
+        while (!Thread.currentThread().isInterrupted() && IceAdapter.getGameSession() == peer.getGameSession()) {
             try {
                 DatagramPacket packet = new DatagramPacket(data, data.length);
                 localComponent
