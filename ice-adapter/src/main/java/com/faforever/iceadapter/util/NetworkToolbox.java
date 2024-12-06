@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NetworkToolbox {
 
-    private static Random random = new Random();
+    private static final Random random = new Random();
 
     /**
      * Returns a free TCP port by generating random ports within the specified range and opening/closing a socket on them
@@ -28,7 +28,7 @@ public class NetworkToolbox {
                 serverSocket.close();
                 return possiblePort;
             } catch (IOException e) {
-                continue;
+                log.trace("TCP port {} could not be used", i, e);
             }
         }
 
@@ -38,7 +38,7 @@ public class NetworkToolbox {
     }
 
     /**
-     * Returns a free TCP port by generating random ports within the specified range and opening/closing a socket on them
+     * Returns a free UDP port by generating random ports within the specified range and opening/closing a socket on them
      * @param min Minimum port, inclusive
      * @param max Maximum port, exclusive
      * @return the discovered port, -1 if no port could be found
@@ -52,11 +52,11 @@ public class NetworkToolbox {
                 socket.close();
                 return possiblePort;
             } catch (SocketException e) {
-                continue;
+                log.trace("UDP port {} could not be used", i, e);
             }
         }
 
-        log.error("Could not find a free tcp port");
+        log.error("Could not find a free udp port");
         IceAdapter.close(-1);
         return -1;
     }
