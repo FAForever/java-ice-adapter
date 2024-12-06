@@ -51,7 +51,7 @@ public class GPGNetServer {
         }
 
         try {
-            serverSocket = new ServerSocket(GPGNetServer.getGpgnetPort());
+            serverSocket = new ServerSocket(GPGNET_PORT);
         } catch (IOException e) {
             log.error("Couldn't start GPGNetServer", e);
             IceAdapter.close(-1);
@@ -222,8 +222,8 @@ public class GPGNetServer {
      */
     private static void acceptThread() {
         while (!Thread.currentThread().isInterrupted()) {
-            try {
-                Socket socket = serverSocket.accept();
+            log.info("Listening for incoming connections from game");
+            try (Socket socket = serverSocket.accept()) {
                 LockUtil.executeWithLock(lockSocket, () -> {
                     if (currentClient != null) {
                         onGpgnetConnectionLost();
@@ -235,6 +235,10 @@ public class GPGNetServer {
                     debug().gpgnetConnectedDisconnected();
                 });
             } catch (SocketException e) {
+                log.error("Game thread socket crashed", e);
+                // TODO: Clarify
+                // If we return here, why do we have the code in a while loop?
+                // We could also not return and try to reconnect?
                 return;
             } catch (IOException e) {
                 log.error("Could not listen on socket", e);
