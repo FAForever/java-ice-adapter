@@ -10,8 +10,14 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum LobbyInitMode {
+    /**
+     * normal lobby screen with game option selections
+     */
     NORMAL("normal", 0),
-    AUTO("auto", 1); // Normal = normal lobby, Auto = skip lobby screen (e.g. ranked)
+    /**
+     * Skip lobby screen (for matchmaker games)
+     */
+    AUTO("auto", 1);
 
     private final String name;
     private final int id;
