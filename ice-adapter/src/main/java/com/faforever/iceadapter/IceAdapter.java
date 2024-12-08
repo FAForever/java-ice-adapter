@@ -31,6 +31,8 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
     @CommandLine.ArgGroup(exclusive = false)
     private IceOptions iceOptions;
 
+    private GPGNetServer gpgNetServer;
+
     private final ExecutorService executor = ExecutorHolder.getExecutor();
     private static final Lock lockGameSession = new ReentrantLock();
 
@@ -58,7 +60,8 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
         TrayIcon.create();
 
         PeerIceModule.setForceRelay(iceOptions.isForceRelay());
-        GPGNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort());
+        gpgNetServer = new GPGNetServer();
+        gpgNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort());
         RPCService.init(iceOptions.getRpcPort(), this);
 
         debug().startupComplete();
@@ -68,12 +71,7 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
     public void onHostGame(String mapName) {
         log.info("onHostGame");
         createGameSession();
-
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
-                gpgNetClient.sendGpgnetMessage("HostGame", mapName);
-            });
-        });
+        sendToGpgNet("HostGame", mapName);
     }
 
     @Override
@@ -82,31 +80,23 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
         createGameSession();
         int port = GAME_SESSION.connectToPeer(remotePlayerLogin, remotePlayerId, false, 0);
 
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
-                gpgNetClient.sendGpgnetMessage("JoinGame", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
-            });
-        });
+        sendToGpgNet("JoinGame", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
     }
 
     @Override
     public void onConnectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer) {
-        if (GPGNetServer.isConnected()
-                && GPGNetServer.getGameState().isPresent()
-                && (GPGNetServer.getGameState().get() == GameState.LAUNCHING
+        if (gpgNetServer.isConnected()
+                && gpgNetServer.getGameState().isPresent()
+                && (gpgNetServer.getGameState().get() == GameState.LAUNCHING
                         || GPGNetServer.getGameState().get() == GameState.ENDED)) {
             log.warn("Game ended or in progress, ABORTING connectToPeer");
             return;
         }
 
-        log.info("onConnectToPeer {} {}, offer: {}", remotePlayerId, remotePlayerLogin, String.valueOf(offer));
+        log.info("onConnectToPeer {} {}, offer: {}", remotePlayerId, remotePlayerLogin, offer);
         int port = GAME_SESSION.connectToPeer(remotePlayerLogin, remotePlayerId, offer, 0);
 
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
-                gpgNetClient.sendGpgnetMessage("ConnectToPeer", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
-            });
-        });
+        sendToGpgNet("ConnectToPeer", "127.0.0.1:" + port, remotePlayerLogin, remotePlayerId);
     }
 
     @Override
@@ -114,11 +104,7 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
         log.info("onDisconnectFromPeer {}", remotePlayerId);
         GAME_SESSION.disconnectFromPeer(remotePlayerId);
 
-        GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
-            gpgNetClient.getLobbyFuture().thenRun(() -> {
-                gpgNetClient.sendGpgnetMessage("DisconnectFromPeer", remotePlayerId);
-            });
-        });
+        sendToGpgNet("DisconnectFromPeer", remotePlayerId);
     }
 
     private static void createGameSession() {
@@ -159,16 +145,20 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
         log.info("close() - stopping the adapter. Status: {}", status);
 
         onFAShutdown(); // will close gameSession aswell
-        GPGNetServer.close();
+        INSTANCE.gpgNetServer.close();
         RPCService.close();
         Debug.close();
         TrayIcon.close();
-        INSTANCE.close();
 
         INSTANCE.executor.shutdown();
         CompletableFuture.runAsync(
                         INSTANCE.executor::shutdownNow, CompletableFuture.delayedExecutor(250, TimeUnit.MILLISECONDS))
                 .thenRunAsync(() -> System.exit(status), CompletableFuture.delayedExecutor(250, TimeUnit.MILLISECONDS));
+    }
+
+    @Override
+    public void sendToGpgNet(String header, Object... args) {
+        gpgNetServer.sendToGpgNet(header, args);
     }
 
     public static int getId() {

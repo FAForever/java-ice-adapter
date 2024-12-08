@@ -10,4 +10,6 @@ public interface FafRpcCallbacks {
     void onDisconnectFromPeer(int remotePlayerId);
 
     void close();
+
+    void sendToGpgNet(String header, Object... args);
 }
