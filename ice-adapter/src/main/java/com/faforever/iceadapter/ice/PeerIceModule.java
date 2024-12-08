@@ -370,7 +370,8 @@ public class PeerIceModule {
             connectivityChecker.start();
         }
 
-        listenerThread = Thread.startVirtualThread(this::listener);
+        listenerThread = new Thread(this::listener);
+        listenerThread.start();
     }
 
     /**
