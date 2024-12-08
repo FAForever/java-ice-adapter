@@ -241,7 +241,11 @@ public class GPGNetServer implements AutoCloseable {
     private void acceptThread() {
         while (!Thread.currentThread().isInterrupted()) {
             log.info("Listening for incoming connections from game");
-            try (Socket socket = serverSocket.accept()) {
+            try {
+                // The socket declaration must not be moved into a try-with-resources block, as the socket must not be
+                // closed. It is passed into the GPGNetClient.
+                Socket socket = serverSocket.accept();
+
                 LockUtil.executeWithLock(lockSocket, () -> {
                     if (currentClient != null) {
                         onGpgnetConnectionLost();
