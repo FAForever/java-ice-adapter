@@ -68,8 +68,8 @@ public class GPGNetServer implements AutoCloseable {
             log.info("Using LOBBY_PORT: {}", this.lobbyPort);
         }
 
-        try (ServerSocket Socket = new ServerSocket(gpgnetPort)) {
-            this.serverSocket = Socket;
+        try {
+            this.serverSocket = new ServerSocket(gpgnetPort);
         } catch (IOException e) {
             log.error("Couldn't start GPGNetServer", e);
             IceAdapter.close(-1);
@@ -241,7 +241,11 @@ public class GPGNetServer implements AutoCloseable {
     private void acceptThread() {
         while (!Thread.currentThread().isInterrupted()) {
             log.info("Listening for incoming connections from game");
-            try (Socket socket = serverSocket.accept()) {
+            try {
+                // The socket declaration must not be moved into a try-with-resources block, as the socket must not be
+                // closed. It is passed into the GPGNetClient.
+                Socket socket = serverSocket.accept();
+
                 LockUtil.executeWithLock(lockSocket, () -> {
                     if (currentClient != null) {
                         onGpgnetConnectionLost();
