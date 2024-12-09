@@ -18,6 +18,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.*;
@@ -28,6 +29,9 @@ import org.ice4j.security.LongTermCredential;
 @Getter
 @Slf4j
 public class PeerIceModule {
+    @Setter
+    private static RPCService rpcService;
+
     private static boolean ALLOW_HOST = true;
     private static boolean ALLOW_REFLEXIVE = true;
     private static boolean ALLOW_RELAY = true;
@@ -85,7 +89,7 @@ public class PeerIceModule {
      */
     private void setState(IceState newState) {
         this.iceState = newState;
-        RPCService.onIceConnectionStateChanged(IceAdapter.getId(), peer.getRemoteId(), iceState.getMessage());
+        rpcService.onIceConnectionStateChanged(IceAdapter.getId(), peer.getRemoteId(), iceState.getMessage());
         debug().peerStateChanged(this.peer);
     }
 
@@ -200,7 +204,7 @@ public class PeerIceModule {
                         .map(it -> it.type().toString() + "(" + it.protocol() + ")")
                         .collect(Collectors.joining(", ")));
         setState(AWAITING_CANDIDATES);
-        RPCService.onIceMsg(localCandidatesMessage);
+        rpcService.onIceMsg(localCandidatesMessage);
 
         // Make sure to abort the connection process and reinitiate when we haven't received an answer to our offer in 6
         // seconds, candidate packet was probably lost
@@ -358,7 +362,7 @@ public class PeerIceModule {
 
         // We are connected
         connected = true;
-        RPCService.onConnected(IceAdapter.getId(), peer.getRemoteId(), true);
+        rpcService.onConnected(IceAdapter.getId(), peer.getRemoteId(), true);
         setState(CONNECTED);
 
         if (component.getSelectedPair().getLocalCandidate().getType() == CandidateType.RELAYED_CANDIDATE) {
@@ -403,7 +407,7 @@ public class PeerIceModule {
             if (connected) {
                 connected = false;
                 log.warn("{} ICE connection has been lost for peer", getLogPrefix());
-                RPCService.onConnected(IceAdapter.getId(), peer.getRemoteId(), false);
+                rpcService.onConnected(IceAdapter.getId(), peer.getRemoteId(), false);
             }
 
             setState(DISCONNECTED);
