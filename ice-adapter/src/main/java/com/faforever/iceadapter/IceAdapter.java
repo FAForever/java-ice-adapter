@@ -32,6 +32,7 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
     private IceOptions iceOptions;
 
     private GPGNetServer gpgNetServer;
+    private RPCService rpcService;
 
     private final ExecutorService executor = ExecutorHolder.getExecutor();
     private static final Lock lockGameSession = new ReentrantLock();
@@ -61,8 +62,12 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
 
         PeerIceModule.setForceRelay(iceOptions.isForceRelay());
         gpgNetServer = new GPGNetServer();
-        gpgNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort());
-        RPCService.init(iceOptions.getRpcPort(), this);
+        rpcService = new RPCService();
+        gpgNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort(), rpcService);
+        rpcService.init(iceOptions.getRpcPort(), gpgNetServer, this);
+
+        PeerIceModule.setForceRelay(iceOptions.isForceRelay());
+        PeerIceModule.setRpcService(rpcService);
 
         debug().startupComplete();
     }
@@ -88,7 +93,7 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
         if (gpgNetServer.isConnected()
                 && gpgNetServer.getGameState().isPresent()
                 && (gpgNetServer.getGameState().get() == GameState.LAUNCHING
-                        || GPGNetServer.getGameState().get() == GameState.ENDED)) {
+                        || gpgNetServer.getGameState().get() == GameState.ENDED)) {
             log.warn("Game ended or in progress, ABORTING connectToPeer");
             return;
         }
@@ -146,7 +151,7 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
 
         onFAShutdown(); // will close gameSession aswell
         INSTANCE.gpgNetServer.close();
-        RPCService.close();
+        INSTANCE.rpcService.close();
         Debug.close();
         TrayIcon.close();
 

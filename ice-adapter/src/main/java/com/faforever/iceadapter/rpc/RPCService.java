@@ -15,20 +15,19 @@ import com.nbarraille.jjsonrpc.JJsonPeer;
 import com.nbarraille.jjsonrpc.TcpServer;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Handles communication between client and adapter, opens a server for the client to connect to
  */
 @Slf4j
-public class RPCService {
+public class RPCService implements AutoCloseable {
 
     private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private static TcpServer tcpServer;
     private static volatile boolean skipRPCMessages = false;
 
-    public static void init(int port, FafRpcCallbacks callbacks) {
+    public void init(int port, GPGNetServer gpgNetServer, FafRpcCallbacks callbacks) {
         Debug.RPC_PORT = port;
         log.info("Creating RPC server on port {}", port);
 
@@ -39,7 +38,7 @@ public class RPCService {
         debug().rpcStarted(tcpServer.getFirstPeer());
         tcpServer.getFirstPeer().thenAccept(firstPeer -> {
             firstPeer.onConnectionLost(() -> {
-                GameState gameState = GPGNetServer.getGameState().orElse(null);
+                GameState gameState = gpgNetServer.getGameState().orElse(null);
                 if (gameState == GameState.LAUNCHING) {
                     skipRPCMessages = true;
                     log.warn("Lost connection to first RPC Peer. GameState: LAUNCHING, NOT STOPPING!");
@@ -58,19 +57,19 @@ public class RPCService {
         });
     }
 
-    public static void onConnectionStateChanged(String newState) {
+    public void onConnectionStateChanged(String newState) {
         if (!skipRPCMessages) {
             getPeerOrWait().sendNotification("onConnectionStateChanged", Arrays.asList(newState));
         }
     }
 
-    public static void onGpgNetMessageReceived(String header, List<Object> chunks) {
+    public void onGpgNetMessageReceived(String header, List<Object> chunks) {
         if (!skipRPCMessages) {
             getPeerOrWait().sendNotification("onGpgNetMessageReceived", Arrays.asList(header, chunks));
         }
     }
 
-    public static void onIceMsg(CandidatesMessage candidatesMessage) {
+    public void onIceMsg(CandidatesMessage candidatesMessage) {
         if (!skipRPCMessages) {
             try {
                 getPeerOrWait()
@@ -86,7 +85,7 @@ public class RPCService {
         }
     }
 
-    public static void onIceConnectionStateChanged(long localPlayerId, long remotePlayerId, String state) {
+    public void onIceConnectionStateChanged(long localPlayerId, long remotePlayerId, String state) {
         if (!skipRPCMessages) {
             getPeerOrWait()
                     .sendNotification(
@@ -94,7 +93,7 @@ public class RPCService {
         }
     }
 
-    public static void onConnected(long localPlayerId, long remotePlayerId, boolean connected) {
+    public void onConnected(long localPlayerId, long remotePlayerId, boolean connected) {
         if (!skipRPCMessages) {
             getPeerOrWait().sendNotification("onConnected", Arrays.asList(localPlayerId, remotePlayerId, connected));
         }
@@ -105,7 +104,7 @@ public class RPCService {
      *
      * @return the currently connected peer (the client)
      */
-    public static JJsonPeer getPeerOrWait() {
+    public JJsonPeer getPeerOrWait() {
         try {
             return tcpServer.getFirstPeer().get();
         } catch (Exception e) {
@@ -114,11 +113,8 @@ public class RPCService {
         return null;
     }
 
-    public static CompletableFuture<JJsonPeer> getPeerFuture() {
-        return tcpServer.getFirstPeer();
-    }
-
-    public static void close() {
+    @Override
+    public void close() {
         tcpServer.stop();
     }
 }
