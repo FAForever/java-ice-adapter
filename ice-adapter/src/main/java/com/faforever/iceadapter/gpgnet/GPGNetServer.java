@@ -18,6 +18,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -40,14 +41,11 @@ public class GPGNetServer implements AutoCloseable {
                 gpgNetClient.getLobbyFuture().thenRun(() -> gpgNetClient.sendGpgnetMessage(header, args)));
     }
 
+    @Setter
     private volatile LobbyInitMode lobbyInitMode = LobbyInitMode.NORMAL;
 
     public static LobbyInitMode getLobbyInitMode() {
         return INSTANCE.lobbyInitMode;
-    }
-
-    public static void setLobbyInitMode(LobbyInitMode mode) {
-        INSTANCE.lobbyInitMode = mode;
     }
 
     public void init(int gpgnetPort, int lobbyPort, RPCService rpcService) {
