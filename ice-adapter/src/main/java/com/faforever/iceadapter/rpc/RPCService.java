@@ -31,7 +31,7 @@ public class RPCService implements AutoCloseable {
         Debug.RPC_PORT = port;
         log.info("Creating RPC server on port {}", port);
 
-        RPCHandler rpcHandler = new RPCHandler(port, callbacks);
+        RPCHandler rpcHandler = new RPCHandler(port, callbacks, gpgNetServer);
         tcpServer = new TcpServer(port, rpcHandler);
         tcpServer.start();
 
