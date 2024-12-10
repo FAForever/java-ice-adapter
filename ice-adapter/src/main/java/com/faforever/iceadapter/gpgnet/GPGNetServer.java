@@ -18,6 +18,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -28,6 +29,7 @@ public class GPGNetServer implements AutoCloseable {
 
     private int gpgnetPort;
     private int lobbyPort;
+    private RPCService rpcService;
     private ServerSocket serverSocket;
     private volatile GPGNetClient currentClient;
 
@@ -39,18 +41,16 @@ public class GPGNetServer implements AutoCloseable {
                 gpgNetClient.getLobbyFuture().thenRun(() -> gpgNetClient.sendGpgnetMessage(header, args)));
     }
 
+    @Setter
     private volatile LobbyInitMode lobbyInitMode = LobbyInitMode.NORMAL;
 
     public static LobbyInitMode getLobbyInitMode() {
         return INSTANCE.lobbyInitMode;
     }
 
-    public static void setLobbyInitMode(LobbyInitMode mode) {
-        INSTANCE.lobbyInitMode = mode;
-    }
-
-    public void init(int gpgnetPort, int lobbyPort) {
+    public void init(int gpgnetPort, int lobbyPort, RPCService rpcService) {
         INSTANCE = this;
+        this.rpcService = rpcService;
 
         if (gpgnetPort == 0) {
             this.gpgnetPort = NetworkToolbox.findFreeTCPPort(20000, 65536);
@@ -103,7 +103,7 @@ public class GPGNetServer implements AutoCloseable {
             }
             listenerThread = Thread.startVirtualThread(this::listenerThread);
 
-            RPCService.onConnectionStateChanged("Connected");
+            rpcService.onConnectionStateChanged("Connected");
             log.info("GPGNetClient has connected");
         }
 
@@ -145,7 +145,7 @@ public class GPGNetServer implements AutoCloseable {
                     "Received GPGNet message: {} {}",
                     command,
                     args.stream().map(Object::toString).collect(Collectors.joining(" ")));
-            RPCService.onGpgNetMessageReceived(command, args);
+            rpcService.onGpgNetMessageReceived(command, args);
         }
 
         /**
@@ -227,7 +227,7 @@ public class GPGNetServer implements AutoCloseable {
                     clientFuture = new CompletableFuture<>();
                 }
 
-                RPCService.onConnectionStateChanged("Disconnected");
+                rpcService.onConnectionStateChanged("Disconnected");
 
                 IceAdapter.onFAShutdown();
             }
