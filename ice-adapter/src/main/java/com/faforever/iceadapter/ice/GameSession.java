@@ -53,7 +53,8 @@ public class GameSession {
      */
     public int connectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer, int preferredPort) {
         if (peers.containsKey(remotePlayerId)) {
-            disconnectFromPeer(remotePlayerId);
+            reconnectToPeer(remotePlayerId);
+            return peers.get(remotePlayerId).getLocalPort();
         }
         Peer peer = new Peer(this, remotePlayerId, remotePlayerLogin, offer, preferredPort);
         peers.put(remotePlayerId, peer);
