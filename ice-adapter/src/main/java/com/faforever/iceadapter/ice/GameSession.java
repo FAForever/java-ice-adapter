@@ -52,6 +52,10 @@ public class GameSession {
      * @return the port the ice adapter will be listening/sending for FA
      */
     public int connectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer, int preferredPort) {
+        if (peers.containsKey(remotePlayerId)) {
+            reconnectToPeer(remotePlayerId);
+            return peers.get(remotePlayerId).getLocalPort();
+        }
         Peer peer = new Peer(this, remotePlayerId, remotePlayerLogin, offer, preferredPort);
         peers.put(remotePlayerId, peer);
         debug().connectToPeer(remotePlayerId, remotePlayerLogin, offer);
