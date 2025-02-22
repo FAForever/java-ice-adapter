@@ -141,10 +141,7 @@ public class PeerIceModule {
 
         List<IceServer> iceServers = getViableIceServers();
 
-        iceServers.stream()
-                .flatMap(s -> s.getStunAddresses().stream())
-                .map(StunCandidateHarvester::new)
-                .forEach(agent::addCandidateHarvester);
+        // Our tests show that the TurnCandidateHarvester also takes the job of the StunCandidateHarvester
         iceServers.forEach(iceServer -> iceServer.getTurnAddresses().stream()
                 .map(a -> new TurnCandidateHarvester(
                         a, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential())))
