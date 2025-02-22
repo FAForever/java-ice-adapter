@@ -5,6 +5,7 @@ import com.faforever.iceadapter.ice.CandidatesMessage;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.Agent;
@@ -14,6 +15,7 @@ import org.ice4j.ice.IceMediaStream;
 import org.ice4j.ice.LocalCandidate;
 import org.ice4j.ice.RemoteCandidate;
 
+@Slf4j
 public class CandidateUtil {
 
     public static int candidateIDFactory = 0;
@@ -28,7 +30,34 @@ public class CandidateUtil {
             boolean allowRelay) {
         final List<CandidatePacket> candidatePackets = new ArrayList<>();
 
-        for (LocalCandidate localCandidate : component.getLocalCandidates()) {
+        List<LocalCandidate> candidates = component.getLocalCandidates();
+        List<LocalCandidate> reflexives = candidates.stream()
+                .filter(s -> s.getType() == CandidateType.SERVER_REFLEXIVE_CANDIDATE)
+                .toList();
+        List<LocalCandidate> relays = candidates.stream()
+                .filter(s -> s.getType() == CandidateType.RELAYED_CANDIDATE)
+                .toList();
+
+        boolean missingCandidates = candidates.isEmpty();
+        if (allowReflexive && reflexives.isEmpty()) {
+            log.error("Server reflexive candidate not found ({}->{}).", srcId, destId);
+            missingCandidates = true;
+        }
+
+        if (allowRelay && relays.isEmpty()) {
+            log.error("Relayed candidate not found ({}->{}).", srcId, destId);
+            missingCandidates = true;
+        }
+
+        if (candidates.isEmpty()) {
+            log.error("No candidate found ({}->{}).", srcId, destId);
+        }
+
+        if (!missingCandidates) {
+            log.info("All expected candidates found ({}->{}).", srcId, destId);
+        }
+
+        for (LocalCandidate localCandidate : candidates) {
             String relAddr = null;
             int relPort = 0;
 
