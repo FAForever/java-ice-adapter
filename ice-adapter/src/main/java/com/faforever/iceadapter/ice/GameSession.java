@@ -37,6 +37,11 @@ public class GameSession {
     private static final String STUN = "stun";
     private static final String TURN = "turn";
 
+    private static final List<TransportAddress> PUBLIC_STUN_SERVERS = List.of(
+            new TransportAddress("stun.cloudflare.com", 3478, Transport.UDP),
+            new TransportAddress("stun.l.google.com", 19302, Transport.UDP),
+            new TransportAddress("stun.sipgate.net", 3478, Transport.UDP));
+
     @Getter
     private final Map<Integer, Peer> peers = new ConcurrentHashMap<>();
 
@@ -108,7 +113,13 @@ public class GameSession {
      * Called by the client via jsonRPC
      */
     public static void setIceServers(List<Map<String, Object>> iceServersData) {
-        GameSession.iceServers.clear();
+        iceServers.clear();
+
+        PUBLIC_STUN_SERVERS.forEach(stunServer -> {
+            var iceServer = new IceServer();
+            iceServer.getStunAddresses().add(stunServer);
+            iceServers.add(iceServer);
+        });
 
         if (iceServersData.isEmpty()) {
             return;
