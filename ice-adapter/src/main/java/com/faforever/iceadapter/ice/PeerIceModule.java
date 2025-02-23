@@ -78,6 +78,7 @@ public class PeerIceModule {
 
     /**
      * Updates the current iceState and informs the client via RPC
+     *
      * @param newState the new State
      */
     private void setState(IceState newState) {
@@ -124,16 +125,22 @@ public class PeerIceModule {
     private void gatherCandidates() {
         log.info(getLogPrefix() + "Gathering ice candidates");
 
-        List<IceServer> iceServers = getViableIceServers();
-
-        iceServers.stream()
+        // For STUN all servers are relevant (latency is not an issue)
+        GameSession.getIceServers().stream()
                 .flatMap(s -> s.getStunAddresses().stream())
-                .map(StunCandidateHarvester::new)
-                .forEach(agent::addCandidateHarvester);
-        iceServers.forEach(iceServer -> iceServer.getTurnAddresses().stream()
-                .map(a -> new TurnCandidateHarvester(
-                        a, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential())))
-                .forEach(agent::addCandidateHarvester));
+                .forEach(address -> {
+                    log.info("Add STUN harvester for {}", address.getHostName());
+                    agent.addCandidateHarvester(new StunCandidateHarvester(address));
+                });
+
+        // TURN is latency sensitive
+        List<IceServer> iceServers = getViableIceServers();
+        iceServers.forEach(iceServer -> iceServer.getTurnAddresses().forEach(address -> {
+            var harvester = new TurnCandidateHarvester(
+                    address, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential()));
+            log.info("Add TURN harvester for {}", address.getHostName());
+            agent.addCandidateHarvester(harvester);
+        }));
 
         CompletableFuture<Void> gatheringFuture = CompletableFuture.runAsync(() -> {
             try {
@@ -238,6 +245,7 @@ public class PeerIceModule {
 
     /**
      * Starts harvesting local candidates if in answer mode, then initiates the actual ICE process
+     *
      * @param remoteCandidatesMessage
      */
     public synchronized void onIceMessageReceived(CandidatesMessage remoteCandidatesMessage) {
@@ -418,6 +426,7 @@ public class PeerIceModule {
 
     /**
      * Data received from FA, prepends prefix and sends it via ICE to the other peer
+     *
      * @param faData
      * @param length
      */
@@ -430,6 +439,7 @@ public class PeerIceModule {
 
     /**
      * Send date via ice to the other peer
+     *
      * @param data
      * @param offset
      * @param length
