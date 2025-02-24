@@ -144,7 +144,7 @@ public class PeerIceModule {
         GameSession.getIceServers().stream()
                 .flatMap(s -> s.getStunAddresses().stream())
                 .forEach(address -> {
-                    log.info("Add STUN harvester for {}", address.getHostName());
+                    log.info("{} Add STUN harvester for {}", getLogPrefix(), address.getHostName());
                     agent.addCandidateHarvester(new StunCandidateHarvester(address));
                 });
 
@@ -153,7 +153,7 @@ public class PeerIceModule {
         iceServers.forEach(iceServer -> iceServer.getTurnAddresses().forEach(address -> {
             var harvester = new TurnCandidateHarvester(
                     address, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential()));
-            log.info("Add TURN harvester for {}", address.getHostName());
+            log.info("{} Add TURN harvester for {}", getLogPrefix(), address.getHostName());
             agent.addCandidateHarvester(harvester);
         }));
 
