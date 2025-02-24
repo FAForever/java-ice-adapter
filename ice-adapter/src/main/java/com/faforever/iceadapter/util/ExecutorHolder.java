@@ -7,7 +7,6 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ExecutorHolder {
     public ExecutorService getExecutor() {
-        int numberOfCores = Runtime.getRuntime().availableProcessors();
-        return Executors.newFixedThreadPool(numberOfCores);
+        return Executors.newThreadPerTaskExecutor(Executors.defaultThreadFactory());
     }
 }
