@@ -569,7 +569,7 @@ public class PeerIceModule {
         if (agent != null) {
             agent.free();
         }
-        connectivityChecker.stop();
+        connectivityChecker.close();
     }
 
     public long getConnectivityAttempsInThePast(final long millis) {
