@@ -46,12 +46,6 @@ public class IceOptions {
     private int delayUi;
 
     @Option(
-            names = "--ping-count",
-            defaultValue = "1",
-            description = "number of times to ping each turn server to determine latency")
-    private int pingCount;
-
-    @Option(
             names = "--acceptable-latency",
             defaultValue = "250.0",
             description = "number of times to ping each turn server to determine latency")
