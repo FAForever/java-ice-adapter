@@ -142,6 +142,7 @@ public class PeerIceModule {
 
         // For STUN all servers are relevant (latency is not an issue)
         GameSession.getIceServers().stream()
+                .filter(IceServer::hasAcceptableLatency)
                 .flatMap(s -> s.getStunAddresses().stream())
                 .forEach(address -> {
                     log.info("{} Add STUN harvester for {}", getLogPrefix(), address.getHostName());
@@ -235,7 +236,7 @@ public class PeerIceModule {
 
     private List<IceServer> getViableIceServers() {
         List<IceServer> allIceServers = GameSession.getIceServers();
-        if (IceAdapter.getPingCount() <= 0 || allIceServers.isEmpty()) {
+        if (allIceServers.isEmpty()) {
             return allIceServers;
         }
 

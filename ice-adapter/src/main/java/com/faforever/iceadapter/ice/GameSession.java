@@ -115,26 +115,27 @@ public class GameSession {
     public static void setIceServers(List<Map<String, Object>> iceServersData) {
         iceServers.clear();
 
+        // For caching RTT to a given host (the same host can appear in multiple urls)
+        LoadingCache<String, CompletableFuture<OptionalDouble>> hostRTTCache = CacheBuilder.newBuilder()
+                .build(new CacheLoader<>() {
+                    @Override
+                    public CompletableFuture<OptionalDouble> load(String host) {
+                        return PingWrapper.getLatency(host)
+                                .thenApply(OptionalDouble::of)
+                                .exceptionally(ex -> OptionalDouble.empty());
+                    }
+                });
+
         PUBLIC_STUN_SERVERS.forEach(stunServer -> {
             var iceServer = new IceServer();
             iceServer.getStunAddresses().add(stunServer);
+            iceServer.setRoundTripTime(hostRTTCache.getUnchecked(stunServer.getHostAddress()));
             iceServers.add(iceServer);
         });
 
         if (iceServersData.isEmpty()) {
             return;
         }
-
-        // For caching RTT to a given host (the same host can appear in multiple urls)
-        LoadingCache<String, CompletableFuture<OptionalDouble>> hostRTTCache = CacheBuilder.newBuilder()
-                .build(new CacheLoader<>() {
-                    @Override
-                    public CompletableFuture<OptionalDouble> load(String host) {
-                        return PingWrapper.getLatency(host, IceAdapter.getPingCount())
-                                .thenApply(OptionalDouble::of)
-                                .exceptionally(ex -> OptionalDouble.empty());
-                    }
-                });
 
         Set<CoturnServer> coturnServers = new HashSet<>();
 
@@ -187,9 +188,7 @@ public class GameSession {
                                 default -> log.warn("Invalid ICE server protocol: {}", uri);
                             }
 
-                            if (IceAdapter.getPingCount() > 0) {
-                                iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
-                            }
+                            iceServer.setRoundTripTime(hostRTTCache.getUnchecked(host));
 
                             coturnServers.add(new CoturnServer("n/a", host, port, null));
                         });
@@ -206,5 +205,8 @@ public class GameSession {
                         .mapToInt(iceServer -> iceServer.getStunAddresses().size()
                                 + iceServer.getTurnAddresses().size())
                         .sum());
+        Thread.startVirtualThread(() -> {
+            iceServers.forEach(iceServer -> log.info("Ice Server: stun = {}; turn = {}; round trip time = {}", iceServer.getStunAddresses(), iceServer.getTurnAddresses(), iceServer.getRoundTripTime().join()));
+        });
     }
 }
