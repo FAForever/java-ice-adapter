@@ -480,23 +480,8 @@ public class PeerIceModule {
     void sendViaIce(byte[] data, int offset, int length) {
         if (connected && component != null) {
             try {
-                component
-                        .getSelectedPair()
-                        .getIceSocketWrapper()
-                        .send(new DatagramPacket(
-                                data,
-                                offset,
-                                length,
-                                component
-                                        .getSelectedPair()
-                                        .getRemoteCandidate()
-                                        .getTransportAddress()
-                                        .getAddress(),
-                                component
-                                        .getSelectedPair()
-                                        .getRemoteCandidate()
-                                        .getTransportAddress()
-                                        .getPort()));
+                component.getComponentSocket()
+                        .send(new DatagramPacket(data, offset, length));
             } catch (IOException e) {
                 log.warn("{} Failed to send data via ICE", getLogPrefix(), e);
                 onConnectionLost();
@@ -518,10 +503,7 @@ public class PeerIceModule {
         while (!Thread.currentThread().isInterrupted() && IceAdapter.getGameSession() == peer.getGameSession()) {
             try {
                 DatagramPacket packet = new DatagramPacket(data, data.length);
-                localComponent
-                        .getSelectedPair()
-                        .getIceSocketWrapper()
-                        .getUDPSocket()
+                localComponent.getComponentSocket()
                         .receive(packet);
 
                 if (packet.getLength() == 0) {
