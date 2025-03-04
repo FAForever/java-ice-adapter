@@ -378,9 +378,7 @@ public class PeerIceModule {
                     this, (RelayedCandidate) component.getSelectedPair().getLocalCandidate());
         }
 
-        if (peer.isLocalOffer()) {
-            connectivityChecker.start();
-        }
+        connectivityChecker.start();
 
         listenerThread = new Thread(this::listener);
         listenerThread.start();
@@ -533,11 +531,7 @@ public class PeerIceModule {
                     peer.onIceDataReceived(data, 1, packet.getLength() - 1);
                 } else if (data[0] == 'e') {
                     // Received echo req/res
-                    if (peer.isLocalOffer()) {
-                        connectivityChecker.echoReceived(data, 0, packet.getLength());
-                    } else {
-                        sendViaIce(data, 0, packet.getLength()); // Turn around, send echo back
-                    }
+                    connectivityChecker.echoReceived(data, 0, packet.getLength());
                 } else {
                     log.warn(
                             "{} Received invalid packet, first byte: 0x{}, length: {}",
