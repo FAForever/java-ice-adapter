@@ -35,6 +35,7 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
     private RPCService rpcService;
 
     private final ExecutorService executor = ExecutorHolder.getExecutor();
+    private final ScheduledExecutorService scheduledExecutor = ExecutorHolder.getScheduledExecutor();
     private static final Lock lockGameSession = new ReentrantLock();
 
     public static void main(String[] args) {
@@ -52,6 +53,7 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
     public void start() {
         determineVersion();
         log.info("Version: {}", VERSION);
+        log.info("Options: {}", iceOptions);
 
         Debug.DELAY_UI_MS = iceOptions.getDelayUi();
         Debug.ENABLE_DEBUG_WINDOW = iceOptions.isDebugWindow();
@@ -156,6 +158,7 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
         TrayIcon.close();
 
         INSTANCE.executor.shutdown();
+        INSTANCE.scheduledExecutor.shutdown();
         CompletableFuture.runAsync(
                         INSTANCE.executor::shutdownNow, CompletableFuture.delayedExecutor(250, TimeUnit.MILLISECONDS))
                 .thenRunAsync(() -> System.exit(status), CompletableFuture.delayedExecutor(250, TimeUnit.MILLISECONDS));
@@ -194,8 +197,20 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
         return INSTANCE.iceOptions.getAcceptableLatency();
     }
 
+    public static IceOptions getOptions() {
+        return INSTANCE.iceOptions;
+    }
+
     public static Executor getExecutor() {
         return INSTANCE.executor;
+    }
+
+    public static ScheduledExecutorService getScheduledExecutor() {
+        return INSTANCE.scheduledExecutor;
+    }
+
+    public static GPGNetServer getGpgNetServer() {
+        return INSTANCE.gpgNetServer;
     }
 
     public static GameSession getGameSession() {
