@@ -62,4 +62,10 @@ public class IceOptions {
             defaultValue = "wss://ice-telemetry.faforever.com",
             description = "Telemetry server to connect to")
     private String telemetryServer;
+
+    @Option(
+            names = "--lobby-init-mode",
+            defaultValue = "normal",
+            description = "lobby mode the game will use. Supported values are 'normal' for normal lobby and 'auto' for automatch lobby (aka ladder).")
+    private String lobbyInitMode;
 }
