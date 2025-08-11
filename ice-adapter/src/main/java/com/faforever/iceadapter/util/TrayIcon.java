@@ -4,20 +4,22 @@ import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.debug.Debug;
 import com.faforever.iceadapter.debug.DebugWindow;
 import com.faforever.iceadapter.debug.InfoWindow;
-import java.awt.*;
+import java.awt.AWTException;
+import java.awt.Image;
+import java.awt.SystemTray;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
-import java.net.URL;
+import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
 import javax.imageio.ImageIO;
-import javax.swing.*;
+import javax.swing.SwingUtilities;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TrayIcon {
 
-    public static final String FAF_LOGO_URL = "https://faforever.com/images/faf-logo.png";
+    public static final String FAF_LOGO_FILE = "faf-logo.png";
     private static volatile java.awt.TrayIcon trayIcon;
 
     public static void create() {
@@ -27,10 +29,14 @@ public class TrayIcon {
         }
 
         Image fafLogo = null;
-        try {
-            fafLogo = ImageIO.read(new URL(FAF_LOGO_URL));
+        try (final InputStream imageStream = TrayIcon.class.getClassLoader().getResourceAsStream(FAF_LOGO_FILE)) {
+            if (imageStream == null) {
+                log.error("Couldn't find '{}' in resource folder", FAF_LOGO_FILE);
+                return;
+            }
+            fafLogo = ImageIO.read(imageStream);
         } catch (IOException e) {
-            log.error("Couldn't load FAF tray icon logo from URL");
+            log.error("Couldn't load FAF tray icon logo from resource folder", e);
             return;
         }
 
