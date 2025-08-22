@@ -186,10 +186,6 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
         return INSTANCE.iceOptions.getTelemetryServer();
     }
 
-    public static int getPingCount() {
-        return INSTANCE.iceOptions.getPingCount();
-    }
-
     public static double getAcceptableLatency() {
         return INSTANCE.iceOptions.getAcceptableLatency();
     }
