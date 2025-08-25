@@ -3,11 +3,13 @@ package com.faforever.iceadapter;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import picocli.CommandLine.Option;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class IceOptions {
     @Option(names = "--id", required = true, description = "set the ID of the local player")
     private int id;
@@ -62,4 +64,10 @@ public class IceOptions {
             defaultValue = "wss://ice-telemetry.faforever.com",
             description = "Telemetry server to connect to")
     private String telemetryServer;
+
+    @Option(
+            names = "--timeout-seconds-in-game",
+            defaultValue = "190",
+            description = "Timeout connection in game peers (in seconds).")
+    private int timeoutSecondsInGame;
 }

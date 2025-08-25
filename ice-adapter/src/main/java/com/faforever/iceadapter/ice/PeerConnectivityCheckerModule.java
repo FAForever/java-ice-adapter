@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -17,7 +18,8 @@ import lombok.extern.slf4j.Slf4j;
  * ONLY THE OFFERING ADAPTER of a connection will send echos and reoffer.
  */
 @Slf4j
-public class PeerConnectivityCheckerModule {
+@RequiredArgsConstructor
+public class PeerConnectivityCheckerModule implements AutoCloseable {
 
     private static final int ECHO_INTERVAL = 1000;
 
@@ -25,6 +27,10 @@ public class PeerConnectivityCheckerModule {
     private final Lock lockIce = new ReentrantLock();
     private volatile boolean running = false;
     private volatile Thread checkerThread;
+
+    private final PeerConnectivityTimeoutModule timeoutModule = new PeerConnectivityTimeoutModule(ice, IceAdapter.getOptions(),
+            IceAdapter.getScheduledExecutor(),
+            IceAdapter.getGpgNetServer());
 
     @Getter
     private float averageRTT = 0.0f;
@@ -37,10 +43,6 @@ public class PeerConnectivityCheckerModule {
 
     @Getter
     private long invalidEchosReceived = 0;
-
-    public PeerConnectivityCheckerModule(PeerIceModule ice) {
-        this.ice = ice;
-    }
 
     void start() {
         LockUtil.executeWithLock(lockIce, () -> {
@@ -137,11 +139,19 @@ public class PeerConnectivityCheckerModule {
                 log.warn(
                         "Didn't receive any answer to echo requests for the past 10 seconds from {}, aborting connection",
                         peer.getRemoteLogin());
+                timeoutModule.start();
                 CompletableFuture.runAsync(ice::onConnectionLost, IceAdapter.getExecutor());
                 return;
             }
+            timeoutModule.stopIfExist();
         }
 
         log.info("{} stopped gracefully", Thread.currentThread().getName());
+    }
+
+    @Override
+    public void close() {
+        stop();
+        timeoutModule.close();
     }
 }
