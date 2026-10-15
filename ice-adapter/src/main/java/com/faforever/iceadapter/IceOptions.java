@@ -89,7 +89,7 @@ public class IceOptions {
 
     @Option(
             names = "--allow-peer-relay",
-            defaultValue = "true",
+            defaultValue = "false",
             description =
                     "Allows this peer to act as a relay host, forwarding packets for other peers when their direct connection is unstable. Increases bandwidth usage (may affect mobile or metered connections)")
     private boolean allowPeerRelay;
@@ -103,10 +103,10 @@ public class IceOptions {
 
     @Option(
             names = {"--additional-packet-forwarding", "--additional-forwarding"},
-            defaultValue = "true",
-            fallbackValue = "true",
+            defaultValue = "false",
+            fallbackValue = "false",
             description = "Enable additional packet forwarding via relay by default for peers")
-    private boolean additionalPacketForwarding = true;
+    private boolean additionalPacketForwarding = false;
 
     public boolean isAllowCombination() {
         return showAllowCombination;
