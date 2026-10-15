@@ -99,18 +99,18 @@ public class FaToPeerModule implements ModuleBase {
         }
     }
 
-    private boolean isNeedReceive() {
+    boolean isNeedReceive() {
         return peer.isConnected()
                 || (peer.isAdditionalPacketForwarding() && peer.existBestRelays())
                 || peer.existBestRelays();
     }
 
-    private void receive(DatagramSocket socket, DatagramPacket packet, byte[] buffer) throws IOException {
+    void receive(DatagramSocket socket, DatagramPacket packet, byte[] buffer) throws IOException {
+        packet.setData(buffer, 0, buffer.length);
+        socket.receive(packet);
         if (!isNeedReceive()) {
             return;
         }
-        packet.setData(buffer, 0, buffer.length);
-        socket.receive(packet);
         int length = packet.getLength();
         if (length == 0) {
             return;
