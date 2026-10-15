@@ -6,77 +6,70 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
 <?import java.net.URL?>
-<AnchorPane prefHeight="533.0" prefWidth="330.0" xmlns="http://javafx.com/javafx/8.0.121"
-            xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.faforever.iceadapter.debug.InfoWindowController">
-    <children>
 
-        <VBox prefHeight="330.0" prefWidth="533.0" alignment="CENTER" spacing="5">
-            <padding>
-                <Insets bottom="5" left="5" right="5" top="5"/>
-            </padding>
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.faforever.iceadapter.ui.controller.InfoWindowController"
+      prefWidth="540.0" prefHeight="370.0" spacing="14" styleClass="dashboard-root">
 
-            <ImageView fitHeight="70.0" fitWidth="70.0">
-                <image>
-                    <Image url="https://faforever.com/images/faf-logo.png"/>
-                </image>
-            </ImageView>
+    <padding>
+        <Insets top="16" right="18" bottom="16" left="18"/>
+    </padding>
 
-            <HBox>
-                <padding>
-                    <Insets bottom="2" left="5" right="5" top="2"/>
-                </padding>
+    <!-- Header Section -->
+    <HBox spacing="12" alignment="CENTER_LEFT" styleClass="inspector-header">
+        <ImageView fitHeight="44.0" fitWidth="44.0" preserveRatio="true" smooth="true">
+            <image>
+                <Image url="@faf-logo.png"/>
+            </image>
+        </ImageView>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Label text="FAF ICE ADAPTER" styleClass="peer-name"/>
+                <Label text="v2.x" styleClass="version-pill"/>
             </HBox>
-
-            <Label text="This adapter establishes and monitors your connection to other players in game.&#10;Closing it will terminate all connections."
-                   wrapText="true" textAlignment="CENTER"></Label>
-
-
-            <HBox>
-                <padding>
-                    <Insets bottom="5" left="5" right="5" top="5"/>
-                </padding>
-            </HBox>
-
-            <Label text="Please keep it running while the game is in progress." styleClass="bold-text"
-                   textAlignment="CENTER"/>
-
-            <HBox>
-                <padding>
-                    <Insets bottom="5" left="5" right="5" top="5"/>
-                </padding>
-
-            </HBox>
-
-            <Button fx:id="killAdapterButton"
-                    text="Clicking here will close the adapter&#10;This will disconnect you from the game!"
-                    focusTraversable="false" wrapText="true" textAlignment="CENTER">
-            </Button>
-
-            <HBox>
-                <padding>
-                    <Insets bottom="5" left="5" right="5" top="5"/>
-                </padding>
-
-            </HBox>
-
-            <Button fx:id="showDebugWindowButton" text="Show debug window"/>
-
-            <Button fx:id="showTelemetryWebUiButton" text="Show telemetry web ui"/>
-
-            <HBox>
-                <padding>
-                    <Insets bottom="5" left="5" right="5" top="5"/>
-                </padding>
-
-            </HBox>
-
-            <Button fx:id="minimizeToTray" text="Minimize to system tray" defaultButton="true"/>
-
+            <Label text="Supreme Commander Peer-to-Peer Connection Manager" styleClass="instruction-text"/>
         </VBox>
+        <Label text="RUNNING" styleClass="badge, badge-success"/>
+    </HBox>
 
-    </children>
+    <!-- Notice / Status Card -->
+    <VBox spacing="8" styleClass="kpi-card" VBox.vgrow="ALWAYS">
+        <HBox spacing="6" alignment="CENTER_LEFT">
+            <Label text="ACTIVE CONNECTION NOTICE" styleClass="kpi-title"/>
+        </HBox>
+        <Label text="This adapter establishes and monitors direct peer-to-peer network routes between you and other players. Closing or terminating this process will disconnect your current game session."
+               wrapText="true" styleClass="instruction-text" VBox.vgrow="ALWAYS"/>
+        <Label text="⚠ Keep this process running while the game is in progress."
+               styleClass="mono-text" style="-fx-text-fill: #ff9800; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+    </VBox>
+
+    <!-- Action Controls -->
+    <VBox spacing="10">
+        <HBox spacing="10" alignment="CENTER">
+            <Button fx:id="showDebugWindowButton" text="🔍 Open Inspector"
+                    styleClass="primary-button" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                <tooltip><Tooltip text="Open comprehensive live diagnostics &amp; WebRTC matrix window"/></tooltip>
+            </Button>
+            <Button fx:id="showTelemetryWebUiButton" text="🌐 Telemetry Web UI"
+                    styleClass="secondary-button" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                <tooltip><Tooltip text="Open live telemetry dashboard in your default browser"/></tooltip>
+            </Button>
+            <Button fx:id="minimizeToTray" text="Minimize to Tray" defaultButton="true"
+                    styleClass="secondary-button" HBox.hgrow="ALWAYS" maxWidth="Infinity"
+                    managed="${minimizeToTray.visible}">
+                <tooltip><Tooltip text="Send adapter window to system notification area"/></tooltip>
+            </Button>
+        </HBox>
+
+        <Button fx:id="killAdapterButton"
+                text="Clicking here will close the adapter (Disconnects from game)"
+                focusTraversable="false" wrapText="true" textAlignment="CENTER"
+                styleClass="danger-button" maxWidth="Infinity">
+            <tooltip><Tooltip text="Gracefully disconnect all active peer sessions and stop the adapter"/></tooltip>
+        </Button>
+    </VBox>
 
     <stylesheets>
-        <URL value="@infoWindowStyle.css"/>
+        <URL value="@modernTheme.css"/>
     </stylesheets>
-</AnchorPane>
+</VBox>

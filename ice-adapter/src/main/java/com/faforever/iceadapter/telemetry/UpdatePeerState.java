@@ -1,8 +1,8 @@
 package com.faforever.iceadapter.telemetry;
 
+import com.faforever.iceadapter.ice.CandidateType;
 import com.faforever.iceadapter.ice.IceState;
 import java.util.UUID;
-import org.ice4j.ice.CandidateType;
 
 public record UpdatePeerState(
         UUID messageId,
@@ -10,4 +10,9 @@ public record UpdatePeerState(
         IceState iceState,
         CandidateType localCandidate,
         CandidateType remoteCandidate)
-        implements OutgoingMessageV1 {}
+        implements OutgoingMessageV1 {
+    @Override
+    public String getType() {
+        return getClass().getSimpleName();
+    }
+}

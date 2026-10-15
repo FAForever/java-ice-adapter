@@ -4,4 +4,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record UpdatePeerConnectivity(UUID messageId, int peerPlayerId, Float averageRTT, Instant lastReceived)
-        implements OutgoingMessageV1 {}
+        implements OutgoingMessageV1 {
+
+    @Override
+    public String getType() {
+        return getClass().getSimpleName();
+    }
+}

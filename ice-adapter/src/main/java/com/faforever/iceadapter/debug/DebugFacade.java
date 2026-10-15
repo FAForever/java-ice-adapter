@@ -1,6 +1,6 @@
 package com.faforever.iceadapter.debug;
 
-import com.faforever.iceadapter.ice.Peer;
+import com.faforever.iceadapter.ice.peer.Peer;
 import com.faforever.iceadapter.telemetry.CoturnServer;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 import java.util.Collection;
@@ -67,5 +67,10 @@ public class DebugFacade implements Debugger {
     @Override
     public void updateCoturnList(Collection<CoturnServer> servers) {
         debuggers.forEach(d -> d.updateCoturnList(servers));
+    }
+
+    @Override
+    public void close() {
+        debuggers.forEach(Debugger::close);
     }
 }

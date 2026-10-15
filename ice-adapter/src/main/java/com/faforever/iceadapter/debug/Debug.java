@@ -1,24 +1,17 @@
 package com.faforever.iceadapter.debug;
 
-import com.faforever.iceadapter.IceAdapter;
-import java.lang.reflect.InvocationTargetException;
+import com.faforever.iceadapter.ui.IceWindow;
+import com.faforever.iceadapter.ui.InfoWindow;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import javafx.application.Platform;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Debug {
-    // TODO
-    public static boolean ENABLE_DEBUG_WINDOW_LOG_TEXT_AREA =
-            false; // disabled as this causes high memory and cpu load, should be replaced by limiting the number of
-    // lines in the text area
-
     public static boolean ENABLE_DEBUG_WINDOW = false;
     public static boolean ENABLE_INFO_WINDOW = false;
     public static int DELAY_UI_MS = 0; // delays the launch of the user interface by X ms
-
-    public static int RPC_PORT;
-
-    private static TelemetryDebugger telemetryDebugger;
 
     private static final DebugFacade debugFacade = new DebugFacade();
 
@@ -31,44 +24,34 @@ public class Debug {
     }
 
     public static void init() {
-        telemetryDebugger =
-                new TelemetryDebugger(IceAdapter.getTelemetryServer(), IceAdapter.getGameId(), IceAdapter.getId());
-
-        // Debugger window is started and set to debugFuture when either window is requested as the info window can be
-        // used to open the debug window
-        // This is not used anymore as the debug window is started and hidden in case it is requested via the tray icon
-        if (!ENABLE_DEBUG_WINDOW && !ENABLE_INFO_WINDOW) {
-            return;
-        }
-
         if (isJavaFxSupported()) {
-            CompletableFuture.runAsync(
-                    () -> {
-                        try {
-                            Class.forName("com.faforever.iceadapter.debug.DebugWindow")
-                                    .getMethod("launchApplication")
-                                    .invoke(null);
-                        } catch (InvocationTargetException e) {
-                            log.info("DebugWindows stopped");
-                        } catch (IllegalAccessException | ClassNotFoundException | NoSuchMethodException e) {
-                            log.error("Could not create DebugWindow. Running without debug window.", e);
-                        }
-                    },
-                    IceAdapter.getExecutor());
+            new Thread(IceWindow::launch).start();
+
+            if (Debug.ENABLE_INFO_WINDOW) {
+                CompletableFuture.runAsync(
+                        () -> runOnUIThread(InfoWindow::launch),
+                        CompletableFuture.delayedExecutor(Debug.DELAY_UI_MS, TimeUnit.MILLISECONDS));
+            }
+
         } else {
             log.info("No JavaFX support detected. Running without debug window.");
         }
     }
 
     public static void close() {
-        if (telemetryDebugger != null) {
-            telemetryDebugger.close();
-            telemetryDebugger = null;
-        }
+        debugFacade.close();
     }
 
     public static Debugger debug() {
         return debugFacade;
+    }
+
+    private static void runOnUIThread(Runnable runnable) {
+        if (Platform.isFxApplicationThread()) {
+            runnable.run();
+        } else {
+            Platform.runLater(runnable);
+        }
     }
 
     public static boolean isJavaFxSupported() {

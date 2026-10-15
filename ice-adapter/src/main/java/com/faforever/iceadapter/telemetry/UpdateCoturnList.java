@@ -4,4 +4,10 @@ import java.util.Collection;
 import java.util.UUID;
 
 public record UpdateCoturnList(UUID messageId, String connectedHost, Collection<CoturnServer> knownServers)
-        implements OutgoingMessageV1 {}
+        implements OutgoingMessageV1 {
+
+    @Override
+    public String getType() {
+        return getClass().getSimpleName();
+    }
+}

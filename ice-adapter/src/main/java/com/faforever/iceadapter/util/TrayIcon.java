@@ -1,25 +1,17 @@
 package com.faforever.iceadapter.util;
 
-import com.faforever.iceadapter.IceAdapter;
+import com.faforever.iceadapter.LogoUtils;
 import com.faforever.iceadapter.debug.Debug;
-import com.faforever.iceadapter.debug.DebugWindow;
-import com.faforever.iceadapter.debug.InfoWindow;
-import java.awt.AWTException;
-import java.awt.Image;
-import java.awt.SystemTray;
+import com.faforever.iceadapter.ui.InfoWindow;
+import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.concurrent.CompletableFuture;
-import javax.imageio.ImageIO;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TrayIcon {
 
-    public static final String FAF_LOGO_FILE = "faf-logo.png";
     private static volatile java.awt.TrayIcon trayIcon;
 
     public static void create() {
@@ -28,22 +20,13 @@ public class TrayIcon {
             return;
         }
 
-        Image fafLogo = null;
-        try (final InputStream imageStream = TrayIcon.class.getClassLoader().getResourceAsStream(FAF_LOGO_FILE)) {
-            if (imageStream == null) {
-                log.error("Couldn't find '{}' in resource folder", FAF_LOGO_FILE);
-                return;
-            }
-            fafLogo = ImageIO.read(imageStream);
-        } catch (IOException e) {
-            log.error("Couldn't load FAF tray icon logo from resource folder", e);
+        Image fafLogo = LogoUtils.getLogo();
+        if (fafLogo == null) {
             return;
         }
 
-        fafLogo = fafLogo.getScaledInstance(
-                new java.awt.TrayIcon(fafLogo).getSize().width,
-                new java.awt.TrayIcon(fafLogo).getSize().height,
-                Image.SCALE_SMOOTH);
+        Dimension dimension = SystemTray.getSystemTray().getTrayIconSize();
+        fafLogo = fafLogo.getScaledInstance(dimension.width, dimension.height, Image.SCALE_SMOOTH);
 
         trayIcon = new java.awt.TrayIcon(fafLogo, "FAForever Connection ICE Adapter");
 
@@ -53,17 +36,13 @@ public class TrayIcon {
 
             @Override
             public void mousePressed(MouseEvent mouseEvent) {
-                CompletableFuture.runAsync(
-                        () -> {
-                            if (InfoWindow.INSTANCE == null) {
-                                log.info("Launching ICE adapter debug window");
-                                Debug.ENABLE_INFO_WINDOW = true;
-                                DebugWindow.launchApplication();
-                            } else {
-                                InfoWindow.INSTANCE.show();
-                            }
-                        },
-                        IceAdapter.getExecutor());
+                if (InfoWindow.INSTANCE == null) {
+                    log.info("Launching ICE adapter debug window");
+                    Debug.ENABLE_INFO_WINDOW = true;
+                    InfoWindow.launch();
+                } else {
+                    InfoWindow.INSTANCE.showWindow();
+                }
             }
 
             @Override
@@ -95,7 +74,16 @@ public class TrayIcon {
     }
 
     public static void close() {
-        SystemTray.getSystemTray().remove(trayIcon);
+        if (isTrayIconSupported() && trayIcon != null) {
+            try {
+                SystemTray.getSystemTray().remove(trayIcon);
+                log.info("Tray icon removed");
+            } catch (Exception e) {
+                log.error("Error removing tray icon", e);
+            } finally {
+                trayIcon = null;
+            }
+        }
     }
 
     public static boolean isTrayIconSupported() {

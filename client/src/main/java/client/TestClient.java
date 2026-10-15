@@ -80,7 +80,7 @@ public class TestClient {
 
 
 	public static void main(String args[]) {
-		boolean skipGDRP = false;
+		boolean skipGDRP = true;
 		if (args.length >= 1) {
             for (String arg : args) {
                 if (arg.equals("--debug")) {

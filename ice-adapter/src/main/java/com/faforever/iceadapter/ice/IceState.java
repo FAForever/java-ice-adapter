@@ -1,13 +1,13 @@
 package com.faforever.iceadapter.ice;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-@Getter
-@AllArgsConstructor
 /**
  * IceState, does not match WebRTC states, represents peer connection "lifecycle"
  */
+@Getter
+@RequiredArgsConstructor
 public enum IceState {
     NEW("new"),
     GATHERING("gathering"),
@@ -18,4 +18,9 @@ public enum IceState {
     DISCONNECTED("disconnected");
 
     private final String message;
+
+    @Override
+    public String toString() {
+        return message;
+    }
 }

@@ -8,23 +8,27 @@ on: [push]
 jobs:
   checks:
     runs-on: ubuntu-latest
-    container: eclipse-temurin:21-jdk
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Run Checks
-        run: ./gradlew --stacktrace -PjavafxPlatform=linux build
+        run: ./gradlew --stacktrace -PjavafxPlatform=linux -PwebrtcPlatform=linux -Pno-integration build
   run-infer:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
             fetch-depth: 0
       - name : run infer action
         uses: docker://ghcr.io/martinwitt/infer-train:master
         with:
-            build-command: "./gradlew --stacktrace -PjavafxPlatform=linux build"
+            build-command: "./gradlew --stacktrace -PjavafxPlatform=linux -PwebrtcPlatform=linux build"
             use-annotations: "true"

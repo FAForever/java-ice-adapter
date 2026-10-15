@@ -1,7 +1,5 @@
 package com.faforever.iceadapter.ice;
 
-import org.ice4j.ice.CandidateType;
-
 /**
  * Represents a candidate to be sent/received via IceMessage
  */

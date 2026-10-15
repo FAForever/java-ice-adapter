@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox fx:id="root" prefHeight="500.0" prefWidth="720.0" minHeight="380.0" minWidth="560.0"
+      spacing="12" styleClass="dashboard-root"
+      xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.faforever.iceadapter.ui.controller.IceServerController">
+
+    <padding>
+        <Insets top="14" right="16" bottom="14" left="16"/>
+    </padding>
+
+    <!-- Header & Title Bar -->
+    <HBox spacing="12" alignment="CENTER_LEFT" styleClass="inspector-header">
+        <HBox spacing="8" alignment="CENTER_LEFT" styleClass="brand-badge">
+            <Label text="ICE SERVERS" styleClass="brand-title"/>
+        </HBox>
+
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="STUN &amp; TURN Configuration" styleClass="peer-name"/>
+            <Label text="Interactive Connectivity Establishment relay &amp; discovery endpoints"
+                   styleClass="kpi-title"/>
+        </VBox>
+
+        <Label fx:id="serverCountLabel" text="0 servers" styleClass="badge, badge-neutral"/>
+
+        <Button fx:id="refreshButton" text="Refresh" onAction="#onRefreshClicked" styleClass="secondary-button">
+            <tooltip><Tooltip text="Refresh STUN/TURN server connectivity status"/></tooltip>
+        </Button>
+    </HBox>
+
+    <!-- Main Table -->
+    <TableView fx:id="tableView" editable="true" VBox.vgrow="ALWAYS" tableMenuButtonVisible="true">
+        <placeholder>
+            <Label text="No STUN or TURN servers configured in this session."/>
+        </placeholder>
+        <columns>
+            <TableColumn fx:id="typeColumn" text="Type" prefWidth="90" editable="false"/>
+            <TableColumn fx:id="transportColumn" text="Transport" prefWidth="95" editable="false"/>
+            <TableColumn fx:id="addressColumn" text="Endpoint Address" prefWidth="300" editable="false"/>
+            <TableColumn fx:id="rttColumn" text="RTT Latency" prefWidth="105" editable="false"/>
+            <TableColumn fx:id="enabledColumn" text="Relay State" prefWidth="95"/>
+        </columns>
+    </TableView>
+
+    <!-- Footer Information Bar -->
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="kpi-card">
+        <Label text="ℹ️" styleClass="brand-title"/>
+        <Label text="STUN discovers external NAT mapping automatically. TURN relays packet traffic when direct P2P is blocked."
+               styleClass="kpi-title" HBox.hgrow="ALWAYS" wrapText="true"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Close" onAction="#onCloseClicked" styleClass="secondary-button"/>
+    </HBox>
+
+    <stylesheets>
+        <URL value="@modernTheme.css"/>
+    </stylesheets>
+</VBox>

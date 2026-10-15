@@ -214,15 +214,14 @@ public class ICEAdapter {
 			String command[] = new String[]{
 //					(System.getProperty("os.name").contains("Windows") ? "faf-ice-adapter.exe" : "./faf-ice-adapter"),
 					"java",
+//					"-Djava.net.preferIPv4Stack=true",
 					"-jar",
 					"faf-ice-adapter.jar",
 					"--id", String.valueOf(TestClient.playerID),
 					"--login", TestClient.username,
 					"--rpc-port", String.valueOf(ADAPTER_PORT),
-//				"--gpgnet-port", String.valueOf(GPG_PORT), retrieved afterwards
-//				"--lobby-port", String.valueOf(LOBBY_PORT),
+					"--game-id", String.valueOf(100),
 					"--log-level", LOG_LEVEL,
-//					"--log-directory", "iceAdapterLogs/"
 			};
 
 			ProcessBuilder processBuilder = new ProcessBuilder(command);

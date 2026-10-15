@@ -1,11 +1,12 @@
 package com.faforever.iceadapter.util;
 
-import com.faforever.iceadapter.IceAdapter;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,8 @@ public class PingWrapper {
     static final Pattern GNU_OUTPUT_PATTERN =
             Pattern.compile("min/avg/max/mdev = [0-9.]+/([0-9.]+)/[0-9.]+/[0-9.]+", Pattern.MULTILINE);
 
+    private static ExecutorService executor = Executors.newFixedThreadPool(4);
+
     /*
      * Get the round trip time to an address.
      */
@@ -28,7 +31,9 @@ public class PingWrapper {
             Pattern output_pattern;
 
             if (System.getProperty("os.name").startsWith("Windows")) {
-                process = new ProcessBuilder("ping", "-n", count.toString(), address).start();
+                // Force English output using code page 437
+                String command = String.format("chcp 437 > NUL && ping -n %d %s", count, address);
+                process = new ProcessBuilder("cmd", "/c", command).start();
                 output_pattern = WINDOWS_OUTPUT_PATTERN;
             } else {
                 process = new ProcessBuilder("ping", "-c", count.toString(), address).start();
@@ -50,14 +55,14 @@ public class PingWrapper {
                                 log.debug("Pinged {} with an RTT of {}", address, result);
                                 return result;
                             } else {
-                                log.warn("Failed to ping {}", address);
-                                throw new RuntimeException("Failed to contact the host");
+                                log.warn("Failed to ping {}: output='{}'", address, output);
+                                throw new RuntimeException("Failed to contact the host or parse ping output");
                             }
                         } catch (InterruptedException | IOException | RuntimeException e) {
                             throw new CompletionException(e);
                         }
                     },
-                    IceAdapter.getExecutor());
+                    executor);
         } catch (IOException e) {
             CompletableFuture<Double> future = new CompletableFuture<>();
             future.completeExceptionally(e);

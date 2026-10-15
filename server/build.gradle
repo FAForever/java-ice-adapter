@@ -1,11 +1,9 @@
 
 apply plugin: 'java'
-apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.gradleup.shadow'
 
 group 'com.faforever'
 version '1.0-SNAPSHOT'
-
-sourceCompatibility = JavaVersion.VERSION_21
 
 repositories {
     mavenCentral()
@@ -14,6 +12,9 @@ repositories {
 dependencies {
     annotationProcessor("org.projectlombok:lombok:$lombokVersion")
     implementation("org.projectlombok:lombok:$lombokVersion")
+
+    implementation("ch.qos.logback:logback-classic:1.5.6")
+    implementation("org.slf4j:slf4j-api:2.0.13")
 
 //    implementation project(":ice-adapter")
     implementation(project(":shared"))

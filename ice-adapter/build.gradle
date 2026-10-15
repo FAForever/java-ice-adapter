@@ -8,13 +8,12 @@ buildscript {
 apply plugin: 'idea'
 apply plugin: 'java'
 apply plugin: 'java-library'
-apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.gradleup.shadow'
 apply plugin: 'com.diffplug.spotless'
+apply plugin: 'org.openjfx.javafxplugin'
 
 group 'com.faforever'
 
-
-sourceCompatibility = JavaVersion.VERSION_21
 
 repositories {
     mavenCentral()
@@ -30,17 +29,39 @@ dependencies {
     annotationProcessor("info.picocli:picocli-codegen:$picocliVersion")
     implementation("info.picocli:picocli:$picocliVersion")
 
-    implementation("org.jitsi:ice4j:3.0-66-g1c60acc")
     implementation("com.github.faforever:JJsonRpc:37669e0fed")
     implementation("com.google.guava:guava:$guavaVersion")
-    implementation("org.slf4j:slf4j-api:1.7.36")
+    implementation("org.slf4j:slf4j-api:2.0.13")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("ch.qos.logback:logback-core:$logbackVersion")
     implementation("org.java-websocket:Java-WebSocket:1.5.3")
     implementation('com.fasterxml.jackson.core:jackson-databind:2.13.4.2')
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.4")
+    implementation("com.fasterxml.jackson.module:jackson-module-blackbird:2.21.3")
+    implementation("com.github.luben:zstd-jni:1.5.7-9")
+    implementation "dev.onvoid.webrtc:webrtc-java:${webRtcVersion}"
 
-    if(javafxClasspath == "compileOnly") {
+    if (webrtcPlatform == "win") {
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "windows-x86_64"
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "windows-aarch64"
+    } else if (webrtcPlatform == "linux") {
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "linux-x86_64"
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "linux-aarch64"
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "linux-aarch32"
+    } else if (webrtcPlatform == "mac") {
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "macos-x86_64"
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "macos-aarch64"
+    } else {
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "windows-x86_64"
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "windows-aarch64"
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "macos-x86_64"
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "macos-aarch64"
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "linux-x86_64"
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "linux-aarch64"
+        implementation group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "linux-aarch32"
+    }
+
+    if (javafxClasspath == "compileOnly") {
         compileOnly("org.openjfx:javafx-base:${javafxVersion}:${javafxPlatform}")
         compileOnly("org.openjfx:javafx-controls:${javafxVersion}:${javafxPlatform}")
         compileOnly("org.openjfx:javafx-graphics:${javafxVersion}:${javafxPlatform}")
@@ -55,6 +76,33 @@ dependencies {
         implementation("org.openjfx:javafx-web:${javafxVersion}:${javafxPlatform}")
         implementation("org.openjfx:javafx-media:${javafxVersion}:${javafxPlatform}")
     }
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
+    testImplementation("org.mockito:mockito-core:$mockitoVersion")
+    testImplementation("org.mockito:mockito-junit-jupiter:$mockitoVersion")
+
+    testRuntimeOnly group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "windows-x86_64"
+    testRuntimeOnly group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "windows-aarch64"
+    testRuntimeOnly group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "linux-x86_64"
+    testRuntimeOnly group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "linux-aarch64"
+    testRuntimeOnly group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "linux-aarch32"
+    testRuntimeOnly group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "macos-x86_64"
+    testRuntimeOnly group: "dev.onvoid.webrtc", name: "webrtc-java", version: { webRtcVersion }, classifier: "macos-aarch64"
+
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'com.faforever.iceadapter.IceAdapter',
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version,
+                'Enable-Native-Access': 'ALL-UNNAMED'
+        )
+    }
 }
 
 shadowJar {
@@ -65,7 +113,12 @@ shadowJar {
 
     getArchiveFileName().set("faf-ice-adapter-${version}-${plattformSuffix}.jar")
     manifest {
-        attributes 'Main-Class': 'com.faforever.iceadapter.IceAdapter'
+        attributes(
+                'Main-Class': 'com.faforever.iceadapter.IceAdapter',
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version,
+                'Enable-Native-Access': 'ALL-UNNAMED'
+        )
     }
 }
 
@@ -78,4 +131,13 @@ spotless {
         cleanthat()
         palantirJavaFormat()
     }
+}
+
+test {
+    useJUnitPlatform {
+        if (project.hasProperty('no-integration')) {
+            excludeTags 'integration'
+        }
+    }
+    jvmArgs('--enable-native-access=ALL-UNNAMED')
 }

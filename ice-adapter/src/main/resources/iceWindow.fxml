@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane fx:id="root" prefHeight="740.0" prefWidth="1200.0" minHeight="600.0" minWidth="920.0"
+            styleClass="dashboard-root"
+            xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.faforever.iceadapter.ui.controller.WindowController">
+
+    <!-- Top Command & Status Bar -->
+    <top>
+        <VBox spacing="8" styleClass="header-container">
+            <!-- Row 1: Brand, Service Statuses & Actions -->
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <!-- Branding -->
+                <HBox spacing="8" alignment="CENTER_LEFT" styleClass="brand-badge">
+                    <Label text="FAF ICE ADAPTER" styleClass="brand-title"/>
+                    <Label fx:id="versionLabel" text="v..." styleClass="version-pill"/>
+                </HBox>
+
+                <!-- Core Server Statuses as KPI Pills -->
+                <HBox spacing="8" alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                    <HBox spacing="6" alignment="CENTER_LEFT" styleClass="kpi-card">
+                        <Label text="RPC:" styleClass="kpi-title"/>
+                        <Label fx:id="rpcServerStatus" text="Server: ..." styleClass="mono-text"/>
+                        <Separator orientation="VERTICAL"/>
+                        <Label fx:id="rpcClientStatus" text="Client: ..." styleClass="mono-text"/>
+                    </HBox>
+
+                    <HBox spacing="6" alignment="CENTER_LEFT" styleClass="kpi-card">
+                        <Label text="GPGNet:" styleClass="kpi-title"/>
+                        <Label fx:id="gpgnetServerStatus" text="Server: ..." styleClass="mono-text"/>
+                        <Separator orientation="VERTICAL"/>
+                        <Label fx:id="gpgnetClientStatus" text="Client: ..." styleClass="mono-text"/>
+                    </HBox>
+
+                    <HBox spacing="6" alignment="CENTER_LEFT" styleClass="kpi-card">
+                        <Label text="GAME:" styleClass="kpi-title"/>
+                        <Label fx:id="gameState" text="UNKNOWN" styleClass="mono-text"/>
+                    </HBox>
+                </HBox>
+
+                <!-- Action Toolbar -->
+                <HBox spacing="8" alignment="CENTER_RIGHT">
+                    <Button text="STUN / TURN" onAction="#openSettingsStunAndTurn" styleClass="secondary-button">
+                        <tooltip><Tooltip text="Configure STUN and TURN ICE servers"/></tooltip>
+                    </Button>
+                    <Button fx:id="killAdapterButton" text="Stop Adapter" styleClass="danger-button">
+                        <tooltip><Tooltip text="Terminate ICE adapter and disconnect from game"/></tooltip>
+                    </Button>
+                </HBox>
+            </HBox>
+
+            <!-- Row 2: User, Ports & Environment Info -->
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="USER:" styleClass="kpi-title"/>
+                    <Label fx:id="userLabel" text="Loading..." styleClass="kpi-value, mono-text"/>
+                </HBox>
+
+                <Separator orientation="VERTICAL"/>
+
+                <HBox spacing="14" alignment="CENTER_LEFT">
+                    <HBox spacing="4" alignment="CENTER_LEFT">
+                        <Label text="RPC Port:" styleClass="kpi-title"/>
+                        <Label fx:id="rpcPortLabel" text="-" styleClass="mono-text"/>
+                    </HBox>
+                    <HBox spacing="4" alignment="CENTER_LEFT">
+                        <Label text="GPGNet Port:" styleClass="kpi-title"/>
+                        <Label fx:id="gpgnetPortLabel" text="-" styleClass="mono-text"/>
+                    </HBox>
+                    <HBox spacing="4" alignment="CENTER_LEFT">
+                        <Label text="Lobby Port:" styleClass="kpi-title"/>
+                        <Label fx:id="lobbyPortLabel" text="-" styleClass="mono-text"/>
+                    </HBox>
+                </HBox>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Label fx:id="peerCountLabel" text="0 peers active" styleClass="badge, badge-neutral"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- Center Workspace: Multi-View TabPane -->
+    <center>
+        <TabPane fx:id="mainTabPane" tabClosingPolicy="UNAVAILABLE">
+
+            <!-- TAB 1: PEERS & WEBRTC INSPECTOR (MASTER-DETAIL) -->
+            <Tab text="Peers &amp; Live Inspector">
+                <SplitPane fx:id="mainSplitPane" dividerPositions="0.77" orientation="HORIZONTAL">
+
+                    <!-- LEFT PANE: Master Peer Table & Controls -->
+                    <VBox spacing="8">
+                        <padding>
+                            <Insets top="10" right="6" bottom="10" left="10"/>
+                        </padding>
+
+                        <!-- Search & Filter Bar -->
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <TextField fx:id="searchField" promptText="🔍  Filter peers by login or ID..."
+                                       HBox.hgrow="ALWAYS" styleClass="search-field"/>
+                            <ComboBox fx:id="statusFilterComboBox" prefWidth="130" styleClass="combo-box">
+                                <tooltip><Tooltip text="Filter peers by connection status"/></tooltip>
+                            </ComboBox>
+                        </HBox>
+
+                        <!-- Master Table (compact widths so all columns fit) -->
+                        <TableView fx:id="peerTable" VBox.vgrow="ALWAYS" tableMenuButtonVisible="true">
+                            <placeholder>
+                                <Label text="No active peers connected in this game session."/>
+                            </placeholder>
+                            <columns>
+                                <TableColumn fx:id="idColumn" text="ID" prefWidth="50" minWidth="45"/>
+                                <TableColumn fx:id="loginColumn" text="Login" prefWidth="110" minWidth="90"/>
+                                <TableColumn fx:id="stateColumn" text="ICE State" prefWidth="95" minWidth="85"/>
+                                <TableColumn fx:id="offerColumn" text="Offer" prefWidth="55" minWidth="45"/>
+                                <TableColumn text="Active Pair">
+                                    <columns>
+                                        <TableColumn fx:id="localCandColumn" text="Local" prefWidth="58" minWidth="45"/>
+                                        <TableColumn fx:id="remoteCandColumn" text="Remote" prefWidth="58" minWidth="45"/>
+                                    </columns>
+                                </TableColumn>
+                                <TableColumn text="RTT">
+                                    <columns>
+                                        <TableColumn fx:id="directRttColumn" text="Direct" prefWidth="55" minWidth="45"/>
+                                        <TableColumn fx:id="relayRttColumn" text="Relay" prefWidth="55" minWidth="45"/>
+                                    </columns>
+                                </TableColumn>
+                                <TableColumn text="Last Recv">
+                                    <columns>
+                                        <TableColumn fx:id="lastColumn" text="Direct" prefWidth="65" minWidth="55"/>
+                                        <TableColumn fx:id="lastRelayColumn" text="Relay" prefWidth="65" minWidth="55"/>
+                                    </columns>
+                                </TableColumn>
+                                <TableColumn text="Allowed Candidates">
+                                    <columns>
+                                        <TableColumn fx:id="hostColumn" text="Host" prefWidth="42" minWidth="38"/>
+                                        <TableColumn fx:id="reflexiveColumn" text="Refl" prefWidth="45" minWidth="40"/>
+                                        <TableColumn fx:id="relayColumn" text="Relay" prefWidth="42" minWidth="38"/>
+                                    </columns>
+                                </TableColumn>
+                                <TableColumn fx:id="relaySupport" text="Peer Relay" prefWidth="65" minWidth="50"/>
+                                <TableColumn fx:id="echosRcvColumn" text="Echos S/F" prefWidth="70" minWidth="60"/>
+                            </columns>
+                        </TableView>
+                    </VBox>
+
+                    <!-- RIGHT PANE: Deep Inspector (Compact & properly bounded) -->
+                    <VBox fx:id="inspectorContainer" minWidth="280" prefWidth="300" styleClass="inspector-pane" spacing="10">
+
+                        <!-- Placeholder when no peer selected -->
+                        <VBox fx:id="selectPeerActionPane" alignment="CENTER" spacing="10" VBox.vgrow="ALWAYS">
+                            <Label text="🔍 Select a Peer" styleClass="peer-name"/>
+                            <Label text="Select a row in the table to view real-time diagnostics, candidate pairs, traffic, and controls."
+                                   wrapText="true" textAlignment="CENTER" styleClass="instruction-text" maxWidth="250"/>
+                        </VBox>
+
+                        <!-- Active Peer Inspector (Shown when peer is selected) -->
+                        <VBox fx:id="peerActionPane" spacing="10" VBox.vgrow="ALWAYS" visible="false" managed="false">
+
+                            <!-- Peer Header Card -->
+                            <HBox spacing="8" alignment="CENTER_LEFT" styleClass="inspector-header">
+                                <VBox spacing="2" HBox.hgrow="ALWAYS">
+                                    <HBox spacing="6" alignment="CENTER_LEFT">
+                                        <Label fx:id="peerActionTitle" text="Peer Name" styleClass="peer-name"/>
+                                        <Label fx:id="peerActionIdLabel" text="#000" styleClass="peer-id-badge"/>
+                                    </HBox>
+                                    <Label fx:id="peerHeaderStateBadge" text="CONNECTED" styleClass="badge, badge-success"/>
+                                </VBox>
+
+                                <Button fx:id="reconnectPeerButton" text="Reconnect" styleClass="primary-button">
+                                    <tooltip><Tooltip text="Trigger ICE renegotiation and reconnect with this peer"/></tooltip>
+                                </Button>
+                                <Button text="✕" onMouseClicked="#closePeerManagerPanel" styleClass="secondary-button">
+                                    <tooltip><Tooltip text="Close peer inspector"/></tooltip>
+                                </Button>
+                            </HBox>
+
+                            <!-- Inspector Sub-Tabs -->
+                            <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE" styleClass="tab-pane">
+
+                                <!-- SUB-TAB 1: WEBRTC & ICE DIAGNOSTICS -->
+                                <Tab text="WebRTC &amp; ICE">
+                                    <VBox spacing="8">
+                                        <padding>
+                                            <Insets top="8" right="2" bottom="8" left="2"/>
+                                        </padding>
+
+                                        <!-- States Grid -->
+                                        <GridPane hgap="6" vgap="6">
+                                            <columnConstraints>
+                                                <ColumnConstraints percentWidth="50"/>
+                                                <ColumnConstraints percentWidth="50"/>
+                                            </columnConstraints>
+
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                                <Label text="Peer Connection" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcPeerStateLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                                <Label text="ICE State" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcIceStateLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                                <Label text="DTLS State" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcDtlsStateLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                                <Label text="Pair Nominated" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcNominatedLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                        </GridPane>
+
+                                        <!-- Latency Row -->
+                                        <HBox spacing="6">
+                                            <VBox styleClass="metric-box" HBox.hgrow="ALWAYS">
+                                                <Label text="WebRTC RTT" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcRttLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                            <VBox styleClass="metric-box" HBox.hgrow="ALWAYS">
+                                                <Label text="Echo RTT" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcEchoRttLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                            <VBox styleClass="metric-box" HBox.hgrow="ALWAYS">
+                                                <Label text="Relay RTT" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcRelayRttLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                        </HBox>
+
+                                        <!-- Candidate Endpoints -->
+                                        <Label text="Candidate Endpoints" styleClass="kpi-title"/>
+                                        <VBox spacing="4" styleClass="candidate-box">
+                                            <HBox spacing="4" alignment="CENTER_LEFT">
+                                                <Label text="Local:" styleClass="metric-label" minWidth="45"/>
+                                                <Label fx:id="webrtcLocalCandidateLabel" text="-" styleClass="mono-text" wrapText="true" HBox.hgrow="ALWAYS"/>
+                                            </HBox>
+                                            <Separator/>
+                                            <HBox spacing="4" alignment="CENTER_LEFT">
+                                                <Label text="Remote:" styleClass="metric-label" minWidth="45"/>
+                                                <Label fx:id="webrtcRemoteCandidateLabel" text="-" styleClass="mono-text" wrapText="true" HBox.hgrow="ALWAYS"/>
+                                            </HBox>
+                                        </VBox>
+                                    </VBox>
+                                </Tab>
+
+                                <!-- SUB-TAB 2: TRAFFIC & DATACHANNEL -->
+                                <Tab text="Traffic &amp; Channel">
+                                    <VBox spacing="8">
+                                        <padding>
+                                            <Insets top="8" right="2" bottom="8" left="2"/>
+                                        </padding>
+
+                                        <!-- DataChannel Card -->
+                                        <Label text="DataChannel Status" styleClass="kpi-title"/>
+                                        <GridPane hgap="6" vgap="6">
+                                            <columnConstraints>
+                                                <ColumnConstraints percentWidth="50"/>
+                                                <ColumnConstraints percentWidth="50"/>
+                                            </columnConstraints>
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                                <Label text="Channel Label" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcChannelLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                                <Label text="Channel State" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcChannelStateLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                        </GridPane>
+
+                                        <!-- Traffic Volume -->
+                                        <Label text="Transfer Volume" styleClass="kpi-title"/>
+                                        <GridPane hgap="6" vgap="6">
+                                            <columnConstraints>
+                                                <ColumnConstraints percentWidth="50"/>
+                                                <ColumnConstraints percentWidth="50"/>
+                                            </columnConstraints>
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                                <Label text="Bytes Sent" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcBytesSentLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                                <Label text="Bytes Recv" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcBytesRecvLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                                <Label text="Messages Sent" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcMessagesSentLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                                <Label text="Messages Recv" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcMessagesRecvLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                        </GridPane>
+
+                                        <!-- Packets & Bitrate -->
+                                        <Label text="Packets &amp; Bandwidth" styleClass="kpi-title"/>
+                                        <GridPane hgap="6" vgap="6">
+                                            <columnConstraints>
+                                                <ColumnConstraints percentWidth="33.3"/>
+                                                <ColumnConstraints percentWidth="33.3"/>
+                                                <ColumnConstraints percentWidth="33.4"/>
+                                            </columnConstraints>
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                                <Label text="Packets Sent" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcPacketsSentLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                                <Label text="Packets Recv" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcPacketsRecvLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                            <VBox styleClass="metric-box" GridPane.columnIndex="2" GridPane.rowIndex="0">
+                                                <Label text="Discarded" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcPacketsDiscardedLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                        </GridPane>
+
+                                        <HBox spacing="6">
+                                            <VBox styleClass="metric-box" HBox.hgrow="ALWAYS">
+                                                <Label text="Out Bitrate" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcBitrateOutLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                            <VBox styleClass="metric-box" HBox.hgrow="ALWAYS">
+                                                <Label text="In Bitrate" styleClass="metric-label"/>
+                                                <Label fx:id="webrtcBitrateInLabel" text="-" styleClass="metric-value"/>
+                                            </VBox>
+                                        </HBox>
+                                    </VBox>
+                                </Tab>
+
+                                <!-- SUB-TAB 3: ROUTING & RELAY CONTROLS -->
+                                <Tab text="Routing &amp; Relay">
+                                    <VBox spacing="10">
+                                        <padding>
+                                            <Insets top="8" right="2" bottom="8" left="2"/>
+                                        </padding>
+
+                                        <VBox spacing="6">
+                                            <Label text="Peer Relay (Beta):" styleClass="kpi-title"/>
+                                            <CheckBox fx:id="additionalPacketForwardingCheckbox"
+                                                      text="Additional packet forwarding" selected="true"
+                                                      styleClass="check-box"/>
+                                        </VBox>
+
+                                        <VBox fx:id="allowCombinationPane" spacing="6" visible="false" managed="false">
+                                            <Label text="Allow Combination:" styleClass="kpi-title"/>
+                                            <ComboBox fx:id="allowCombinationComboBox" maxWidth="Infinity" styleClass="combo-box"/>
+                                        </VBox>
+                                    </VBox>
+                                </Tab>
+
+                            </TabPane>
+                        </VBox>
+                    </VBox>
+
+                </SplitPane>
+            </Tab>
+
+            <!-- TAB 2: GLOBAL WEBRTC MATRIX (EMBEDDED MULTI-PEER TELEMETRY) -->
+            <Tab text="Global WebRTC Matrix">
+                <VBox spacing="10">
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10"/>
+                    </padding>
+
+                    <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
+                        <!-- Matrix: Connection -->
+                        <Tab text="Connection Overview">
+                            <TableView fx:id="matrixConnectionTable" editable="false" tableMenuButtonVisible="true">
+                                <placeholder>
+                                    <Label text="No active peers connected in this game session."/>
+                                </placeholder>
+                                <columns>
+                                    <TableColumn fx:id="mConnPeerIdCol" text="ID" prefWidth="65"/>
+                                    <TableColumn fx:id="mConnLoginCol" text="Login" prefWidth="130"/>
+                                    <TableColumn fx:id="mConnPeerConnCol" text="Peer Connection" prefWidth="120"/>
+                                    <TableColumn fx:id="mConnIceConnCol" text="ICE State" prefWidth="105"/>
+                                    <TableColumn fx:id="mConnDtlsCol" text="DTLS State" prefWidth="95"/>
+                                    <TableColumn fx:id="mConnRttCol" text="WebRTC RTT (ms)" prefWidth="110"/>
+                                    <TableColumn fx:id="mConnEchoRttCol" text="Echo RTT (ms)" prefWidth="100"/>
+                                    <TableColumn fx:id="mConnPairStateCol" text="Pair State" prefWidth="90"/>
+                                    <TableColumn fx:id="mConnNominatedCol" text="Nominated" prefWidth="85"/>
+                                </columns>
+                            </TableView>
+                        </Tab>
+
+                        <!-- Matrix: Candidates -->
+                        <Tab text="Candidate Endpoints">
+                            <TableView fx:id="matrixCandidatesTable" editable="false" tableMenuButtonVisible="true">
+                                <placeholder>
+                                    <Label text="No active peers connected in this game session."/>
+                                </placeholder>
+                                <columns>
+                                    <TableColumn fx:id="mCandPeerIdCol" text="ID" prefWidth="65"/>
+                                    <TableColumn fx:id="mCandLoginCol" text="Login" prefWidth="130"/>
+                                    <TableColumn fx:id="mCandLocalTypeCol" text="Local Type" prefWidth="95"/>
+                                    <TableColumn fx:id="mCandLocalAddrCol" text="Local Address" prefWidth="190"/>
+                                    <TableColumn fx:id="mCandRemoteTypeCol" text="Remote Type" prefWidth="95"/>
+                                    <TableColumn fx:id="mCandRemoteAddrCol" text="Remote Address" prefWidth="190"/>
+                                </columns>
+                            </TableView>
+                        </Tab>
+
+                        <!-- Matrix: DataChannel -->
+                        <Tab text="DataChannels">
+                            <TableView fx:id="matrixDataChannelTable" editable="false" tableMenuButtonVisible="true">
+                                <placeholder>
+                                    <Label text="No active peers connected in this game session."/>
+                                </placeholder>
+                                <columns>
+                                    <TableColumn fx:id="mChanPeerIdCol" text="ID" prefWidth="65"/>
+                                    <TableColumn fx:id="mChanLoginCol" text="Login" prefWidth="130"/>
+                                    <TableColumn fx:id="mChanLabelCol" text="Channel Label" prefWidth="110"/>
+                                    <TableColumn fx:id="mChanStateCol" text="State" prefWidth="95"/>
+                                    <TableColumn fx:id="mChanMsgSentCol" text="Msg Sent" prefWidth="95"/>
+                                    <TableColumn fx:id="mChanMsgRecvCol" text="Msg Recv" prefWidth="95"/>
+                                    <TableColumn fx:id="mChanBytesSentCol" text="Bytes Sent" prefWidth="110"/>
+                                    <TableColumn fx:id="mChanBytesRecvCol" text="Bytes Recv" prefWidth="110"/>
+                                </columns>
+                            </TableView>
+                        </Tab>
+
+                        <!-- Matrix: Transport -->
+                        <Tab text="Transport &amp; Bandwidth">
+                            <TableView fx:id="matrixTransportTable" editable="false" tableMenuButtonVisible="true">
+                                <placeholder>
+                                    <Label text="No active peers connected in this game session."/>
+                                </placeholder>
+                                <columns>
+                                    <TableColumn fx:id="mTransPeerIdCol" text="ID" prefWidth="65"/>
+                                    <TableColumn fx:id="mTransLoginCol" text="Login" prefWidth="130"/>
+                                    <TableColumn fx:id="mTransOutBitrateCol" text="Out Bitrate" prefWidth="110"/>
+                                    <TableColumn fx:id="mTransInBitrateCol" text="In Bitrate" prefWidth="110"/>
+                                    <TableColumn fx:id="mTransPacketsSentCol" text="Packets Sent" prefWidth="95"/>
+                                    <TableColumn fx:id="mTransPacketsRecvCol" text="Packets Recv" prefWidth="95"/>
+                                    <TableColumn fx:id="mTransPacketsDiscardedCol" text="Discarded" prefWidth="95"/>
+                                </columns>
+                            </TableView>
+                        </Tab>
+                    </TabPane>
+                </VBox>
+            </Tab>
+
+        </TabPane>
+    </center>
+
+    <stylesheets>
+        <URL value="@modernTheme.css"/>
+    </stylesheets>
+</BorderPane>
