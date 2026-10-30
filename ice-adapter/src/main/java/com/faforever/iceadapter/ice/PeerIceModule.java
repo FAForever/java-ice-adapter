@@ -10,6 +10,7 @@ import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -166,6 +167,12 @@ public class PeerIceModule {
                                         + (int) (ThreadLocalRandom.current().nextDouble() * 999.0),
                                 MINIMUM_PORT,
                                 MINIMUM_PORT + 1000);
+                        try {
+                            component.getComponentSocket().setReceiveBufferSize(2 * 1024 * 1024);
+                            component.getComponentSocket().setSendBufferSize(2 * 1024 * 1024);
+                        } catch (SocketException e) {
+                            log.warn("{} Could not set buffer size on ComponentSocket", getLogPrefix(), e);
+                        }
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -500,9 +507,10 @@ public class PeerIceModule {
 
         byte[] data = new byte
                 [65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
+        DatagramPacket packet = new DatagramPacket(data, data.length);
         while (!Thread.currentThread().isInterrupted() && IceAdapter.getGameSession() == peer.getGameSession()) {
             try {
-                DatagramPacket packet = new DatagramPacket(data, data.length);
+                packet.setLength(data.length);
                 localComponent.getComponentSocket()
                         .receive(packet);
 

@@ -18,6 +18,12 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Slf4j
 public class Peer {
+    private static final InetAddress LOOPBACK_ADDRESS = initLoopbackAddress();
+
+    @SneakyThrows
+    private static InetAddress initLoopbackAddress() {
+        return InetAddress.getByName("127.0.0.1");
+    }
     private final GameSession gameSession;
 
     private final int remoteId;
@@ -61,6 +67,8 @@ public class Peer {
     private DatagramSocket initForwarding(int port) {
         try {
             DatagramSocket socket = new DatagramSocket(port);
+            socket.setReceiveBufferSize(2 * 1024 * 1024);
+            socket.setSendBufferSize(2 * 1024 * 1024);
             log.debug("Now forwarding data to peer {}", getPeerIdentifier());
             return socket;
         } catch (SocketException e) {
@@ -79,7 +87,7 @@ public class Peer {
         LockUtil.executeWithLock(lockSocketSend, () -> {
             try {
                 DatagramPacket packet = new DatagramPacket(
-                        data, offset, length, InetAddress.getByName("127.0.0.1"), GPGNetServer.getLobbyPort());
+                        data, offset, length, LOOPBACK_ADDRESS, GPGNetServer.getLobbyPort());
                 faSocket.send(packet);
             } catch (UnknownHostException e) {
             } catch (IOException e) {
@@ -102,9 +110,10 @@ public class Peer {
     private void faListener() {
         byte[] data = new byte
                 [65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
+        DatagramPacket packet = new DatagramPacket(data, data.length);
         while (!Thread.currentThread().isInterrupted() && IceAdapter.getGameSession() == gameSession && !closing) {
             try {
-                DatagramPacket packet = new DatagramPacket(data, data.length);
+                packet.setLength(data.length);
                 faSocket.receive(packet);
                 ice.onFaDataReceived(data, packet.getLength());
             } catch (IOException e) {
