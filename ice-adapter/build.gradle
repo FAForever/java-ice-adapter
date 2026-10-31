@@ -76,6 +76,63 @@ tasks.named("test") {
     failOnNoDiscoveredTests = false
 }
 
+// Black-box integration tests: the shadow jar is launched as a subprocess and driven over JSON-RPC,
+// with faf-test-harness's mock-game standing in for the game on the GPGNet side.
+sourceSets {
+    integrationTest
+}
+
+dependencies {
+    integrationTestImplementation(platform("org.junit:junit-bom:5.10.2"))
+    integrationTestImplementation("org.junit.jupiter:junit-jupiter")
+    integrationTestRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    integrationTestImplementation("org.assertj:assertj-core:3.25.3")
+    integrationTestImplementation('com.fasterxml.jackson.core:jackson-databind:2.13.4.2')
+}
+
+def mockGameJar = layout.buildDirectory.file("test-harness/mock-game-${fafTestHarnessVersion}-all.jar")
+
+tasks.register("downloadMockGame") {
+    description = "Downloads the pinned faf-test-harness mock-game jar and verifies its checksum."
+    inputs.property("version", fafTestHarnessVersion)
+    inputs.property("sha256", mockGameSha256)
+    outputs.file(mockGameJar)
+    doLast {
+        def target = mockGameJar.get().asFile
+        def url = "https://github.com/md-173/faf-test-harness/releases/download/${fafTestHarnessVersion}/mock-game-${fafTestHarnessVersion}-all.jar"
+        target.parentFile.mkdirs()
+        URI.create(url).toURL().withInputStream { input -> target.withOutputStream { it << input } }
+        def actual = java.security.MessageDigest.getInstance("SHA-256").digest(target.bytes).encodeHex().toString()
+        if (actual != mockGameSha256) {
+            target.delete()
+            throw new GradleException("Checksum mismatch for ${url}: expected ${mockGameSha256}, got ${actual}")
+        }
+    }
+}
+
+tasks.register("integrationTest", Test) {
+    description = "Runs the adapter jar against faf-test-harness mock games."
+    group = "verification"
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    useJUnitPlatform()
+    dependsOn(tasks.named("shadowJar"), tasks.named("downloadMockGame"))
+    inputs.file(tasks.named("shadowJar").flatMap { it.archiveFile })
+    inputs.file(mockGameJar)
+
+    def logDir = layout.buildDirectory.dir("integration-test-logs")
+    outputs.dir(logDir)
+    doFirst {
+        systemProperty("iceAdapter.jar", tasks.shadowJar.archiveFile.get().asFile.absolutePath)
+        systemProperty("mockGame.jar", mockGameJar.get().asFile.absolutePath)
+        systemProperty("integrationTest.logDir", logDir.get().asFile.absolutePath)
+    }
+    testLogging {
+        events("passed", "skipped", "failed")
+        exceptionFormat = "full"
+    }
+}
+
 tasks.named("check") {
     dependsOn("spotlessCheck")
 }
