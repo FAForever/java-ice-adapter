@@ -16,6 +16,38 @@ jobs:
         run: chmod +x ./gradlew
       - name: Run Checks
         run: ./gradlew --stacktrace -PjavafxPlatform=linux build
+  integration-tests:
+    # The adapter's -nojfx jar against faf-test-harness mock games, on both platforms the client ships for.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Run integration tests
+        run: ./gradlew --stacktrace -PjavafxClasspath=compileOnly :ice-adapter:integrationTest
+      - name: Upload process logs and test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-logs-${{ matrix.os }}
+          if-no-files-found: warn
+          path: |
+            ice-adapter/build/integration-test-logs
+            ice-adapter/build/reports/tests/integrationTest
   run-infer:
     runs-on: ubuntu-latest
     steps:
