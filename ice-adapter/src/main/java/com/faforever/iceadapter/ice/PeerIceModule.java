@@ -63,6 +63,7 @@ public class PeerIceModule {
             2 * 60 * 1000; // 2 mins, the interval in which multiple connects have to happen to force srflx/relay
     private static final int FORCE_SRFLX_COUNT = 1;
     private static final int FORCE_RELAY_COUNT = 2;
+    private static final int MAX_RECONNECT_ATTEMPTS = 5;
 
     private final Peer peer;
 
@@ -83,6 +84,8 @@ public class PeerIceModule {
     private final List<Long> connectivityAttemptTimes = new ArrayList<>();
     // How often have we been waiting for a response to local candidates/offer
     private final AtomicInteger awaitingCandidatesEventId = new AtomicInteger(0);
+    // Counts consecutive reconnect attempts since the last successful CONNECTED state; used to cap the retry loop
+    private final AtomicInteger consecutiveFailedAttempts = new AtomicInteger(0);
 
     private final Lock lockInit = new ReentrantLock();
     private final Lock lockLostConnection = new ReentrantLock();
@@ -396,6 +399,7 @@ public class PeerIceModule {
 
         // We are connected
         connected = true;
+        consecutiveFailedAttempts.set(0);
         rpcService.onConnected(IceAdapter.getId(), peer.getRemoteId(), true);
         setState(CONNECTED);
 
@@ -470,19 +474,23 @@ public class PeerIceModule {
             }
 
             if (previousState == CONNECTED) {
+                consecutiveFailedAttempts.set(0);
                 TrayIcon.showMessage("Reconnecting to %s (connection lost)".formatted(this.peer.getRemoteLogin()));
             }
 
-            if (previousState == CONNECTED && peer.isLocalOffer()) {
-                // We were connected before, retry immediately
+            if (peer.isLocalOffer()) {
+                int attempt = consecutiveFailedAttempts.incrementAndGet();
+                if (attempt > MAX_RECONNECT_ATTEMPTS) {
+                    log.warn(
+                            "{} Giving up after {} consecutive failed reconnect attempts. Use the FAF client's reconnect button to try again.",
+                            getLogPrefix(),
+                            MAX_RECONNECT_ATTEMPTS);
+                    return;
+                }
+                long delayMs = (previousState == CONNECTED) ? 0 : 5000;
                 CompletableFuture.runAsync(
                         this::initiateIce,
-                        CompletableFuture.delayedExecutor(0, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
-            } else if (peer.isLocalOffer()) {
-                // Last ice attempt didn't succeed, so wait a bit
-                CompletableFuture.runAsync(
-                        this::initiateIce,
-                        CompletableFuture.delayedExecutor(5000, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
+                        CompletableFuture.delayedExecutor(delayMs, TimeUnit.MILLISECONDS, IceAdapter.getExecutor()));
             }
         });
     }
