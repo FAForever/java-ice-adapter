@@ -63,7 +63,7 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
         PeerIceModule.setForceRelay(iceOptions.isForceRelay());
         gpgNetServer = new GPGNetServer();
         rpcService = new RPCService();
-        gpgNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort(), rpcService);
+        gpgNetServer.init(iceOptions.getGpgnetPort(), iceOptions.getLobbyPort(), rpcService, iceOptions.getLobbyInitMode());
         rpcService.init(iceOptions.getRpcPort(), gpgNetServer, this);
 
         PeerIceModule.setForceRelay(iceOptions.isForceRelay());
