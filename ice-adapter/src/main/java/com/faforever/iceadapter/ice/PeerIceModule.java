@@ -10,7 +10,9 @@ import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.SocketException;
+import org.ice4j.socket.DelegatingDatagramSocket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -32,6 +34,12 @@ import org.ice4j.security.LongTermCredential;
 public class PeerIceModule {
     @Setter
     private static RPCService rpcService;
+
+    private static final int SOCKET_BUFFER_SIZE = 2 * 1024 * 1024; // 2 MB
+
+    static {
+        DelegatingDatagramSocket.setDefaultReceiveBufferSize(SOCKET_BUFFER_SIZE);
+    }
 
     private static boolean ALLOW_HOST = true;
     private static boolean ALLOW_REFLEXIVE = true;
@@ -93,6 +101,18 @@ public class PeerIceModule {
         this.iceState = newState;
         rpcService.onIceConnectionStateChanged(IceAdapter.getId(), peer.getRemoteId(), iceState.getMessage());
         debug().peerStateChanged(this.peer);
+    }
+
+    private void applySocketBuffers(DatagramSocket socket) {
+        if (socket == null) {
+            return;
+        }
+        try {
+            socket.setReceiveBufferSize(SOCKET_BUFFER_SIZE);
+            socket.setSendBufferSize(SOCKET_BUFFER_SIZE);
+        } catch (SocketException e) {
+            log.warn("{} Could not set buffer size on socket", getLogPrefix(), e);
+        }
     }
 
     /**
@@ -167,12 +187,8 @@ public class PeerIceModule {
                                         + (int) (ThreadLocalRandom.current().nextDouble() * 999.0),
                                 MINIMUM_PORT,
                                 MINIMUM_PORT + 1000);
-                        try {
-                            component.getComponentSocket().setReceiveBufferSize(2 * 1024 * 1024);
-                            component.getComponentSocket().setSendBufferSize(2 * 1024 * 1024);
-                        } catch (SocketException e) {
-                            log.warn("{} Could not set buffer size on ComponentSocket", getLogPrefix(), e);
-                        }
+                        applySocketBuffers(component.getSocket());
+                        applySocketBuffers(component.getComponentSocket());
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -200,6 +216,10 @@ public class PeerIceModule {
             CompletableFuture.runAsync(this::onConnectionLost, IceAdapter.getExecutor());
             return;
         }
+        for (LocalCandidate candidate : component.getLocalCandidates()) {
+            applySocketBuffers(candidate.getDatagramSocket());
+        }
+
 
         long previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
         CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(
@@ -379,6 +399,10 @@ public class PeerIceModule {
         connected = true;
         rpcService.onConnected(IceAdapter.getId(), peer.getRemoteId(), true);
         setState(CONNECTED);
+
+        if (component.getSelectedPair() != null && component.getSelectedPair().getLocalCandidate() != null) {
+            applySocketBuffers(component.getSelectedPair().getLocalCandidate().getDatagramSocket());
+        }
 
         if (component.getSelectedPair().getLocalCandidate().getType() == CandidateType.RELAYED_CANDIDATE) {
             turnRefreshModule = new PeerTurnRefreshModule(
