@@ -221,6 +221,10 @@ public class PeerIceModule {
         }
 
         long previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
+        // Count this attempt now so FORCE_SRFLX/FORCE_RELAY escalation also fires for peers that
+        // never respond (otherwise startIce() would be the only place the count grows, and that
+        // path is unreachable for silent peers).
+        connectivityAttemptTimes.add(0, System.currentTimeMillis());
         CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(
                 IceAdapter.getId(),
                 peer.getRemoteId(),
@@ -357,8 +361,6 @@ public class PeerIceModule {
      * Runs the actual connectivity establishment, candidates have been exchanged and need to be checked
      */
     private void startIce() {
-        connectivityAttemptTimes.add(0, System.currentTimeMillis());
-
         log.debug("{} Starting ICE for peer {}", getLogPrefix(), peer.getRemoteId());
         agent.startConnectivityEstablishment();
 
