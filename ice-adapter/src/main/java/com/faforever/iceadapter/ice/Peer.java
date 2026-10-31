@@ -24,6 +24,7 @@ public class Peer {
     private static InetAddress initLoopbackAddress() {
         return InetAddress.getByName("127.0.0.1");
     }
+
     private final GameSession gameSession;
 
     private final int remoteId;
@@ -86,8 +87,8 @@ public class Peer {
     void onIceDataReceived(byte[] data, int offset, int length) {
         LockUtil.executeWithLock(lockSocketSend, () -> {
             try {
-                DatagramPacket packet = new DatagramPacket(
-                        data, offset, length, LOOPBACK_ADDRESS, GPGNetServer.getLobbyPort());
+                DatagramPacket packet =
+                        new DatagramPacket(data, offset, length, LOOPBACK_ADDRESS, GPGNetServer.getLobbyPort());
                 faSocket.send(packet);
             } catch (UnknownHostException e) {
             } catch (IOException e) {

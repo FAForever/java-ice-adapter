@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import org.ice4j.socket.DelegatingDatagramSocket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -28,6 +27,7 @@ import org.ice4j.ice.*;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.security.LongTermCredential;
+import org.ice4j.socket.DelegatingDatagramSocket;
 
 @Getter
 @Slf4j
@@ -219,7 +219,6 @@ public class PeerIceModule {
         for (LocalCandidate candidate : component.getLocalCandidates()) {
             applySocketBuffers(candidate.getDatagramSocket());
         }
-
 
         long previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
         CandidatesMessage localCandidatesMessage = CandidateUtil.packCandidates(
@@ -511,8 +510,7 @@ public class PeerIceModule {
     void sendViaIce(byte[] data, int offset, int length) {
         if (connected && component != null) {
             try {
-                component.getComponentSocket()
-                        .send(new DatagramPacket(data, offset, length));
+                component.getComponentSocket().send(new DatagramPacket(data, offset, length));
             } catch (IOException e) {
                 log.warn("{} Failed to send data via ICE", getLogPrefix(), e);
                 onConnectionLost();
@@ -535,8 +533,7 @@ public class PeerIceModule {
         while (!Thread.currentThread().isInterrupted() && IceAdapter.getGameSession() == peer.getGameSession()) {
             try {
                 packet.setLength(data.length);
-                localComponent.getComponentSocket()
-                        .receive(packet);
+                localComponent.getComponentSocket().receive(packet);
 
                 if (packet.getLength() == 0) {
                     continue;
