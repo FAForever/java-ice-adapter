@@ -34,6 +34,9 @@ import org.ice4j.stack.TransactionID;
  *   <li>Relayed candidates were paired with remote private/link-local/loopback candidates. Public TURN servers refuse
  *   to relay to those, so every such pair only produced failing permission requests. They are no longer paired.</li>
  * </ul>
+ *
+ * <p>Reported upstream as <a href="https://github.com/jitsi/ice4j/issues/319">jitsi/ice4j#319</a>. This class can be
+ * removed once ice4j fixes the retry loop.
  */
 @Slf4j
 public class GuardedTurnCandidateHarvester extends TurnCandidateHarvester {
