@@ -1,24 +1,26 @@
 plugins {
     id 'java'
-    id 'com.diffplug.spotless' version '6.25.0'
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id 'com.diffplug.spotless' version '8.10.4'
+    id 'com.gradleup.shadow' version '9.6.1'
 }
 
 
-group 'com.faforever'
-version '1.0-SNAPSHOT'
+group = 'com.faforever'
+version = '1.0-SNAPSHOT'
 
-sourceCompatibility = JavaVersion.VERSION_21
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+}
 
 repositories {
     mavenCentral()
-    maven { url "https://jitpack.io" }
+    maven { url = "https://jitpack.io" }
 }
 
 allprojects {
     repositories {
         mavenCentral()
-        maven { url "https://jitpack.io" }
+        maven { url = "https://jitpack.io" }
     }
 }
 
