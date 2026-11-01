@@ -8,17 +8,19 @@ buildscript {
 apply plugin: 'idea'
 apply plugin: 'java'
 apply plugin: 'java-library'
-apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.gradleup.shadow'
 apply plugin: 'com.diffplug.spotless'
 
-group 'com.faforever'
+group = 'com.faforever'
 
 
-sourceCompatibility = JavaVersion.VERSION_21
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+}
 
 repositories {
     mavenCentral()
-    maven { url "https://jitpack.io" }
+    maven { url = "https://jitpack.io" }
 }
 
 dependencies {
@@ -67,6 +69,11 @@ shadowJar {
     manifest {
         attributes 'Main-Class': 'com.faforever.iceadapter.IceAdapter'
     }
+}
+
+// src/test only holds main()-style manual experiments, no JUnit tests.
+tasks.named("test") {
+    failOnNoDiscoveredTests = false
 }
 
 tasks.named("check") {
