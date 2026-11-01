@@ -25,7 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.*;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
-import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.security.LongTermCredential;
 import org.ice4j.socket.DelegatingDatagramSocket;
 
@@ -172,7 +171,7 @@ public class PeerIceModule {
         // TURN is latency sensitive
         List<IceServer> iceServers = getViableIceServers();
         iceServers.forEach(iceServer -> iceServer.getTurnAddresses().forEach(address -> {
-            var harvester = new TurnCandidateHarvester(
+            var harvester = new GuardedTurnCandidateHarvester(
                     address, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential()));
             log.info("{} Add TURN harvester for {}", getLogPrefix(), address.getHostName());
             agent.addCandidateHarvester(harvester);
