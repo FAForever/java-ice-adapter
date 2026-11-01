@@ -92,6 +92,7 @@ public class PeerConnectivityCheckerModule {
         if (length != 9) {
             log.trace("Received echo of wrong length, length: {}", length);
             invalidEchosReceived++;
+            return;
         }
 
         int rtt =

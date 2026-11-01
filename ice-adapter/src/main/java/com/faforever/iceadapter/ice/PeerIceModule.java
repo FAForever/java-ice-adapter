@@ -412,8 +412,8 @@ public class PeerIceModule {
             connectivityChecker.start();
         }
 
-        listenerThread = new Thread(this::listener);
-        listenerThread.start();
+        listenerThread =
+                Thread.ofVirtual().name("ice-listener-" + peer.getRemoteId()).start(this::listener);
     }
 
     /**
