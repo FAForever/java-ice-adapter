@@ -62,4 +62,17 @@ public class IceOptions {
             defaultValue = "wss://ice-telemetry.faforever.com",
             description = "Telemetry server to connect to")
     private String telemetryServer;
+
+    @Option(
+            names = "--echo-interval-ms",
+            defaultValue = "1000",
+            description = "interval (ms) at which connectivity-check echo packets are sent to peers")
+    private int echoIntervalMs;
+
+    @Option(
+            names = "--echo-timeout-ms",
+            defaultValue = "10000",
+            description =
+                    "silence threshold (ms) before a peer is declared disconnected; lower values speed up peer-loss detection")
+    private int echoTimeoutMs;
 }

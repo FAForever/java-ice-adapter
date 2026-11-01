@@ -194,6 +194,14 @@ public class IceAdapter implements Callable<Integer>, AutoCloseable, FafRpcCallb
         return INSTANCE.iceOptions.getAcceptableLatency();
     }
 
+    public static int getEchoIntervalMs() {
+        return INSTANCE.iceOptions.getEchoIntervalMs();
+    }
+
+    public static int getEchoTimeoutMs() {
+        return INSTANCE.iceOptions.getEchoTimeoutMs();
+    }
+
     public static Executor getExecutor() {
         return INSTANCE.executor;
     }
