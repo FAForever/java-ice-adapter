@@ -13,6 +13,9 @@ public class AgentUtil {
      * NetAccessManager connector lock. Closing a relayed candidate socket needs that socket's send queue lock, which its
      * send thread holds while sending through the NetAccessManager, so both threads block forever. Removing the media
      * stream first closes the candidate sockets without holding the connector lock.
+     *
+     * <p>Reported upstream as <a href="https://github.com/jitsi/ice4j/issues/320">jitsi/ice4j#320</a>. Once ice4j fixes
+     * it, this can be replaced by a plain {@link Agent#free()}.
      */
     public void free(Agent agent, IceMediaStream mediaStream) {
         if (mediaStream != null) {
