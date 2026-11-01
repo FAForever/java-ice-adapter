@@ -430,34 +430,11 @@ public class PeerIceModule {
 
             IceState previousState = getIceState();
 
-            if (listenerThread != null) {
-                listenerThread.interrupt();
-                listenerThread = null;
-            }
-
-            if (turnRefreshModule != null) {
-                turnRefreshModule.close();
-                turnRefreshModule = null;
-            }
-
-            connectivityChecker.stop();
-
             if (connected) {
-                connected = false;
                 log.warn("{} ICE connection has been lost for peer", getLogPrefix());
-                rpcService.onConnected(IceAdapter.getId(), peer.getRemoteId(), false);
             }
 
-            setState(DISCONNECTED);
-
-            if (agent != null) {
-                AgentUtil.free(agent, mediaStream);
-                agent = null;
-                mediaStream = null;
-                component = null;
-            }
-
-            debug().peerStateChanged(this.peer);
+            tearDown();
 
             if (peer.isClosing()) {
                 log.warn("{} Peer not connected anymore, aborting onConnectionLost of ICE", getLogPrefix());
@@ -569,18 +546,48 @@ public class PeerIceModule {
         log.debug("{} No longer listening for messages from ICE", getLogPrefix());
     }
 
+    /**
+     * Peer is being closed, tears down the ICE connection without reinitiating it
+     */
     void close() {
+        LockUtil.executeWithLock(lockLostConnection, this::tearDown);
+    }
+
+    /**
+     * Stops listener, turn refresh and connectivity checker thread, informs the client about the disconnect,
+     * changes state to disconnected and frees the agent. Safe to call multiple times.
+     * Must be called while holding lockLostConnection.
+     */
+    private void tearDown() {
         if (listenerThread != null) {
             listenerThread.interrupt();
             listenerThread = null;
         }
+
         if (turnRefreshModule != null) {
             turnRefreshModule.close();
+            turnRefreshModule = null;
         }
+
+        connectivityChecker.stop();
+
+        if (connected) {
+            connected = false;
+            rpcService.onConnected(IceAdapter.getId(), peer.getRemoteId(), false);
+        }
+
+        if (iceState != DISCONNECTED) {
+            setState(DISCONNECTED);
+        }
+
         if (agent != null) {
             AgentUtil.free(agent, mediaStream);
+            agent = null;
+            mediaStream = null;
+            component = null;
         }
-        connectivityChecker.stop();
+
+        debug().peerStateChanged(this.peer);
     }
 
     public long getConnectivityAttempsInThePast(final long millis) {
