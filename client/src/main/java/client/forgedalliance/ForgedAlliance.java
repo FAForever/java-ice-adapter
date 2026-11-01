@@ -294,12 +294,12 @@ public class ForgedAlliance {
 				}
 
 				if(command.equals("HostGame")) {
-					assertThat(! args.get(0).toString().isEmpty());
-					Logger.info("<GPG> Hosting game on %s", args.get(0));
+					assertThat(! args.getFirst().toString().isEmpty());
+					Logger.info("<GPG> Hosting game on %s", args.getFirst());
 				}
 
 				if(command.equals("ConnectToPeer")) {
-					ForgedAlliancePeer peer = new ForgedAlliancePeer(((String)args.get(0)).split(":")[0], Integer.parseInt(((String)args.get(0)).split(":")[1]), (Integer) args.get(2), (String)args.get(1), ForgedAlliancePeer.Offerer.LOCAL);
+					ForgedAlliancePeer peer = new ForgedAlliancePeer(((String)args.getFirst()).split(":")[0], Integer.parseInt(((String)args.getFirst()).split(":")[1]), (Integer) args.get(2), (String)args.get(1), ForgedAlliancePeer.Offerer.LOCAL);
 
 					synchronized (peers) {
 						if(peers.stream().noneMatch(p -> p.remoteId == peer.remoteId)) {
@@ -310,7 +310,7 @@ public class ForgedAlliance {
 
 				if(command.equals("DisconnectFromPeer")) {
 					synchronized (peers) {
-						peers.stream().filter(p -> p.remoteId == (Integer) args.get(0)).findAny()
+						peers.stream().filter(p -> p.remoteId == (Integer) args.getFirst()).findAny()
 								.ifPresent(p -> {
 									p.setConnected(false);
 									peers.remove(p);

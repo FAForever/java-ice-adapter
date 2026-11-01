@@ -25,8 +25,8 @@ public class Logger {
 
 		try {
 			Date date = new Date();
-			System.out.println(programTitle + "\n");
-			System.out.println("Logging started:   " + date.toString());
+            IO.println(programTitle + "\n");
+            IO.println("Logging started:   " + date.toString());
 
 			initFileWriter(programTitle, date);
 		} catch (IOException e) {
@@ -93,7 +93,7 @@ public class Logger {
 		if (logLevel >= DEBUG) {
 			Date date = new Date();
 			String logString = "[DEBUG] " + (date.getHours() < 10 ? "0" + date.getHours() : date.getHours()) + ":" + (date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes()) + ":" + (date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds()) + ":\t\t" + string + "\n";
-			System.out.print(logString);
+            IO.print(logString);
 			writeToLog(logString);
 		}
 	}
@@ -105,7 +105,7 @@ public class Logger {
 		if (logLevel >= INFO) {
 			Date date = new Date();
 			String logString = "[INFO] " + (date.getHours() < 10 ? "0" + date.getHours() : date.getHours()) + ":" + (date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes()) + ":" + (date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds()) + ":\t\t" + string + "\n";
-			System.out.print(logString);
+            IO.print(logString);
 			writeToLog(logString);
 		}
 	}
@@ -118,7 +118,7 @@ public class Logger {
 		if (logLevel >= WARNING) {
 			Date date = new Date();
 			String logString = "[WARNING] " + (date.getHours() < 10 ? "0" + date.getHours() : date.getHours()) + ":" + (date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes()) + ":" + (date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds()) + ":\t\t" + string + "\n";
-			System.out.print(logString);
+            IO.print(logString);
 			writeToLog(logString);
 		}
 	}

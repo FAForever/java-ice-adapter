@@ -113,7 +113,7 @@ public class GPGNetServer implements AutoCloseable {
         private void processGpgnetMessage(String command, List<Object> args) {
             switch (command) {
                 case "GameState" -> {
-                    gameState = GameState.getByName((String) args.get(0));
+                    gameState = GameState.getByName((String) args.getFirst());
                     log.debug("New GameState: {}", gameState.getName());
 
                     if (gameState == GameState.IDLE) {

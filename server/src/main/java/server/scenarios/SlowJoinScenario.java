@@ -18,7 +18,7 @@ public class SlowJoinScenario extends Scenario {
     public synchronized void update(float d) {
         synchronized (TestServer.games) {
             if(TestServer.games.size() > 0) {
-                TestServer.players.stream().filter(p -> ! TestServer.games.get(0).getPlayers().contains(p)).findFirst().ifPresent(TestServer.games.get(0)::join);
+                TestServer.players.stream().filter(p -> ! TestServer.games.getFirst().getPlayers().contains(p)).findFirst().ifPresent(TestServer.games.getFirst()::join);
             }
         }
     }

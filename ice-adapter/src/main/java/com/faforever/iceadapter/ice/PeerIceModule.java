@@ -357,7 +357,7 @@ public class PeerIceModule {
      * Runs the actual connectivity establishment, candidates have been exchanged and need to be checked
      */
     private void startIce() {
-        connectivityAttemptTimes.add(0, System.currentTimeMillis());
+        connectivityAttemptTimes.addFirst(System.currentTimeMillis());
 
         log.debug("{} Starting ICE for peer {}", getLogPrefix(), peer.getRemoteId());
         agent.startConnectivityEstablishment();

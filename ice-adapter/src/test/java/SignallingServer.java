@@ -24,16 +24,16 @@ public class SignallingServer {
                 sockets.clear();
                 messages.clear();
             }
-            System.out.println(s);
+            IO.println(s);
             messages.add(s);
             sockets.add(socket);
 
             if (sockets.size() == 2) {
-                DataOutputStream out1 = new DataOutputStream(sockets.get(0).getOutputStream());
+                DataOutputStream out1 = new DataOutputStream(sockets.getFirst().getOutputStream());
                 out1.writeUTF(messages.get(1));
                 out1.flush();
                 DataOutputStream out2 = new DataOutputStream(sockets.get(1).getOutputStream());
-                out2.writeUTF(messages.get(0));
+                out2.writeUTF(messages.getFirst());
                 out2.flush();
 
                 sockets.forEach(sock -> {

@@ -14,6 +14,7 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static com.github.nocatch.NoCatch.noCatch;
 
@@ -88,11 +89,12 @@ public class TestClient {
                 }
 
                 if(arg.replaceAll("-","").equals("help") || arg.equals("/?")){
-					System.out.println("Possible Arguments:\n" +
-							"--skip             Skips the GDRP check\n" +
-							"--name=yourname    Sets a custom name without asking\n" +
-							"--port=newport     Changes external adapter port\n" +
-							"--debug            Turns on debug mode");
+                    IO.println("""
+                            Possible Arguments:
+                            --skip             Skips the GDRP check
+                            --name=yourname    Sets a custom name without asking
+                            --port=newport     Changes external adapter port
+                            --debug            Turns on debug mode""");
                 	System.exit(0);
 				}
 
@@ -135,7 +137,7 @@ public class TestClient {
 	}
 
 	public static void getUsername() {
-		String preGeneratedUsername = "iceTester" + (int)(Math.random() * 10000);
+		String preGeneratedUsername = "iceTester" + (int)(ThreadLocalRandom.current().nextDouble() * 10000);
 
 		if(! TestClient.DEBUG_MODE && new File("iceTestUsername").exists()) {
 			try {
