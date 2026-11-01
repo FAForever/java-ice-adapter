@@ -70,7 +70,8 @@ final class IceAdapterProcess implements AutoCloseable {
         try {
             RpcClient rpc = RpcClient.connect(rpcPort, Duration.ofSeconds(30));
             return new IceAdapterProcess(playerId, login, rpcPort, gpgNetPort, lobbyPort, process, rpc);
-        } catch (IOException | RuntimeException e) {
+        } catch (Exception e) {
+            // Includes the interrupt of a JUnit timeout: start() never returned, so no caller can close it.
             process.close();
             throw e;
         }

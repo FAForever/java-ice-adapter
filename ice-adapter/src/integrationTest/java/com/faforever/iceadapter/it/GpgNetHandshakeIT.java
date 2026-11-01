@@ -52,6 +52,9 @@ class GpgNetHandshakeIT {
             adapter.rpc.abort();
 
             adapter.process.awaitLine("close\\(\\) - stopping the adapter", TIMEOUT);
+            assertThat(adapter.process.awaitExit(TIMEOUT))
+                    .as("adapter process exits after stopping")
+                    .isTrue();
         }
     }
 
@@ -67,6 +70,9 @@ class GpgNetHandshakeIT {
             adapter.rpc.close();
 
             adapter.process.awaitLine("close\\(\\) - stopping the adapter", TIMEOUT);
+            assertThat(adapter.process.awaitExit(TIMEOUT))
+                    .as("adapter process exits after stopping")
+                    .isTrue();
         }
     }
 
@@ -81,6 +87,9 @@ class GpgNetHandshakeIT {
             adapter.rpc.abort();
 
             adapter.process.awaitLine("close\\(\\) - stopping the adapter", TIMEOUT);
+            assertThat(adapter.process.awaitExit(TIMEOUT))
+                    .as("adapter process exits after stopping")
+                    .isTrue();
         }
     }
 }

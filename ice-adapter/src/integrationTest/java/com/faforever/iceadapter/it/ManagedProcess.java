@@ -54,6 +54,11 @@ class ManagedProcess implements AutoCloseable {
                 return match.get();
             }
             if (!process.isAlive()) {
+                // It may have logged the line and exited after the read above.
+                match = findLine(pattern);
+                if (match.isPresent()) {
+                    return match.get();
+                }
                 throw new IllegalStateException(name + " exited with " + process.exitValue() + " before logging /"
                         + regex + "/; see " + logFile);
             }
@@ -75,6 +80,11 @@ class ManagedProcess implements AutoCloseable {
 
     boolean isAlive() {
         return process.isAlive();
+    }
+
+    /** Waits for the process to exit on its own; returns whether it did within {@code timeout}. */
+    boolean awaitExit(Duration timeout) throws InterruptedException {
+        return process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override
