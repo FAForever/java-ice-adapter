@@ -5,6 +5,7 @@ import static com.faforever.iceadapter.ice.IceState.*;
 
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
+import com.faforever.iceadapter.util.AgentUtil;
 import com.faforever.iceadapter.util.CandidateUtil;
 import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
@@ -146,7 +147,7 @@ public class PeerIceModule {
      */
     private void createAgent() {
         if (agent != null) {
-            agent.free();
+            AgentUtil.free(agent, mediaStream);
         }
 
         agent = new Agent();
@@ -451,7 +452,7 @@ public class PeerIceModule {
             setState(DISCONNECTED);
 
             if (agent != null) {
-                agent.free();
+                AgentUtil.free(agent, mediaStream);
                 agent = null;
                 mediaStream = null;
                 component = null;
@@ -578,7 +579,7 @@ public class PeerIceModule {
             turnRefreshModule.close();
         }
         if (agent != null) {
-            agent.free();
+            AgentUtil.free(agent, mediaStream);
         }
         connectivityChecker.stop();
     }
