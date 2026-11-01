@@ -28,7 +28,7 @@ public class NoLogScenario extends Scenario {
             if(TestServer.games.isEmpty()) {
                 TestServer.games.add(new Game(player));
             } else {
-                TestServer.games.get(0).join(player);
+                TestServer.games.getFirst().join(player);
             }
         }
     }

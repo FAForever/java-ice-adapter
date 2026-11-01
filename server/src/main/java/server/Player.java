@@ -108,30 +108,30 @@ public class Player {
 				String messageClass = in.readUTF();
 				Object message = gson.fromJson(in.readUTF(), Class.forName(messageClass));
 
-				if(message instanceof IceMessage) {
+				if(message instanceof IceMessage iceMessage) {
 					Logger.debug("IceMessage: %s", gson.toJson(message));
 
-					if(filterIceMessage((IceMessage)message)) {
+					if(filterIceMessage(iceMessage)) {
 						Logger.info("Filtered IceMessage");
 						continue;
 					}
 
-					TestServer.collectedData.get(this.id).addIceMessage(((IceMessage)message).getDestPlayerId(), (IceMessage)message);
+					TestServer.collectedData.get(this.id).addIceMessage(iceMessage.getDestPlayerId(), iceMessage);
 
 					synchronized (players) {
 						players.stream()
-								.filter(p -> p.getId() == ((IceMessage)message).getDestPlayerId())
+								.filter(p -> p.getId() == iceMessage.getDestPlayerId())
 								.findFirst().ifPresent(p -> p.send(message));
 					}
 				}
 
-				if(message instanceof ClientInformationMessage) {
+				if(message instanceof ClientInformationMessage informationMessage) {
 					Logger.debug("Client information message: %s", gson.toJson(message));
-					TestServer.collectedData.get(this.id).getInformationMessages().add((ClientInformationMessage) message);
+					TestServer.collectedData.get(this.id).getInformationMessages().add(informationMessage);
 				}
 
-				if(message instanceof EchoRequest) {
-					send(new EchoResponse(((EchoRequest)message).getTimestamp()));
+				if(message instanceof EchoRequest request) {
+					send(new EchoResponse(request.getTimestamp()));
 				}
 			}
 		} catch(IOException | ClassNotFoundException | JsonSyntaxException e) {

@@ -7,6 +7,7 @@ import server.TestServer;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class RandomStopScenario extends Scenario {
 
@@ -25,12 +26,12 @@ public class RandomStopScenario extends Scenario {
                 for(Player player : TestServer.players) {
 
                     if(stoppedAdapters.contains(player)) {
-                        if(Math.random() < 0.8) {
+                        if(ThreadLocalRandom.current().nextDouble() < 0.8) {
                             stoppedAdapters.remove(player);
                             player.sigCont();
                         }
                     } else {
-                        if(Math.random() < 0.2) {
+                        if(ThreadLocalRandom.current().nextDouble() < 0.2) {
                             stoppedAdapters.add(player);
                             player.sigStop();
                         }
@@ -50,7 +51,7 @@ public class RandomStopScenario extends Scenario {
             if(TestServer.games.isEmpty()) {
                 TestServer.games.add(new Game(player));
             } else {
-                TestServer.games.get(0).join(player);
+                TestServer.games.getFirst().join(player);
             }
         }
     }

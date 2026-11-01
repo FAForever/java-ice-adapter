@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 import static com.github.nocatch.NoCatch.noCatch;
@@ -90,7 +89,7 @@ public class TestServer {
 
 	public static void writeCollectedData() {
 		Logger.info("Writing logs...");
-		Path dir = Paths.get(String.valueOf(System.currentTimeMillis()));
+		Path dir = Path.of(String.valueOf(System.currentTimeMillis()));
 		File dirFile = dir.toFile();
 		if(! dirFile.exists()) {
 			dirFile.mkdir();

@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class GUI extends Application {
 
@@ -62,7 +63,7 @@ public class GUI extends Application {
 					}
 				});
 			} else {
-				TestClient.username = "iceTester" + (int)(Math.random() * 10000);
+				TestClient.username = "iceTester" + (int)(ThreadLocalRandom.current().nextDouble() * 10000);
 			}
 
 			if (TestClient.username == null) {
@@ -82,7 +83,7 @@ public class GUI extends Application {
 
 			if(! TestClient.DEBUG_MODE) {
 				Optional<ButtonType> result = gdprDialog.showAndWait();
-				if(! result.isPresent() || result.get() != ButtonType.OK) {
+				if(result.isEmpty() || result.get() != ButtonType.OK) {
 					System.exit(0);
 				}
 			}

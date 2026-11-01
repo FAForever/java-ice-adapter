@@ -43,7 +43,7 @@ public class TextAreaLogAppender<E> extends OutputStreamAppender<E> {
 
             if (textArea != null) {
                 while (!buffer.isEmpty()) {
-                    appendText(String.valueOf((char) buffer.remove(0).intValue()));
+                    appendText(String.valueOf((char) buffer.removeFirst().intValue()));
                 }
                 appendText(String.valueOf((char) b));
             } else {

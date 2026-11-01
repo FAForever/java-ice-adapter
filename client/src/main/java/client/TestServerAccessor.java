@@ -49,42 +49,42 @@ public class TestServerAccessor {
 				String messageClass = in.readUTF();
 				Object message = gson.fromJson(in.readUTF(), Class.forName(messageClass));
 
-				if(message instanceof IceMessage) {
-					ICEAdapter.iceMsg(((IceMessage)message).getSrcPlayerId(), ((IceMessage)message).getMsg());
+				if(message instanceof IceMessage iceMessage) {
+					ICEAdapter.iceMsg(iceMessage.getSrcPlayerId(), iceMessage.getMsg());
 				}
 
-				if(message instanceof HostGameMessage) {
+				if(message instanceof HostGameMessage gameMessage) {
 					if(TestClient.forgedAlliance != null) {
 						TestClient.leaveGame();
 					}
 
-					ICEAdapter.hostGame(((HostGameMessage)message).getMapName());
+					ICEAdapter.hostGame(gameMessage.getMapName());
 					TestClient.joinGame(ICEAdapter.GPG_PORT, ICEAdapter.LOBBY_PORT);
 				}
 
-				if(message instanceof JoinGameMessage) {
+				if(message instanceof JoinGameMessage gameMessage1) {
 					if(TestClient.forgedAlliance != null) {
 						TestClient.leaveGame();
 					}
 
-					ICEAdapter.joinGame(((JoinGameMessage)message).getRemotePlayerLogin(), ((JoinGameMessage)message).getRemotePlayerId());
+					ICEAdapter.joinGame(gameMessage1.getRemotePlayerLogin(), gameMessage1.getRemotePlayerId());
 					TestClient.joinGame(ICEAdapter.GPG_PORT, ICEAdapter.LOBBY_PORT);
 				}
 
-				if(message instanceof ConnectToPeerMessage) {
-					ICEAdapter.connectToPeer(((ConnectToPeerMessage)message).getRemotePlayerLogin(), ((ConnectToPeerMessage)message).getRemotePlayerId(), ((ConnectToPeerMessage)message).isOffer());
+				if(message instanceof ConnectToPeerMessage peerMessage) {
+					ICEAdapter.connectToPeer(peerMessage.getRemotePlayerLogin(), peerMessage.getRemotePlayerId(), peerMessage.isOffer());
 				}
 
-				if(message instanceof DisconnectFromPeerMessage) {
-					ICEAdapter.disconnectFromPeer(((DisconnectFromPeerMessage)message).getRemotePlayerId());
+				if(message instanceof DisconnectFromPeerMessage peerMessage1) {
+					ICEAdapter.disconnectFromPeer(peerMessage1.getRemotePlayerId());
 				}
 
 				if(message instanceof LeaveGameMessage) {
 					TestClient.leaveGame();
 				}
 
-				if(message instanceof IceAdapterSignalMessage) {
-					String signal = ((IceAdapterSignalMessage)message).getSignal();
+				if(message instanceof IceAdapterSignalMessage signalMessage) {
+					String signal = signalMessage.getSignal();
 					switch (signal) {
 						case "stop": ICEAdapter.sigStop();break;
 						case "cont": ICEAdapter.sigCont();break;
@@ -93,20 +93,19 @@ public class TestServerAccessor {
 					}
 				}
 
-				if(message instanceof EchoResponse) {
-					latencies.add((int) (System.currentTimeMillis() - ((EchoResponse) message).getTimestamp()));
+				if(message instanceof EchoResponse response) {
+					latencies.add((int) (System.currentTimeMillis() - response.getTimestamp()));
 					if(latencies.size() > 50) {
 						latencies.remove();
 					}
 				}
 
-				if(message instanceof HolePunchingMessage) {
-					HolePunchingMessage msg = (HolePunchingMessage) message;
+				if(message instanceof HolePunchingMessage msg) {
 					HolePunching.addPeer(msg.getId(), InetAddress.getByName(msg.getAddress()), msg.getPort());
 				}
 
-				if(message instanceof ScenarioOptionsMessage) {
-					TestClient.scenarioOptions = (ScenarioOptionsMessage) message;
+				if(message instanceof ScenarioOptionsMessage optionsMessage) {
+					TestClient.scenarioOptions = optionsMessage;
 				}
 
 			}

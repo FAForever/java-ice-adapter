@@ -5,11 +5,14 @@ import static com.faforever.iceadapter.ice.IceState.*;
 
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.rpc.RPCService;
+import com.faforever.iceadapter.util.AgentUtil;
 import com.faforever.iceadapter.util.CandidateUtil;
 import com.faforever.iceadapter.util.LockUtil;
 import com.faforever.iceadapter.util.TrayIcon;
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -23,14 +26,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.*;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
-import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.security.LongTermCredential;
+import org.ice4j.socket.DelegatingDatagramSocket;
 
 @Getter
 @Slf4j
 public class PeerIceModule {
     @Setter
     private static RPCService rpcService;
+
+    private static final int SOCKET_BUFFER_SIZE = 2 * 1024 * 1024; // 2 MB
+
+    static {
+        DelegatingDatagramSocket.setDefaultReceiveBufferSize(SOCKET_BUFFER_SIZE);
+    }
 
     private static boolean ALLOW_HOST = true;
     private static boolean ALLOW_REFLEXIVE = true;
@@ -94,6 +103,18 @@ public class PeerIceModule {
         debug().peerStateChanged(this.peer);
     }
 
+    private void applySocketBuffers(DatagramSocket socket) {
+        if (socket == null) {
+            return;
+        }
+        try {
+            socket.setReceiveBufferSize(SOCKET_BUFFER_SIZE);
+            socket.setSendBufferSize(SOCKET_BUFFER_SIZE);
+        } catch (SocketException e) {
+            log.warn("{} Could not set buffer size on socket", getLogPrefix(), e);
+        }
+    }
+
     /**
      * Will start the ICE Process
      */
@@ -125,7 +146,7 @@ public class PeerIceModule {
      */
     private void createAgent() {
         if (agent != null) {
-            agent.free();
+            AgentUtil.free(agent, mediaStream);
         }
 
         agent = new Agent();
@@ -151,7 +172,7 @@ public class PeerIceModule {
         // TURN is latency sensitive
         List<IceServer> iceServers = getViableIceServers();
         iceServers.forEach(iceServer -> iceServer.getTurnAddresses().forEach(address -> {
-            var harvester = new TurnCandidateHarvester(
+            var harvester = new GuardedTurnCandidateHarvester(
                     address, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential()));
             log.info("{} Add TURN harvester for {}", getLogPrefix(), address.getHostName());
             agent.addCandidateHarvester(harvester);
@@ -166,6 +187,8 @@ public class PeerIceModule {
                                         + (int) (ThreadLocalRandom.current().nextDouble() * 999.0),
                                 MINIMUM_PORT,
                                 MINIMUM_PORT + 1000);
+                        applySocketBuffers(component.getSocket());
+                        applySocketBuffers(component.getComponentSocket());
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -192,6 +215,9 @@ public class PeerIceModule {
             log.error("{} Gathering candidates timed out", getLogPrefix(), e);
             CompletableFuture.runAsync(this::onConnectionLost, IceAdapter.getExecutor());
             return;
+        }
+        for (LocalCandidate candidate : component.getLocalCandidates()) {
+            applySocketBuffers(candidate.getDatagramSocket());
         }
 
         long previousConnectivityAttempts = getConnectivityAttempsInThePast(FORCE_SRFLX_RELAY_INTERVAL);
@@ -331,7 +357,7 @@ public class PeerIceModule {
      * Runs the actual connectivity establishment, candidates have been exchanged and need to be checked
      */
     private void startIce() {
-        connectivityAttemptTimes.add(0, System.currentTimeMillis());
+        connectivityAttemptTimes.addFirst(System.currentTimeMillis());
 
         log.debug("{} Starting ICE for peer {}", getLogPrefix(), peer.getRemoteId());
         agent.startConnectivityEstablishment();
@@ -372,6 +398,10 @@ public class PeerIceModule {
         connected = true;
         rpcService.onConnected(IceAdapter.getId(), peer.getRemoteId(), true);
         setState(CONNECTED);
+
+        if (component.getSelectedPair() != null && component.getSelectedPair().getLocalCandidate() != null) {
+            applySocketBuffers(component.getSelectedPair().getLocalCandidate().getDatagramSocket());
+        }
 
         if (component.getSelectedPair().getLocalCandidate().getType() == CandidateType.RELAYED_CANDIDATE) {
             turnRefreshModule = new PeerTurnRefreshModule(
@@ -421,7 +451,7 @@ public class PeerIceModule {
             setState(DISCONNECTED);
 
             if (agent != null) {
-                agent.free();
+                AgentUtil.free(agent, mediaStream);
                 agent = null;
                 mediaStream = null;
                 component = null;
@@ -480,23 +510,7 @@ public class PeerIceModule {
     void sendViaIce(byte[] data, int offset, int length) {
         if (connected && component != null) {
             try {
-                component
-                        .getSelectedPair()
-                        .getIceSocketWrapper()
-                        .send(new DatagramPacket(
-                                data,
-                                offset,
-                                length,
-                                component
-                                        .getSelectedPair()
-                                        .getRemoteCandidate()
-                                        .getTransportAddress()
-                                        .getAddress(),
-                                component
-                                        .getSelectedPair()
-                                        .getRemoteCandidate()
-                                        .getTransportAddress()
-                                        .getPort()));
+                component.getComponentSocket().send(new DatagramPacket(data, offset, length));
             } catch (IOException e) {
                 log.warn("{} Failed to send data via ICE", getLogPrefix(), e);
                 onConnectionLost();
@@ -515,14 +529,11 @@ public class PeerIceModule {
 
         byte[] data = new byte
                 [65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
+        DatagramPacket packet = new DatagramPacket(data, data.length);
         while (!Thread.currentThread().isInterrupted() && IceAdapter.getGameSession() == peer.getGameSession()) {
             try {
-                DatagramPacket packet = new DatagramPacket(data, data.length);
-                localComponent
-                        .getSelectedPair()
-                        .getIceSocketWrapper()
-                        .getUDPSocket()
-                        .receive(packet);
+                packet.setLength(data.length);
+                localComponent.getComponentSocket().receive(packet);
 
                 if (packet.getLength() == 0) {
                     continue;
@@ -583,7 +594,7 @@ public class PeerIceModule {
         }
 
         if (agent != null) {
-            agent.free();
+            AgentUtil.free(agent, mediaStream);
             agent = null;
             mediaStream = null;
             component = null;
