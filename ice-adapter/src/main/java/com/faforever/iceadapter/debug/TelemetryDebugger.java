@@ -11,15 +11,17 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 import java.net.ConnectException;
 import java.net.URI;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.ice.Candidate;
@@ -38,25 +40,28 @@ import org.java_websocket.handshake.ServerHandshake;
  * telemetry is a debug-only observability channel and must never gate core ICE adapter behaviour.
  *
  * <p>Outgoing messages are decoupled from the calling thread by a
- * {@link LinkedBlockingQueue} drained by {@link #sendingLoop()} on a dedicated virtual thread.
- * The queue is unbounded, so messages produced before the socket opens (or during a transient
- * drop) are buffered and flushed on (re)connect.
+ * {@link LinkedBlockingDeque} drained by {@link #sendingLoop()} on a dedicated virtual thread.
+ * The sending loop only starts once the socket is open, so messages produced while connecting
+ * are buffered and sent after {@link RegisterAsPeer}. If the connect fails or times out,
+ * telemetry is disabled for the rest of the session.
  */
 @Slf4j
 public class TelemetryDebugger implements Debugger, AutoCloseable {
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
+
     private final WebSocketClient websocketClient;
     private final ObjectMapper objectMapper;
 
     private final Map<Integer, RateLimiter> peerRateLimiter = new ConcurrentHashMap<>();
-    private final BlockingQueue<OutgoingMessageV1> messageQueue = new LinkedBlockingQueue<>();
+    private final BlockingDeque<OutgoingMessageV1> messageQueue = new LinkedBlockingDeque<>();
 
-    private final Thread sendingLoopThread;
+    private volatile Thread connectThread;
+    private volatile Thread sendingLoopThread;
 
     /**
      * Registers this debugger with {@link Debug}, builds the telemetry WebSocket client targeting
-     * {@code <telemetryServer>/adapter/v1/game/<gameId>/player/<playerId>}, and starts the virtual
-     * thread that drains the outgoing message queue. The connection itself is not opened here; see
-     * {@link #startupComplete()}.
+     * {@code <telemetryServer>/adapter/v1/game/<gameId>/player/<playerId>}. Neither the connection
+     * nor the sending loop is started here; see {@link #startupComplete()}.
      *
      * @param telemetryServer base URI of the telemetry server (e.g. {@code wss://...}).
      * @param gameId          FAF game id this adapter instance belongs to.
@@ -118,17 +123,14 @@ public class TelemetryDebugger implements Debugger, AutoCloseable {
 
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
-
-        sendingLoopThread = Thread.ofVirtual().name("sendingLoop").start(this::sendingLoop);
     }
 
     /**
      * Enqueues an outgoing telemetry message for transmission by {@link #sendingLoop()}.
      *
-     * <p>The queue is unbounded and the put is interruptible; if the calling thread is interrupted
-     * while waiting (which the {@link LinkedBlockingQueue} does not in practice for an unbounded
-     * queue) the {@link InterruptedException} is rethrown wrapped as a {@link RuntimeException} so
-     * callers do not need to declare it.
+     * <p>The queue is unbounded, so the put never waits for space, but it still throws
+     * {@link InterruptedException} if the calling thread's interrupt flag is set. That exception
+     * is rethrown wrapped as a {@link RuntimeException} so callers do not need to declare it.
      *
      * @param message message to enqueue.
      */
@@ -175,53 +177,63 @@ public class TelemetryDebugger implements Debugger, AutoCloseable {
     }
 
     /**
-     * Connects to the telemetry websocket server asynchronously and registers this adapter as a peer
-     * once the connection is established.
+     * Connects to the telemetry websocket server asynchronously, see {@link #connect()}.
      *
      * <p>Telemetry is a debug-only, strictly outgoing observability channel; no game logic depends
      * on it being connected. The connect is therefore performed on a virtual thread so that
-     * {@code IceAdapter.start()} returns immediately and peer connectivity is never gated on the
-     * telemetry server being reachable.
-     *
-     * <p>Previously this method called {@code websocketClient.connectBlocking()} synchronously on
-     * the startup thread with no timeout. When the telemetry server's TCP layer was reachable but
-     * its application layer was hung (for example an alive load balancer fronting a dead backend),
-     * the WebSocket Upgrade response never arrived and startup blocked until TCP keepalive killed
-     * the socket roughly two hours later. The user-visible symptom was "the ice adapter doesn't
-     * connect to other players" because the FAF client's adapter-ready orchestration tripped its
-     * own timeouts long before {@code start()} returned.
-     *
-     * <p>Failure handling:
-     * <ul>
-     *   <li>If {@code connectBlocking()} returns {@code false}, this debugger is removed via
-     *       {@link Debug#remove(Debugger)} and no further telemetry is queued.</li>
-     *   <li>If the connect thread is interrupted, the debugger is removed, the failure is logged,
-     *       and the interrupt flag is re-asserted on the current thread per Java best practice.</li>
-     *   <li>On a successful connect, a {@link RegisterAsPeer} message is enqueued. The pre-existing
-     *       reconnect logic in {@link #sendingLoop()} handles transient drops; queued messages catch
-     *       up once the socket re-opens because {@code messageQueue} is unbounded.</li>
-     * </ul>
+     * {@code IceAdapter.start()} returns immediately and a slow or hung telemetry server can never
+     * hold up startup.
      *
      * @see <a href="https://github.com/FAForever/java-ice-adapter/issues/42">Issue #42</a>
      */
     @Override
     public void startupComplete() {
-        Thread.ofVirtual().name("telemetry-connect").start(() -> {
-            try {
-                if (!websocketClient.connectBlocking()) {
-                    Debug.remove(this);
-                    return;
-                }
-            } catch (InterruptedException e) {
-                Debug.remove(this);
-                log.error("Failed to connect to telemetry websocket", e);
-                Thread.currentThread().interrupt();
+        connectThread = Thread.ofVirtual().name("telemetry-connect").start(this::connect);
+    }
+
+    /**
+     * Body of the {@code telemetry-connect} virtual thread.
+     *
+     * <p>Failure handling:
+     * <ul>
+     *   <li>If the connect fails or does not complete within {@link #CONNECT_TIMEOUT}, telemetry is
+     *       disabled via {@link #disable()}. The timeout covers servers whose TCP layer is reachable
+     *       but whose application layer never answers the WebSocket upgrade.</li>
+     *   <li>If the connect thread is interrupted, telemetry is disabled and the interrupt flag is
+     *       re-asserted on the current thread per Java best practice.</li>
+     *   <li>On a successful connect, a {@link RegisterAsPeer} message is put at the head of the queue
+     *       so it is sent before anything queued while connecting, then the sending loop is started.
+     *       The reconnect logic in {@link #sendingLoop()} handles later transient drops.</li>
+     * </ul>
+     */
+    private void connect() {
+        try {
+            if (!websocketClient.connectBlocking(CONNECT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
+                log.warn("Could not connect to telemetry websocket within {}, disabling telemetry", CONNECT_TIMEOUT);
+                disable();
                 return;
             }
+        } catch (InterruptedException e) {
+            log.info("Telemetry websocket connect interrupted");
+            disable();
+            Thread.currentThread().interrupt();
+            return;
+        }
 
-            sendMessage(new RegisterAsPeer(
-                    UUID.randomUUID(), "java-ice-adapter/" + IceAdapter.getVersion(), IceAdapter.getLogin()));
-        });
+        // Messages queued while connecting are kept until now, RegisterAsPeer has to be sent before them
+        messageQueue.addFirst(new RegisterAsPeer(
+                UUID.randomUUID(), "java-ice-adapter/" + IceAdapter.getVersion(), IceAdapter.getLogin()));
+        sendingLoopThread = Thread.ofVirtual().name("sendingLoop").start(this::sendingLoop);
+    }
+
+    /**
+     * Removes this debugger via {@link Debug#remove(Debugger)} so subsequent {@code debug().*} calls
+     * no longer reach it, drops everything queued so far and closes the websocket.
+     */
+    private void disable() {
+        Debug.remove(this);
+        messageQueue.clear();
+        websocketClient.close();
     }
 
     /**
@@ -378,7 +390,7 @@ public class TelemetryDebugger implements Debugger, AutoCloseable {
     }
 
     /**
-     * Interrupts the sending loop so the dedicated virtual thread can exit cleanly.
+     * Interrupts the connect and sending loop threads, if started, so they can exit cleanly.
      *
      * <p>Implements {@link AutoCloseable} so callers can manage telemetry lifetime with
      * try-with-resources. The WebSocket itself is not closed here - the underlying
@@ -386,6 +398,11 @@ public class TelemetryDebugger implements Debugger, AutoCloseable {
      */
     @Override
     public void close() {
-        sendingLoopThread.interrupt();
+        if (connectThread != null) {
+            connectThread.interrupt();
+        }
+        if (sendingLoopThread != null) {
+            sendingLoopThread.interrupt();
+        }
     }
 }
