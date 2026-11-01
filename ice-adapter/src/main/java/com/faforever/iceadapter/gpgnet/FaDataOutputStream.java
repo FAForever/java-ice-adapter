@@ -73,15 +73,20 @@ public class FaDataOutputStream extends OutputStream {
         writeInt(args.size());
 
         for (Object arg : args) {
-            if (arg instanceof Double d) {
-                writeByte(FIELD_TYPE_INT);
-                writeInt(d.intValue());
-            } else if (arg instanceof Integer i) {
-                writeByte(FIELD_TYPE_INT);
-                writeInt(i);
-            } else if (arg instanceof String value) {
-                writeByte(FIELD_TYPE_STRING);
-                writeString(value);
+            switch (arg) {
+                case Double d -> {
+                    writeByte(FIELD_TYPE_INT);
+                    writeInt(d.intValue());
+                }
+                case Integer i -> {
+                    writeByte(FIELD_TYPE_INT);
+                    writeInt(i);
+                }
+                case String value -> {
+                    writeByte(FIELD_TYPE_STRING);
+                    writeString(value);
+                }
+                case null, default -> {}
             }
         }
     }

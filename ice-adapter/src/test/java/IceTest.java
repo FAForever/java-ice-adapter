@@ -214,7 +214,7 @@ public class IceTest {
                                     .getPort()));
             byte[] data = new byte[1024];
             component.getSelectedPair().getIceSocketWrapper().receive(new DatagramPacket(data, data.length));
-            System.out.println("Got data: " + new String(data));
+            IO.println("Got data: " + new String(data));
             try {
                 Thread.sleep(2500);
             } catch (InterruptedException e) {
