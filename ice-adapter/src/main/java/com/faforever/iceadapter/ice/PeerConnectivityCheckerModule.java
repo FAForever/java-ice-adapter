@@ -19,8 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PeerConnectivityCheckerModule {
 
-    private static final int ECHO_INTERVAL = 1000;
-
     private final PeerIceModule ice;
     private final Lock lockIce = new ReentrantLock();
     private volatile boolean running = false;
@@ -125,7 +123,7 @@ public class PeerConnectivityCheckerModule {
             debug().peerConnectivityUpdate(peer);
 
             try {
-                Thread.sleep(ECHO_INTERVAL);
+                Thread.sleep(IceAdapter.getEchoIntervalMs());
             } catch (InterruptedException e) {
                 log.warn(
                         "{} (sleeping checkerThread) was interrupted",
@@ -133,9 +131,11 @@ public class PeerConnectivityCheckerModule {
                 return;
             }
 
-            if (System.currentTimeMillis() - lastPacketReceived > 10000) {
+            int timeoutMs = IceAdapter.getEchoTimeoutMs();
+            if (System.currentTimeMillis() - lastPacketReceived > timeoutMs) {
                 log.warn(
-                        "Didn't receive any answer to echo requests for the past 10 seconds from {}, aborting connection",
+                        "Didn't receive any answer to echo requests for the past {}ms from {}, aborting connection",
+                        timeoutMs,
                         peer.getRemoteLogin());
                 CompletableFuture.runAsync(ice::onConnectionLost, IceAdapter.getExecutor());
                 return;
