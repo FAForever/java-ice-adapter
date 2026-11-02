@@ -14,6 +14,8 @@ jobs:
   release:
     environment: deploy
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +49,7 @@ jobs:
         id: create_release
         uses: ncipollo/release-action@v1
         with:
+          allowUpdates: true
           commit: ${{ github.sha }}
           tag: ${{ github.event.inputs.version }}
           draft: true
