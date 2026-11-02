@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * faf-test-harness's mock-game: speaks GPGNet to the adapter and, once told about a peer, sends it one
@@ -42,11 +43,17 @@ final class MockGameProcess implements AutoCloseable {
                 logDir));
     }
 
+    /** The datagrams this game has received from {@code senderId} as of its latest progress line, or 0. */
+    long trafficFrom(int senderId) throws IOException {
+        return process.findLine(Pattern.compile(progressLine(senderId)))
+                .map(match -> Long.parseLong(match.group(1)))
+                .orElse(0L);
+    }
+
     /** Waits until this game has received at least {@code datagrams} datagrams from {@code senderId}. */
     long awaitTrafficFrom(int senderId, long datagrams, Duration timeout)
             throws IOException, InterruptedException, TimeoutException {
-        String progress =
-                "peer traffic from player " + senderId + ": (\\d+) datagrams, highest sequence \\d+, gaps (\\d+)";
+        String progress = progressLine(senderId);
         long deadline = System.nanoTime() + timeout.toNanos();
         while (true) {
             Matcher match = process.awaitLine(progress, Duration.ofNanos(Math.max(0, deadline - System.nanoTime())));
@@ -60,6 +67,10 @@ final class MockGameProcess implements AutoCloseable {
             }
             Thread.sleep(250);
         }
+    }
+
+    private static String progressLine(int senderId) {
+        return "peer traffic from player " + senderId + ": (\\d+) datagrams, highest sequence \\d+, gaps (\\d+)";
     }
 
     @Override

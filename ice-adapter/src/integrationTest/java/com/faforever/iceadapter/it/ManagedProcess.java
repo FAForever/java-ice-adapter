@@ -87,6 +87,13 @@ class ManagedProcess implements AutoCloseable {
         return process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
+    /** Kills the process without letting it shut down, as a crash would. */
+    void kill() throws InterruptedException {
+        process.descendants().forEach(ProcessHandle::destroyForcibly);
+        process.destroyForcibly();
+        process.waitFor(5, TimeUnit.SECONDS);
+    }
+
     @Override
     public void close() throws InterruptedException {
         process.descendants().forEach(ProcessHandle::destroyForcibly);

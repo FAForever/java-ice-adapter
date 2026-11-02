@@ -104,13 +104,26 @@ final class RpcClient implements AutoCloseable {
         listeners.add(listener);
     }
 
+    /** The number of notifications received so far, to await only those that arrive after this point. */
+    int mark() {
+        synchronized (notifications) {
+            return notifications.size();
+        }
+    }
+
     /** Waits for a notification, including one that already arrived. */
     Notification await(String description, Predicate<Notification> condition, Duration timeout)
+            throws InterruptedException, TimeoutException {
+        return awaitSince(0, description, condition, timeout);
+    }
+
+    /** Waits for a notification that arrived after {@link #mark()} returned {@code mark}. */
+    Notification awaitSince(int mark, String description, Predicate<Notification> condition, Duration timeout)
             throws InterruptedException, TimeoutException {
         long deadline = System.nanoTime() + timeout.toNanos();
         synchronized (notifications) {
             while (true) {
-                for (Notification notification : notifications) {
+                for (Notification notification : notifications.subList(mark, notifications.size())) {
                     if (condition.test(notification)) {
                         return notification;
                     }
@@ -118,7 +131,9 @@ final class RpcClient implements AutoCloseable {
                 long remaining = deadline - System.nanoTime();
                 if (remaining <= 0) {
                     throw new TimeoutException("No " + description + " within " + timeout + "; received "
-                            + notifications.stream().map(Notification::method).toList());
+                            + notifications.subList(mark, notifications.size()).stream()
+                                    .map(Notification::method)
+                                    .toList());
                 }
                 TimeUnit.NANOSECONDS.timedWait(notifications, remaining);
             }
@@ -127,7 +142,13 @@ final class RpcClient implements AutoCloseable {
 
     Notification awaitGpgNetMessage(String header, String firstChunk, Duration timeout)
             throws InterruptedException, TimeoutException {
-        return await(
+        return awaitGpgNetMessageSince(0, header, firstChunk, timeout);
+    }
+
+    Notification awaitGpgNetMessageSince(int mark, String header, String firstChunk, Duration timeout)
+            throws InterruptedException, TimeoutException {
+        return awaitSince(
+                mark,
                 "onGpgNetMessageReceived " + header + " " + firstChunk,
                 n -> n.method().equals("onGpgNetMessageReceived")
                         && n.params().get(0).asText().equals(header)
