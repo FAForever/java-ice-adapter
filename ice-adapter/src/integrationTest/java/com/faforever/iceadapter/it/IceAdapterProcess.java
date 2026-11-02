@@ -69,6 +69,14 @@ final class IceAdapterProcess implements AutoCloseable {
                 logDir);
         try {
             RpcClient rpc = RpcClient.connect(rpcPort, Duration.ofSeconds(30));
+            // An adapter that cannot bind its RPC port logs the error and runs on, so make sure the port
+            // answers as this adapter rather than as something else that holds it.
+            int answeringId = rpc.status().path("options").path("player_id").asInt();
+            if (answeringId != playerId) {
+                rpc.close();
+                throw new IllegalStateException("RPC port " + rpcPort + " answered as player " + answeringId + ", not "
+                        + playerId + "; see " + process.logFile());
+            }
             return new IceAdapterProcess(playerId, login, rpcPort, gpgNetPort, lobbyPort, process, rpc);
         } catch (Exception e) {
             // Includes the interrupt of a JUnit timeout: start() never returned, so no caller can close it.

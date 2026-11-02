@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
@@ -21,6 +24,10 @@ import java.util.regex.Pattern;
  * kept as CI evidence afterwards.
  */
 class ManagedProcess implements AutoCloseable {
+
+    private static final int PORT_RANGE_START = 20000;
+    private static final int PORT_RANGE_END = 32000;
+    private static final Set<Integer> HANDED_OUT = ConcurrentHashMap.newKeySet();
 
     private final String name;
     private final Process process;
@@ -78,6 +85,10 @@ class ManagedProcess implements AutoCloseable {
         return Files.readAllLines(logFile, StandardCharsets.UTF_8);
     }
 
+    Path logFile() {
+        return logFile;
+    }
+
     boolean isAlive() {
         return process.isAlive();
     }
@@ -104,15 +115,48 @@ class ManagedProcess implements AutoCloseable {
         }
     }
 
+    /** A TCP port that is free now and has not been handed out before in this run. */
     static int freeTcpPort() throws IOException {
-        try (ServerSocket socket = new ServerSocket(0)) {
-            return socket.getLocalPort();
-        }
+        return freePort(port -> {
+            try (ServerSocket socket = new ServerSocket(port)) {
+                return true;
+            }
+        });
     }
 
+    /** A UDP port that is free now and has not been handed out before in this run. */
     static int freeUdpPort() throws IOException {
-        try (DatagramSocket socket = new DatagramSocket(0)) {
-            return socket.getLocalPort();
+        return freePort(port -> {
+            try (DatagramSocket socket = new DatagramSocket(port)) {
+                return true;
+            }
+        });
+    }
+
+    private interface PortProbe {
+        boolean bind(int port) throws IOException;
+    }
+
+    /**
+     * The port is released before the subprocess binds it. An OS-assigned port lies in the ephemeral range,
+     * where any outgoing connection can take it in the meantime (seen on the Linux runner), so the ports
+     * come from below every platform's ephemeral range (Linux 32768+, Windows and macOS 49152+) and above the
+     * adapter's own ICE range (6112-7112).
+     */
+    private static int freePort(PortProbe probe) throws IOException {
+        for (int attempt = 0; attempt < 100; attempt++) {
+            int port = ThreadLocalRandom.current().nextInt(PORT_RANGE_START, PORT_RANGE_END);
+            if (!HANDED_OUT.add(port)) {
+                continue;
+            }
+            try {
+                if (probe.bind(port)) {
+                    return port;
+                }
+            } catch (IOException e) {
+                // In use; try another.
+            }
         }
+        throw new IOException("No free port in " + PORT_RANGE_START + "-" + PORT_RANGE_END);
     }
 }
