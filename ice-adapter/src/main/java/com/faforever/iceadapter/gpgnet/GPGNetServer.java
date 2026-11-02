@@ -48,9 +48,10 @@ public class GPGNetServer implements AutoCloseable {
         return INSTANCE.lobbyInitMode;
     }
 
-    public void init(int gpgnetPort, int lobbyPort, RPCService rpcService) {
+    public void init(int gpgnetPort, int lobbyPort, RPCService rpcService, String lobbyInitMode) {
         INSTANCE = this;
         this.rpcService = rpcService;
+        this.lobbyInitMode = LobbyInitMode.getByName(lobbyInitMode);
 
         if (gpgnetPort == 0) {
             this.gpgnetPort = NetworkToolbox.findFreeTCPPort(20000, 65536);
