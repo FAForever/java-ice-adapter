@@ -18,6 +18,8 @@ The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www
 | connectToPeer | remotePlayerLogin (string), remotePlayerId (int), offer (bool)| | Create a PeerRelay and tell the game to connect to the remote peer with offer/answer mode. |
 | disconnectFromPeer | remotePlayerId (int)| | Destroy PeerRelay and tell the game to disconnect from the remote peer. |
 | setLobbyInitMode | lobbyInitMode (string): "normal" or "auto" | | Set the lobby mode the game will use. Supported values are "normal" for normal lobby and "auto" for automatch lobby (aka ladder). |
+| setKeepSessionOnGameExit | seconds (int) | | Keep the peer links and their local ports this long after a running game exits, so a game started again can go on over them. 0, the default, closes the session at once. |
+| peerPorts | | map | What a game started again needs: `lobbyPort`, and `peers`, the local port of each peer by player id. |
 | iceMsg | remotePlayerId (int), msg (object) | | Add the remote ICE message to the PeerRelay to establish a connection. |
 | sendToGpgNet | header (string), chunks (array) | | Send an arbitrary message to the game. |
 | setIceServers | iceServers (array) | | ICE server array for use in webrtc. Must be called before joinGame/connectToPeer. See https://developer.mozilla.org/en-US/docs/Web/API/RTCIceServer |

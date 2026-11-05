@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,6 +59,24 @@ public class RPCHandler {
     public void setLobbyInitMode(String lobbyInitMode) {
         gpgNetServer.setLobbyInitMode(LobbyInitMode.getByName(lobbyInitMode));
         log.debug("LobbyInitMode set to {}", lobbyInitMode);
+    }
+
+    public void setKeepSessionOnGameExit(long seconds) {
+        gpgNetServer.setKeepSessionSeconds((int) seconds);
+        log.debug("Keeping the session for {} s after the game exits", seconds);
+    }
+
+    /**
+     * What a game started again needs to reach its peers: its lobby port, and the local port it
+     * sees each peer on, by player id. Empty peers when there is no session.
+     */
+    public Map<String, Object> peerPorts() {
+        Map<String, Integer> peers = new HashMap<>();
+        GameSession gameSession = IceAdapter.getGameSession();
+        if (gameSession != null) {
+            gameSession.getPeers().forEach((id, peer) -> peers.put(String.valueOf(id), peer.getLocalPort()));
+        }
+        return Map.of("lobbyPort", gpgNetServer.getLobbyPort(), "peers", peers);
     }
 
     public void iceMsg(long remotePlayerId, Object msg) {
