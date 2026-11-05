@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -26,6 +27,16 @@ public class GPGNetServer implements AutoCloseable {
     private static GPGNetServer INSTANCE;
 
     private final Lock lockSocket = new ReentrantLock();
+
+    /**
+     * How long the session outlives a game that exits while running, for a restarted game to
+     * take its seat back over the same peer links. 0, the default, closes it at once.
+     */
+    @Setter
+    private volatile int keepSessionSeconds = 0;
+
+    private volatile boolean gameRunning = false;
+    private int sessionHold = 0;
 
     private int gpgnetPort;
     private int lobbyPort;
@@ -115,6 +126,8 @@ public class GPGNetServer implements AutoCloseable {
                 case "GameState" -> {
                     gameState = GameState.getByName((String) args.getFirst());
                     log.debug("New GameState: {}", gameState.getName());
+
+                    gameRunning = gameState == GameState.LAUNCHING;
 
                     if (gameState == GameState.IDLE) {
                         sendGpgnetMessage(
@@ -229,7 +242,11 @@ public class GPGNetServer implements AutoCloseable {
 
                 rpcService.onConnectionStateChanged("Disconnected");
 
-                IceAdapter.onFAShutdown();
+                if (gameRunning && keepSessionSeconds > 0) {
+                    holdSession();
+                } else {
+                    IceAdapter.onFAShutdown();
+                }
             }
         });
         debug().gpgnetConnectedDisconnected();
@@ -251,6 +268,7 @@ public class GPGNetServer implements AutoCloseable {
                         onGpgnetConnectionLost();
                     }
 
+                    sessionHold++; // A game is back, so whatever hold there was is over
                     currentClient = new GPGNetClient(socket);
                     clientFuture.complete(currentClient);
 
@@ -266,6 +284,23 @@ public class GPGNetServer implements AutoCloseable {
                 log.error("Could not listen on socket", e);
             }
         }
+    }
+
+    /**
+     * Keeps the session for a restarted game, and closes it if none comes in time. Must hold lockSocket.
+     */
+    private void holdSession() {
+        int hold = ++sessionHold;
+        log.info("Keeping the session for {} s for a restarted game", keepSessionSeconds);
+        CompletableFuture.delayedExecutor(keepSessionSeconds, TimeUnit.SECONDS).execute(() -> {
+            LockUtil.executeWithLock(lockSocket, () -> {
+                if (hold == sessionHold && currentClient == null) {
+                    log.info("No game came back, closing the session");
+                    gameRunning = false;
+                    IceAdapter.onFAShutdown();
+                }
+            });
+        });
     }
 
     /**
